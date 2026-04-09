@@ -38,13 +38,15 @@ export function TriviaUI() {
       <ScrollView className="w-full flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
         <View className="w-full gap-4">
           {gameData.options?.map((opt: string, idx: number) => {
+            const isLocked = gameData.isLockedOut;
             const color = colors[idx % colors.length];
             return (
               <TouchableOpacity
                 key={idx}
                 activeOpacity={0.7}
                 onPress={() => handleAnswer(opt)}
-                className={`${color.bg} border-b-[10px] ${color.border} py-6 rounded-[32px] items-center justify-center shadow-2xl px-6 min-h-[80px]`}
+                disabled={isLocked || gameData.isTransitioning}
+                className={`${isLocked ? 'bg-slate-700 border-slate-900 opacity-50' : color.bg} border-b-[10px] ${isLocked ? 'border-slate-900' : color.border} py-6 rounded-[32px] items-center justify-center shadow-2xl px-6 min-h-[80px]`}
               >
                 <Text className="text-white text-2xl font-black text-center tracking-tight" numberOfLines={2}>
                   {opt}
@@ -53,6 +55,9 @@ export function TriviaUI() {
             );
           })}
         </View>
+        {gameData.isLockedOut && !gameData.isTransitioning && (
+          <Text className="text-red-400 font-black text-xl mt-6 tracking-widest text-center uppercase shadow-sm">Waiting for someone to get it right...</Text>
+        )}
       </ScrollView>
 
       <View className="mt-4 bg-indigo-900/60 px-8 py-3 rounded-full border-4 border-white/30 shadow-lg flex-row items-center">

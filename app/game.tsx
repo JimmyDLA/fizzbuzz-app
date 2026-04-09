@@ -7,6 +7,7 @@ import { LumberCutUI } from '../components/games/LumberCutUI';
 import { MathProblemUI } from '../components/games/MathProblemUI';
 import { TappingRaceUI } from '../components/games/TappingRaceUI';
 import { TriviaUI } from '../components/games/TriviaUI';
+import { RockPaperScissorsUI } from '../components/games/RockPaperScissorsUI';
 import { PartyButton } from '../components/PartyButton';
 import { colyseusService } from '../store/colyseusService';
 
@@ -44,6 +45,7 @@ export default function GameScreen() {
       case "Hot Potato": return <HotPotatoUI />;
       case "Lumber Cut": return <LumberCutUI />;
       case "Trivia": return <TriviaUI />;
+      case "Rock Paper Scissors": return <RockPaperScissorsUI />;
       default: return (
         <Text className="text-white text-2xl font-bold text-center bg-black/20 p-6 rounded-3xl">
           Mini-game interactive UI goes here! Turn the phone to play.
@@ -59,9 +61,11 @@ export default function GameScreen() {
         <Text className="text-white text-xl font-bold mb-6 uppercase opacity-90">{currentGameType}</Text>
       </View>
 
-      <View className="bg-white/20 px-8 py-4 rounded-full border-[6px] border-white/30 shadow-xl mb-4 absolute top-[4.5rem] right-6 z-50">
-        <Text className="text-white font-black text-xl">{timer}</Text>
-      </View>
+      {currentCategory !== "Hot Potato" && currentCategory !== "Rock Paper Scissors" && (
+        <View className="bg-white/20 px-8 py-4 rounded-full border-[6px] border-white/30 shadow-xl mb-4 absolute top-[4.5rem] right-6 z-50">
+          <Text className="text-white font-black text-xl">{timer}</Text>
+        </View>
+      )}
 
       <View className="flex-1 w-full relative">
         {renderMiniGame()}

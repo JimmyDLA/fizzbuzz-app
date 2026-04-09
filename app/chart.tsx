@@ -6,7 +6,7 @@ import { PartyButton } from '../components/PartyButton';
 import { colyseusService } from '../store/colyseusService';
 
 const TYPES = ["1v1", "2v2", "BR"];
-const CATS = ["Tapping Race", "Math Problem", "Hot Potato", "Lumber Cut", "Trivia"];
+const CATS = ["Tapping Race", "Math Problem", "Hot Potato", "Lumber Cut", "Trivia", "Rock Paper Scissors"];
 
 export default function ChartScreen() {
   const { roomId, playerName, players: reduxPlayers, gamePhase, timer, currentGameType, currentCategory, selectedPlayers } = useSelector((state: any) => state.lobby);
@@ -109,12 +109,32 @@ export default function ChartScreen() {
 
   const toggleDevPlayer = (id: string) => {
     if (devPlayers.includes(id)) {
-      console.log('Removing player:', id);
       setDevPlayers(devPlayers.filter(p => p !== id));
     } else {
-      console.log('Adding player:', devPlayers, id);
       setDevPlayers([...devPlayers, id]);
     }
+  };
+
+  const handleDevCategoryChange = (c: string) => {
+    setDevCategory(c);
+    // Enforce 1v1 for RPS
+    if (c === "Rock Paper Scissors") {
+      setDevType("1v1");
+    }
+    // Enforce no 2v2 for Hot Potato
+    if (c === "Hot Potato" && devType === "2v2") {
+      setDevType("1v1");
+    }
+  };
+
+  const handleDevTypeChange = (t: string) => {
+    if (devCategory === "Rock Paper Scissors" && t !== "1v1") {
+      return; // RPS is strictly 1v1
+    }
+    if (devCategory === "Hot Potato" && t === "2v2") {
+      return; // Hot Potato doesn't do 2v2
+    }
+    setDevType(t);
   };
 
   const handleDevStart = () => {
@@ -163,7 +183,9 @@ export default function ChartScreen() {
                   <View className="w-12 h-12 bg-white/20 rounded-full items-center justify-center mr-3">
                     <Text className="text-2xl font-black text-white">{p.name.charAt(0)}</Text>
                   </View>
-                  <Text className="text-2xl font-black text-white flex-1" numberOfLines={1}>{p.name} {p.isHost && '👑'}</Text>
+                  <Text className="text-2xl font-black text-white flex-1" numberOfLines={1}>
+                    {p.name} {p.isHost && '👑'}
+                  </Text>
                 </View>
                 <View className="flex-row items-center bg-yellow-400 px-4 py-2 rounded-2xl ml-2 shadow-sm border-b-4 border-yellow-600">
                   <View className="w-5 h-7 bg-yellow-200 rounded-[10px] border-2 border-orange-500 items-center justify-center mr-2 shadow-sm">
@@ -197,14 +219,47 @@ export default function ChartScreen() {
       {showWheelModal && (
         <View className="absolute top-0 left-0 w-full h-[150%] bg-black/90 p-6 z-50 pt-32">
           <View className="bg-pink-500 w-full p-8 rounded-[40px] border-[10px] border-pink-700 shadow-2xl items-center relative">
-            <Text className="text-white text-5xl font-black mb-8 text-center shadow-lg uppercase" style={{ textShadowColor: 'rgba(0,0,0,0.3)', textShadowOffset: { width: 3, height: 3 }, textShadowRadius: 1 }}>{displayedType}</Text>
+            <Text className="text-white text-5xl font-black mb-8 text-center shadow-lg uppercase"
+              style={{
+                textShadowColor: 'rgba(0,0,0,0.3)',
+                textShadowOffset: { width: 3, height: 3 },
+                textShadowRadius: 1
+              }}>
+              {displayedType}
+            </Text>
 
             <View className="flex-row flex-wrap justify-center items-center mb-6 gap-3 min-h-[130px]">
-              {players.filter((p: any) => displayedPlayers.includes(p.id)).map((p: any) => (
-                <View key={p.id} className="bg-white/20 px-5 py-3 rounded-full border-4 border-white/50">
-                  <Text className="text-white font-black text-xl">{p.name}</Text>
-                </View>
-              ))}
+              {(() => {
+                const selectedPs = players.filter((p: any) => displayedPlayers.includes(p.id));
+
+                if (displayedType === '2v2' && selectedPs.length === 4) {
+                  return (
+                    <View className="items-center justify-center flex-wrap">
+                      <View className="bg-indigo-500 px-5 py-3 rounded-full border-4 border-indigo-300 shadow-lg">
+                        <Text className="text-white font-black text-xl">{selectedPs[0].name} & {selectedPs[1].name}</Text>
+                      </View>
+                      <Text className="text-yellow-400 font-black text-3xl mx-4 italic"
+                        style={{
+                          textShadowColor: 'rgba(0,0,0,0.5)',
+                          textShadowOffset: { width: 2, height: 2 },
+                          textShadowRadius: 1
+                        }}
+                      >
+                        VS
+                      </Text>
+                      <View className="bg-rose-500 px-5 py-3 rounded-full border-4 border-rose-300 shadow-lg">
+                        <Text className="text-white font-black text-xl">{selectedPs[2].name} & {selectedPs[3].name}</Text>
+                      </View>
+                    </View>
+                  );
+                }
+
+                return selectedPs.map((p: any) => (
+                  <View key={p.id} className="bg-white/20 px-5 py-3 rounded-full border-4 border-white/50">
+                    <Text className="text-white font-black text-xl">{p.name}</Text>
+                  </View>
+                ));
+              })()}
             </View>
 
             <View className="bg-indigo-600 p-8 rounded-3xl border-8 border-indigo-400 w-full items-center justify-center mb-10 shadow-inner min-h-[160px]">
@@ -253,18 +308,26 @@ export default function ChartScreen() {
 
               <Text className="text-white font-black opacity-80 text-xl tracking-widest mb-4 ml-2">GAME TYPE</Text>
               <View className="flex-row gap-2 mb-8">
-                {TYPES.map(t => (
-                  <Pressable key={t} onPress={() => setDevType(t)} className={`flex-1 py-4 border-[6px] rounded-[32px] items-center ${devType === t ? 'bg-indigo-600 border-indigo-400' : 'bg-white/10 border-white/10'}`}>
-                    <Text className={`font-black text-xl tracking-wider ${devType === t ? 'text-white' : 'text-gray-400'}`}>{t}</Text>
-                  </Pressable>
-                ))}
+                {TYPES.map(t => {
+                  const isBlocked = (devCategory === "Rock Paper Scissors" && t !== "1v1") ||
+                    (devCategory === "Hot Potato" && t === "2v2");
+                  return (
+                    <Pressable
+                      key={t}
+                      onPress={() => handleDevTypeChange(t)}
+                      className={`flex-1 py-4 border-[6px] rounded-[32px] items-center ${devType === t ? 'bg-indigo-600 border-indigo-400' : 'bg-white/10 border-white/10'} ${isBlocked ? 'opacity-20' : ''}`}
+                    >
+                      <Text className={`font-black text-xl tracking-wider ${devType === t ? 'text-white' : 'text-gray-400'}`}>{t}</Text>
+                    </Pressable>
+                  );
+                })}
               </View>
 
               <Text className="text-white font-black opacity-80 text-xl tracking-widest mb-4 ml-2">CATEGORY</Text>
               <View className="flex-row flex-wrap gap-2 mb-8 border-b-4 border-white/10 pb-8">
                 {CATS.map(c => (
-                  <Pressable key={c} onPress={() => setDevCategory(c)} className={`w-[48%] py-6 border-[6px] rounded-[32px] items-center justify-center shadow-lg mb-2 ${devCategory === c ? 'bg-pink-600 border-pink-400' : 'bg-white/10 border-white/10'}`}>
-                    <Text className={`font-black text-center text-lg uppercase tracking-wider ${devCategory === c ? 'text-white' : 'text-gray-400'}`}>{c}</Text>
+                  <Pressable key={c} onPress={() => handleDevCategoryChange(c)} className={`w-[48%] py-4 border-[6px] rounded-[32px] items-center justify-center shadow-lg mb-2 ${devCategory === c ? 'bg-pink-600 border-pink-400' : 'bg-white/10 border-white/10'}`}>
+                    <Text className={`font-black text-center text-sm uppercase tracking-wider ${devCategory === c ? 'text-white' : 'text-gray-400'}`}>{c}</Text>
                   </Pressable>
                 ))}
               </View>

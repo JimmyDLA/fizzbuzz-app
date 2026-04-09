@@ -1,9 +1,9 @@
 import { useRouter } from 'expo-router';
+import { useEffect } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSelector } from 'react-redux';
 import { PartyButton } from '../components/PartyButton';
 import { colyseusService } from '../store/colyseusService';
-import { useEffect } from 'react';
 
 export default function LobbyScreen() {
   const router = useRouter();
@@ -51,7 +51,9 @@ export default function LobbyScreen() {
               <View className="w-14 h-14 bg-white/20 rounded-full items-center justify-center mr-4">
                 <Text className="text-3xl font-black text-white">{p.name.charAt(0)}</Text>
               </View>
-              <Text className="text-3xl font-black text-white flex-1" numberOfLines={1}>{p.name}</Text>
+              <Text className="text-3xl font-black text-white flex-1" numberOfLines={1}>
+                {p.name}
+              </Text>
               {p.isHost && (
                 <View className="ml-2 bg-yellow-400 px-3 py-1 rounded-xl">
                   <Text className="text-sm font-black text-indigo-900">HOST</Text>
