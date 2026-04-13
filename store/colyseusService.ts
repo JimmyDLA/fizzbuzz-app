@@ -5,12 +5,22 @@ import type { Room } from '@colyseus/sdk';
 
 import Constants from 'expo-constants';
 
-const Colyseus = require('@colyseus/sdk');
+import * as Colyseus from '@colyseus/sdk';
 
-const manifestHost = Constants.expoConfig?.hostUri?.split(':')[0];
-const fallbackHost = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
-const hostIp = manifestHost || fallbackHost;
+const getHostIp = () => {
+  const manifestHost = Constants.expoConfig?.hostUri?.split(':')[0];
+  const experienceHost = Constants.experienceUrl?.split('//')[1]?.split(':')[0];
+  const debuggerHost = (Constants as any).debuggerHost?.split(':')[0];
+  const fallbackHost = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
+
+  return manifestHost || experienceHost || debuggerHost || fallbackHost;
+};
+
+const hostIp = getHostIp();
 const ENDPOINT = `ws://${hostIp}:2567`;
+
+console.log(`[Colyseus] Connecting to endpoint: ${ENDPOINT}`);
+console.log(`[Colyseus] Detection Info: manifest=${Constants.expoConfig?.hostUri}, experience=${Constants.experienceUrl}, debugger=${(Constants as any).debuggerHost}`);
 
 const client = new Colyseus.Client(ENDPOINT);
 let currentRoom: Room | null = null;
