@@ -1,16 +1,26 @@
-import { Platform } from 'react-native';
-import { setGameCategory, setGamePhase, setGameType, setPlayers, setRoomId, setTimer, setSelectedPlayers, setLastWinners, setLastLosers } from './lobbySlice';
-import { store } from './store';
 import type { Room } from '@colyseus/sdk';
-
+import * as Colyseus from '@colyseus/sdk';
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer } from './lobbySlice';
+import { store } from './store';
 
-const Colyseus = require('@colyseus/sdk');
 
-const manifestHost = Constants.expoConfig?.hostUri?.split(':')[0];
-const fallbackHost = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
-const hostIp = manifestHost || fallbackHost;
+
+const getHostIp = () => {
+  const manifestHost = Constants.expoConfig?.hostUri?.split(':')[0];
+  const experienceHost = Constants.experienceUrl?.split('//')[1]?.split(':')[0];
+  const debuggerHost = (Constants as any).debuggerHost?.split(':')[0];
+  const fallbackHost = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
+
+  return manifestHost || experienceHost || debuggerHost || fallbackHost;
+};
+
+const hostIp = getHostIp();
 const ENDPOINT = `ws://${hostIp}:2567`;
+
+console.log(`[Colyseus] Connecting to endpoint: ${ENDPOINT}`);
+console.log(`[Colyseus] Detection Info: manifest=${Constants.expoConfig?.hostUri}, experience=${Constants.experienceUrl}, debugger=${(Constants as any).debuggerHost}`);
 
 const client = new Colyseus.Client(ENDPOINT);
 let currentRoom: Room | null = null;
@@ -89,7 +99,7 @@ export const colyseusService = {
           store.dispatch(setTimer(state.timer));
           store.dispatch(setGameType(state.currentGameType));
           store.dispatch(setGameCategory(state.currentCategory));
-          
+
           if (state.selectedPlayers) {
             store.dispatch(setSelectedPlayers(state.selectedPlayers.toArray()));
           }
@@ -99,7 +109,7 @@ export const colyseusService = {
           if (state.lastLosers) {
             store.dispatch(setLastLosers(state.lastLosers.toArray()));
           }
-          
+
           this.syncPlayersState(room);
         });
       });
