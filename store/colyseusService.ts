@@ -1,11 +1,11 @@
-import { Platform } from 'react-native';
-import { setGameCategory, setGamePhase, setGameType, setPlayers, setRoomId, setTimer, setSelectedPlayers, setLastWinners, setLastLosers } from './lobbySlice';
-import { store } from './store';
 import type { Room } from '@colyseus/sdk';
-
-import Constants from 'expo-constants';
-
 import * as Colyseus from '@colyseus/sdk';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer } from './lobbySlice';
+import { store } from './store';
+
+
 
 const getHostIp = () => {
   const manifestHost = Constants.expoConfig?.hostUri?.split(':')[0];
@@ -99,7 +99,7 @@ export const colyseusService = {
           store.dispatch(setTimer(state.timer));
           store.dispatch(setGameType(state.currentGameType));
           store.dispatch(setGameCategory(state.currentCategory));
-          
+
           if (state.selectedPlayers) {
             store.dispatch(setSelectedPlayers(state.selectedPlayers.toArray()));
           }
@@ -109,7 +109,7 @@ export const colyseusService = {
           if (state.lastLosers) {
             store.dispatch(setLastLosers(state.lastLosers.toArray()));
           }
-          
+
           this.syncPlayersState(room);
         });
       });
