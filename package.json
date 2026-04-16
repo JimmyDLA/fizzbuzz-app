@@ -17,6 +17,7 @@
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/native": "^7.1.8",
     "@reduxjs/toolkit": "^2.11.2",
+    "@shopify/react-native-skia": "^2.6.2",
     "browserify-zlib": "^0.2.0",
     "colyseus.js": "^0.16.22",
     "crypto-browserify": "^3.12.1",

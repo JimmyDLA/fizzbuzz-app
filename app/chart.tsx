@@ -6,7 +6,7 @@ import { PartyButton } from '../components/PartyButton';
 import { colyseusService } from '../store/colyseusService';
 
 const TYPES = ["1v1", "2v2", "BR"];
-const CATS = ["Tapping Race", "Math Problem", "Hot Potato", "Lumber Cut", "Trivia", "Rock Paper Scissors"];
+const CATS = ["Tapping Race", "Math Problem", "Hot Potato", "Lumber Cut", "Trivia", "Rock Paper Scissors", "Screen Painting"];
 
 export default function ChartScreen() {
   const { roomId, playerName, players: reduxPlayers, gamePhase, timer, currentGameType, currentCategory, selectedPlayers } = useSelector((state: any) => state.lobby);
@@ -125,11 +125,17 @@ export default function ChartScreen() {
     if (c === "Hot Potato" && devType === "2v2") {
       setDevType("1v1");
     }
+    if (c === "Screen Painting" && devType === "2v2") {
+      setDevType("BR");
+    }
   };
 
   const handleDevTypeChange = (t: string) => {
     if (devCategory === "Rock Paper Scissors" && t !== "1v1") {
       return; // RPS is strictly 1v1
+    }
+    if (devCategory === "Screen Painting" && t === "2v2") {
+      return; // Screen Painting is 1v1 or BR
     }
     if (devCategory === "Hot Potato" && t === "2v2") {
       return; // Hot Potato doesn't do 2v2
