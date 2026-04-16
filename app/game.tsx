@@ -14,6 +14,7 @@ import { SimonSaysUI } from '../components/games/SimonSaysUI';
 import { ScrabbleUI } from '../components/games/ScrabbleUI';
 import { TappingRaceUI } from '../components/games/TappingRaceUI';
 import { TriviaUI } from '../components/games/TriviaUI';
+import { ScreenPaintingUI } from '../components/games/ScreenPaintingUI';
 import { PartyButton } from '../components/PartyButton';
 import { colyseusService } from '../store/colyseusService';
 import { GameProvider } from '../components/games/useGameData';
@@ -67,6 +68,7 @@ export default function GameScreen() {
       case "Balloon Inflate": return <BalloonInflateUI />;
       case "Simon Says": return <SimonSaysUI />;
       case "Scrabble": return <ScrabbleUI />;
+      case "Screen Painting": return <ScreenPaintingUI />;
       default: return (
         <View className="flex-1 bg-red-500 justify-center items-center p-6">
           <Text className="text-white text-2xl font-bold text-center">
