@@ -6,7 +6,7 @@ import { PartyButton } from '../components/PartyButton';
 import { colyseusService } from '../store/colyseusService';
 
 const TYPES = ["1v1", "2v2", "BR"];
-const CATS = ["Tapping Race", "Math Problem", "Hot Potato", "Lumber Cut", "Trivia", "Rock Paper Scissors"];
+const CATS = ["Tapping Race", "Math Problem", "Hot Potato", "Lumber Cut", "Trivia", "Rock Paper Scissors", "Cyclone"];
 
 export default function ChartScreen() {
   const { roomId, playerName, players: reduxPlayers, gamePhase, timer, currentGameType, currentCategory, selectedPlayers } = useSelector((state: any) => state.lobby);
@@ -22,6 +22,7 @@ export default function ChartScreen() {
   const [isSpinning, setIsSpinning] = useState(false);
   const [showWheelModal, setShowWheelModal] = useState(false);
   const hasSpunRef = useRef(false);
+  const isLeavingRef = useRef(false);
 
   // Dev Modal State
   const [showDevModal, setShowDevModal] = useState(false);
@@ -77,6 +78,7 @@ export default function ChartScreen() {
   }, [gamePhase, currentGameType, currentCategory, selectedPlayers, players.length]);
 
   useEffect(() => {
+    if (isLeavingRef.current) return;
     if (gamePhase === 'lobby') {
       router.replace('/lobby');
     } else if (amISelected && !isReady && (gamePhase === 'countdown' || gamePhase === 'playing' || gamePhase === 'resolution')) {
@@ -93,8 +95,9 @@ export default function ChartScreen() {
       { text: "Cancel", style: "cancel" },
       {
         text: "Exit", style: "destructive", onPress: () => {
+          isLeavingRef.current = true;
           colyseusService.disconnect();
-          router.replace('/');
+          router.replace('/' as any);
         }
       }
     ]);
