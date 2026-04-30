@@ -6,7 +6,7 @@ import { PartyButton } from '../components/PartyButton';
 import { colyseusService } from '../store/colyseusService';
 
 const TYPES = ["1v1", "2v2", "BR"];
-const CATS = ["Tapping Race", "Math Problem", "Hot Potato", "Lumber Cut", "Trivia", "Rock Paper Scissors", "Cyclone"];
+const CATS = ["Tapping Race", "Math Problem", "Hot Potato", "Lumber Cut", "Trivia", "Rock Paper Scissors", "Cyclone", "Balloon Inflate"];
 
 export default function ChartScreen() {
   const { roomId, playerName, players: reduxPlayers, gamePhase, timer, currentGameType, currentCategory, selectedPlayers } = useSelector((state: any) => state.lobby);
@@ -288,9 +288,9 @@ export default function ChartScreen() {
                   <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={handleReadyToggle}
-                    className={`w-32 h-32 rounded-full items-center justify-center border-[8px] shadow-2xl ${isReady ? 'bg-green-500 border-green-300' : 'bg-yellow-400 border-yellow-200'}`}
+                    className={`w-32 h-32 rounded-full items-center justify-center border-[8px] shadow-2xl ${isReady ? 'bg-green-500 border-green-300' : 'bg-gray-400/70 border-gray-200/70'}`}
                   >
-                    <Text className={`text-6xl font-black ${isReady ? 'text-white' : 'text-indigo-900'}`}>✓</Text>
+                    <Text className={`text-6xl font-black ${isReady ? 'text-white' : 'text-gray-500'}`}>✓</Text>
                   </TouchableOpacity>
                 ) : (
                   <View className="w-full">

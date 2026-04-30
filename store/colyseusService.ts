@@ -114,6 +114,22 @@ export const colyseusService = {
         });
       });
     });
+
+    room.onLeave((code: number) => {
+      console.log(`[Colyseus] Disconnected with code: ${code}`);
+      currentRoom = null;
+      store.dispatch(setGamePhase('lobby'));
+      store.dispatch(setPlayers([]));
+      store.dispatch(setSelectedPlayers([]));
+      store.dispatch(setRoomId(''));
+      
+      // Imperative routing to home screen when connection dies
+      import('expo-router').then(({ router }) => {
+        if (router.canGoBack() || true) {
+          router.replace('/');
+        }
+      });
+    });
   },
 
   syncPlayersState(room: any) {

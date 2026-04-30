@@ -77,7 +77,7 @@ export function TriviaUI() {
 
             <View className="bg-white/20 w-3/4 h-[4px] rounded-full mb-6" />
 
-            <Text className="text-emerald-400 font-black text-5xl text-center tracking-wider" adjustsFontSizeToFit numberOfLines={1}>{gameData.roundWinner}!</Text>
+            <Text className="text-emerald-400 font-black text-3xl text-center tracking-wider" adjustsFontSizeToFit numberOfLines={1}>{gameData.roundWinner}!</Text>
             <Text className="text-slate-400 font-bold text-sm uppercase mb-1 tracking-[0.3em] text-center">ANSWERED CORRECTLY</Text>
           </View>
         </View>

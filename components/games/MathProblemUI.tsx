@@ -32,7 +32,7 @@ export function MathProblemUI() {
                  key={idx}
                  activeOpacity={0.8}
                  onPress={() => handleAnswer(opt)}
-                 disabled={isLocked || gameData.gameOver}
+                 disabled={isLocked || gameData.gameOver || gameData.isTransitioning}
                  className={`w-[48%] aspect-square rounded-3xl items-center justify-center border-8 shadow-xl mb-4 ${
                    isLocked 
                      ? 'bg-slate-700 border-slate-900 opacity-50'
@@ -47,7 +47,7 @@ export function MathProblemUI() {
          })}
       </View>
       
-      {gameData.isLockedOut && !gameData.gameOver && (
+      {gameData.isLockedOut && !gameData.gameOver && !gameData.isTransitioning && (
          <Text className="text-red-400 font-black text-2xl mt-2 tracking-widest text-center uppercase shadow-sm">Waiting for someone to solve it...</Text>
       )}
       
@@ -56,6 +56,22 @@ export function MathProblemUI() {
       )}
       {gameData.gameOver && gameData.winnerId === myPlayer?.id && (
          <Text className="text-green-400 font-black text-3xl mt-4 tracking-wider text-center uppercase shadow-sm">CORRECT!</Text>
+      )}
+
+      {gameData.isTransitioning && (
+        <View className="absolute z-50 bottom-20 left-2 w-full h-full justify-center items-center p-4 bg-black/60 rounded-3xl">
+          <View className="bg-slate-900 border-[8px] border-emerald-500 py-10 px-6 rounded-[48px] shadow-2xl w-full items-center pb-12 shadow-emerald-500/20">
+            <Text className="text-yellow-400 font-black text-xl tracking-[0.2em] mb-2 text-center uppercase">CORRECT ANSWER</Text>
+            <Text className="text-white text-5xl font-black text-center mb-8 tracking-tight px-2" adjustsFontSizeToFit numberOfLines={2}>
+              {gameData.correctAnswer}
+            </Text>
+
+            <View className="bg-white/20 w-3/4 h-[4px] rounded-full mb-6" />
+
+            <Text className="text-emerald-400 font-black text-3xl text-center tracking-wider" adjustsFontSizeToFit numberOfLines={1}>{gameData.roundWinner}!</Text>
+            <Text className="text-slate-400 font-bold text-sm uppercase mb-1 tracking-[0.3em] text-center">SOLVED THE PROBLEM</Text>
+          </View>
+        </View>
       )}
     </View>
   );

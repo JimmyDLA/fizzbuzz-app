@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { Text, View } from 'react-native';
 import { useSelector } from 'react-redux';
+import { BalloonInflateUI } from '../components/games/BalloonInflateUI';
 import { CycloneUI } from '../components/games/CycloneUI';
 import { HotPotatoUI } from '../components/games/HotPotatoUI';
 import { LumberCutUI } from '../components/games/LumberCutUI';
@@ -57,10 +58,16 @@ export default function GameScreen() {
       case "Trivia": return <TriviaUI />;
       case "Rock Paper Scissors": return <RockPaperScissorsUI />;
       case "Cyclone": return <CycloneUI />;
+      case "Balloon Inflate": return <BalloonInflateUI />;
       default: return (
-        <Text className="text-white text-2xl font-bold text-center bg-black/20 p-6 rounded-3xl">
-          Mini-game interactive UI goes here! Turn the phone to play.
-        </Text>
+        <View className="flex-1 bg-red-500 justify-center items-center p-6">
+          <Text className="text-white text-2xl font-bold text-center">
+            A new mini-game is being played!
+          </Text>
+          <Text className="text-white text-xl font-bold text-center mt-4">
+            Update your app to join the fun. You will sit out this round.
+          </Text>
+        </View>
       );
     }
   };

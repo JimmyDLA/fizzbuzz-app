@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { colyseusService } from '../../store/colyseusService';
 
 export function LumberCutUI() {
-  const { players, playerName } = useSelector((state: any) => state.lobby);
+  const { players, playerName, timer } = useSelector((state: any) => state.lobby);
   const myPlayer = players.find((p: any) => p.name === playerName);
 
   let gameData: any = {};
@@ -55,7 +55,7 @@ export function LumberCutUI() {
       </View>
 
       {/* PHYSICAL CONTROLS */}
-      {!gameData.gameOver && (
+      {!gameData.gameOver && timer > 0 && (
         <View className="flex-1 w-full justify-center pb-12">
           
           <View className="w-full bg-zinc-800 h-[100px] rounded-[40px] flex-row items-center justify-center border-[8px] border-zinc-900 mb-8 overflow-hidden relative shadow-xl">
