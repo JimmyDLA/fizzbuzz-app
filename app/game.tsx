@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { Text, View } from 'react-native';
 import { useSelector } from 'react-redux';
+import { DynamicGameResults } from '../components/DynamicGameResults';
 import { BalloonInflateUI } from '../components/games/BalloonInflateUI';
 import { CycloneUI } from '../components/games/CycloneUI';
 import { HotPotatoUI } from '../components/games/HotPotatoUI';
@@ -23,7 +24,8 @@ export default function GameScreen() {
     currentGameType,
     currentCategory,
     lastWinners,
-    lastLosers
+    lastLosers,
+    lastGameResult
   } = useSelector((state: any) => state.lobby);
 
   const myPlayer = reduxPlayers.find((p: any) => p.name === playerName);
@@ -104,7 +106,11 @@ export default function GameScreen() {
           RESULTS!
         </Text>
 
-        <View className="w-full bg-black/30 rounded-[40px] p-6 mb-12 border-4 border-white/20">
+        {lastGameResult ? (
+          <DynamicGameResults rawData={lastGameResult} />
+        ) : null}
+
+        {/* <View className="w-full bg-black/30 rounded-[40px] p-6 mb-12 border-4 border-white/20">
           <View className="flex-row items-center justify-center mb-4">
             <Text className="text-yellow-400 font-black text-2xl text-center tracking-widest uppercase mr-2">WINNERS +3</Text>
             <View className="w-4 h-6 bg-yellow-300 rounded-[8px] border-2 border-orange-500 items-center justify-center shadow-lg">
@@ -129,7 +135,7 @@ export default function GameScreen() {
             ))}
             {losers.length === 0 && <Text className="text-white/50 font-bold uppercase">Nobody</Text>}
           </View>
-        </View>
+        </View> */}
 
         <View className="pb-10 pt-4 w-full">
           <PartyButton
