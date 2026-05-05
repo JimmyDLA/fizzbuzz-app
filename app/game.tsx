@@ -1,7 +1,9 @@
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
+import { DynamicGameResults } from '../components/DynamicGameResults';
 import { BalloonInflateUI } from '../components/games/BalloonInflateUI';
 import { CycloneUI } from '../components/games/CycloneUI';
 import { HotPotatoUI } from '../components/games/HotPotatoUI';
@@ -23,7 +25,8 @@ export default function GameScreen() {
     currentGameType,
     currentCategory,
     lastWinners,
-    lastLosers
+    lastLosers,
+    lastGameResult
   } = useSelector((state: any) => state.lobby);
 
   const myPlayer = reduxPlayers.find((p: any) => p.name === playerName);
@@ -96,49 +99,58 @@ export default function GameScreen() {
     const losers = reduxPlayers.filter((p: any) => lastLosers?.includes(p.id));
 
     return (
-      <View className="flex-1 bg-purple-600 justify-center items-center px-6 pt-12">
+      <SafeAreaView className="flex-1 bg-purple-600 justify-center items-center px-4 pt-12 pb-8">
+
         <Text
-          className="text-white text-6xl font-black mb-10 text-center shadow-lg uppercase"
+          className="text-white text-5xl font-black mb-6 text-center shadow-lg uppercase"
           style={{ textShadowColor: 'rgba(0,0,0,0.3)', textShadowOffset: { width: 3, height: 3 }, textShadowRadius: 1 }}
         >
           RESULTS!
         </Text>
 
-        <View className="w-full bg-black/30 rounded-[40px] p-6 mb-12 border-4 border-white/20">
-          <View className="flex-row items-center justify-center mb-4">
-            <Text className="text-yellow-400 font-black text-2xl text-center tracking-widest uppercase mr-2">WINNERS +3</Text>
-            <View className="w-4 h-6 bg-yellow-300 rounded-[8px] border-2 border-orange-500 items-center justify-center shadow-lg">
-              <View className="w-[3px] h-3 bg-orange-500 rounded-full opacity-80" />
-            </View>
-          </View>
-          <View className="flex-row flex-wrap justify-center mb-8 gap-3">
-            {winners.map((p: any) => (
-              <View key={p.id} className="bg-green-500 border-[6px] border-green-700 px-6 py-3 rounded-full shadow-lg">
-                <Text className="text-white font-black text-2xl uppercase tracking-wider">{p.name}</Text>
+        <View className="flex-1 w-full bg-black/30 rounded-[40px] border-4 border-white/20 mb-6 overflow-hidden">
+          <ScrollView contentContainerStyle={{ padding: 24 }} showsVerticalScrollIndicator={false}>
+            {lastGameResult && (
+              <View className="mb-8 border-b-4 border-white/10 pb-8">
+                <DynamicGameResults rawData={lastGameResult} />
               </View>
-            ))}
-            {winners.length === 0 && <Text className="text-white/50 font-bold uppercase">Nobody</Text>}
-          </View>
+            )}
 
-          <Text className="text-blue-300 font-black text-2xl mb-4 text-center tracking-widest uppercase mt-2"> DRINKS UP!</Text>
-          <View className="flex-row flex-wrap justify-center gap-3">
-            {losers.map((p: any) => (
-              <View key={p.id} className="bg-red-500 border-[6px] border-red-700 px-6 py-3 rounded-full shadow-lg">
-                <Text className="text-white font-black text-2xl uppercase tracking-wider">{p.name}</Text>
+            <View className="flex-row items-center justify-center mb-4">
+              <Text className="text-yellow-400 font-black text-2xl text-center tracking-widest uppercase mr-2">WINNERS +3</Text>
+              <View className="w-4 h-6 bg-yellow-300 rounded-[8px] border-2 border-orange-500 items-center justify-center shadow-lg">
+                <View className="w-[3px] h-3 bg-orange-500 rounded-full opacity-80" />
               </View>
-            ))}
-            {losers.length === 0 && <Text className="text-white/50 font-bold uppercase">Nobody</Text>}
-          </View>
+            </View>
+            <View className="flex-row flex-wrap justify-center mb-8 gap-3">
+              {winners.map((p: any) => (
+                <View key={p.id} className="bg-green-500 border-[5px] border-green-700 px-5 py-2 rounded-full shadow-lg">
+                  <Text className="text-white font-black text-xl uppercase tracking-wider">{p.name}</Text>
+                </View>
+              ))}
+              {winners.length === 0 && <Text className="text-white/50 font-bold uppercase">Nobody</Text>}
+            </View>
+
+            <Text className="text-blue-300 font-black text-2xl mb-4 text-center tracking-widest uppercase mt-2"> DRINKS UP!</Text>
+            <View className="flex-row flex-wrap justify-center gap-3">
+              {losers.map((p: any) => (
+                <View key={p.id} className="bg-red-500 border-[5px] border-red-700 px-5 py-2 rounded-full shadow-lg">
+                  <Text className="text-white font-black text-xl uppercase tracking-wider">{p.name}</Text>
+                </View>
+              ))}
+              {losers.length === 0 && <Text className="text-white/50 font-bold uppercase">Nobody</Text>}
+            </View>
+          </ScrollView>
         </View>
 
-        <View className="pb-10 pt-4 w-full">
+        <View className="w-full">
           <PartyButton
             title={isReady ? "WAITING FOR OTHERS..." : "NEXT ROUND"}
             color={isReady ? "secondary" : "success"}
             onPress={handleReadyToggle}
           />
         </View>
-      </View>
+      </SafeAreaView>
     );
   };
 

@@ -11,6 +11,7 @@ const initialState = {
   currentCategory: '',
   lastWinners: [],
   lastLosers: [],
+  lastGameResult: "",
 };
 
 export const lobbySlice = createSlice({
@@ -27,12 +28,13 @@ export const lobbySlice = createSlice({
     setGameCategory: (state, action) => { state.currentCategory = action.payload; },
     setLastWinners: (state, action) => { state.lastWinners = action.payload; },
     setLastLosers: (state, action) => { state.lastLosers = action.payload; },
+    setLastGameResult: (state, action) => { state.lastGameResult = action.payload; },
   },
 });
 
 export const { 
   setPlayerName, setRoomId, setPlayers, setSelectedPlayers, 
   setGamePhase, setTimer, setGameType, setGameCategory,
-  setLastWinners, setLastLosers
+  setLastWinners, setLastLosers, setLastGameResult
 } = lobbySlice.actions;
 export default lobbySlice.reducer;

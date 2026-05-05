@@ -2,7 +2,7 @@ import type { Room } from '@colyseus/sdk';
 import * as Colyseus from '@colyseus/sdk';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer } from './lobbySlice';
+import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer, setLastGameResult } from './lobbySlice';
 import { store } from './store';
 
 
@@ -108,6 +108,9 @@ export const colyseusService = {
           }
           if (state.lastLosers) {
             store.dispatch(setLastLosers(state.lastLosers.toArray()));
+          }
+          if (state.lastGameResult !== undefined) {
+            store.dispatch(setLastGameResult(state.lastGameResult));
           }
 
           this.syncPlayersState(room);
