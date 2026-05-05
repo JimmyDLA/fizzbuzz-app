@@ -13,7 +13,7 @@ export function DynamicGameResults({ rawData }: { rawData: string }) {
 
   const renderLeaderboard = () => {
     return (
-      <View className="w-full bg-black/40 rounded-[32px] border-4 border-white/20 p-4 mb-6 shadow-xl">
+      <View className="w-full">
         <Text className="text-indigo-200 text-xl font-black mb-4 text-center uppercase tracking-[0.2em]">{data.title}</Text>
         <View className="flex-col gap-3">
           {data.leaderboard?.map((item: any, idx: number) => (
@@ -32,7 +32,7 @@ export function DynamicGameResults({ rawData }: { rawData: string }) {
 
   const renderTimeline = () => {
     return (
-      <View className="w-full bg-black/40 rounded-[32px] border-4 border-white/20 p-4 mb-6 shadow-xl">
+      <View className="w-full">
         <Text className="text-indigo-200 text-xl font-black mb-4 text-center uppercase tracking-[0.2em]">{data.title}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View className="flex-col gap-3">
