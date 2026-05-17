@@ -2,7 +2,7 @@ import type { Room } from '@colyseus/sdk';
 import * as Colyseus from '@colyseus/sdk';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer, setLastGameResult } from './lobbySlice';
+import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer, setLastGameResult, setPracticeState } from './lobbySlice';
 import { store } from './store';
 
 
@@ -24,6 +24,7 @@ console.log(`[Colyseus] Detection Info: manifest=${Constants.expoConfig?.hostUri
 
 const client = new Colyseus.Client(ENDPOINT);
 let currentRoom: Room | null = null;
+let practiceRoom: Room | null = null;
 
 export const colyseusService = {
   async connectAsHost(playerName: string) {
@@ -152,4 +153,62 @@ export const colyseusService = {
     });
     store.dispatch(setPlayers(playersArray));
   },
+
+  async joinPractice(category: string, playerName: string) {
+    try {
+      practiceRoom = await client.create("practice_room", { category, name: playerName });
+      this.setupPracticeRoomListeners(practiceRoom);
+      return practiceRoom?.roomId;
+    } catch (e: any) {
+      console.error("Practice Join Error:", e?.message || e?.name || e);
+      throw e;
+    }
+  },
+
+  leavePractice() {
+    if (practiceRoom) {
+      practiceRoom.leave();
+      practiceRoom = null;
+      store.dispatch(setPracticeState(null));
+    }
+  },
+
+  sendPracticeGameAction(message: any) {
+    if (practiceRoom) {
+      practiceRoom.send("action", message);
+    }
+  },
+
+  setupPracticeRoomListeners(room: any) {
+    const updatePracticeState = (state: any) => {
+      const playersArray: any[] = [];
+      state.players?.forEach((player: any) => {
+        playersArray.push({
+          id: player.id,
+          name: player.name,
+          gameScore: player.gameScore || 0,
+          gameData: player.gameData || "",
+        });
+      });
+      
+      store.dispatch(setPracticeState({
+        phase: state.phase,
+        timer: state.timer,
+        players: playersArray,
+      }));
+    };
+
+    room.state.players?.onAdd?.((player: any) => {
+      player.onChange(() => updatePracticeState(room.state));
+    });
+
+    room.onStateChange((state: any) => {
+      updatePracticeState(state);
+    });
+
+    room.onLeave(() => {
+      practiceRoom = null;
+      store.dispatch(setPracticeState(null));
+    });
+  }
 };

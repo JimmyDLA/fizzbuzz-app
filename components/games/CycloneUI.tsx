@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
-import { useSelector } from 'react-redux';
-import { colyseusService } from '../../store/colyseusService';
+import { useGameData } from './useGameData';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -61,8 +60,7 @@ const Bulb = ({ index, activeIndex, stoppedIndex }: BulbProps) => {
 };
 
 export function CycloneUI() {
-  const { players, playerName } = useSelector((state: any) => state.lobby);
-  const myPlayer = players.find((p: any) => p.name === playerName);
+  const { myPlayer, sendAction } = useGameData();
 
   let gameData: any = {};
   try {
@@ -100,7 +98,7 @@ export function CycloneUI() {
     activeIndex.value = currentIndex; // Freeze
     setLocalStop(currentIndex);
 
-    colyseusService.sendGameAction({ action: 'stop', index: currentIndex });
+    sendAction({ action: 'stop', index: currentIndex });
   };
 
   const bulbs = [];

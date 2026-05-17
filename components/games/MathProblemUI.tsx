@@ -1,11 +1,7 @@
 import { View, Text, TouchableOpacity } from 'react-native';
-import { useSelector } from 'react-redux';
-import { colyseusService } from '../../store/colyseusService';
-
+import { useGameData } from './useGameData';
 export function MathProblemUI() {
-  const { players, playerName } = useSelector((state: any) => state.lobby);
-  const myPlayer = players.find((p: any) => p.name === playerName);
-
+  const { myPlayer, sendAction } = useGameData();
   let gameData: any = {};
   try {
      gameData = JSON.parse(myPlayer?.gameData || "{}");
@@ -13,7 +9,7 @@ export function MathProblemUI() {
 
   const handleAnswer = (ans: number) => {
     if (myPlayer?.gameScore === -1 || gameData.gameOver) return;
-    colyseusService.sendGameAction({ action: 'answer', answer: ans });
+    sendAction({ action: 'answer', answer: ans });
   };
 
   return (

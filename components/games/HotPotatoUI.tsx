@@ -1,12 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, Text, TouchableOpacity, View } from 'react-native';
-import { useSelector } from 'react-redux';
-import { colyseusService } from '../../store/colyseusService';
-
+import { useGameData } from './useGameData';
 export function HotPotatoUI() {
-  const { players, playerName, selectedPlayers, timer } = useSelector((state: any) => state.lobby);
-  const myPlayer = players.find((p: any) => p.name === playerName);
-
+  const { players, selectedPlayers, timer, myPlayer, sendAction } = useGameData();
   let gameData: any = {};
   try {
     gameData = JSON.parse(myPlayer?.gameData || "{}");
@@ -34,7 +30,7 @@ export function HotPotatoUI() {
 
   const handlePass = () => {
     if (!amIHolder) return;
-    colyseusService.sendGameAction({ action: 'pass' });
+    sendAction({ action: 'pass' });
   };
 
   return (

@@ -1,9 +1,7 @@
 import Slider from '@react-native-community/slider';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Dimensions, StyleSheet, Text, View } from 'react-native';
-import { useSelector } from 'react-redux';
-import { colyseusService } from '../../store/colyseusService';
-
+import { useGameData } from './useGameData';
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const Balloon = ({ size, name, isMe, isBurst, isWinner }: { size: number, name: string, isMe: boolean, isBurst: boolean, isWinner: boolean }) => {
@@ -40,8 +38,7 @@ const Balloon = ({ size, name, isMe, isBurst, isWinner }: { size: number, name: 
 };
 
 export function BalloonInflateUI() {
-  const { players, playerName } = useSelector((state: any) => state.lobby);
-  const myPlayer = players.find((p: any) => p.name === playerName);
+  const { players, myPlayer, sendAction } = useGameData();
 
   let gameData: any = {};
   try { gameData = JSON.parse(myPlayer?.gameData || "{}"); } catch (e) { }
@@ -54,7 +51,7 @@ export function BalloonInflateUI() {
     // Pump mechanic: Drag all the way UP (1.0), then slash all the way DOWN (0.0)
     if (val < 0.2 && pumpState === "up") {
       setPumpState("down");
-      colyseusService.sendGameAction({ action: 'pump' });
+      sendAction({ action: 'pump' });
     } else if (val > 0.8 && pumpState === "down") {
       setPumpState("up");
     }
