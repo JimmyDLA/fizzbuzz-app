@@ -14,6 +14,7 @@ import { TappingRaceUI } from '../components/games/TappingRaceUI';
 import { TriviaUI } from '../components/games/TriviaUI';
 import { PartyButton } from '../components/PartyButton';
 import { colyseusService } from '../store/colyseusService';
+import { GameProvider } from '../components/games/useGameData';
 
 export default function GameScreen() {
   const router = useRouter();
@@ -155,10 +156,12 @@ export default function GameScreen() {
   };
 
   return (
-    <View className="flex-1 bg-black">
-      {gamePhase === 'countdown' && renderCountdown()}
-      {gamePhase === 'playing' && renderPlaying()}
-      {gamePhase === 'resolution' && renderResolution()}
-    </View>
+    <GameProvider isPractice={false}>
+      <SafeAreaView className="flex-1 bg-black">
+        {gamePhase === 'countdown' && renderCountdown()}
+        {gamePhase === 'playing' && renderPlaying()}
+        {gamePhase === 'resolution' && renderResolution()}
+      </SafeAreaView>
+    </GameProvider>
   );
 }

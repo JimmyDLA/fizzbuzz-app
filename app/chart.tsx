@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSelector } from 'react-redux';
 import { PartyButton } from '../components/PartyButton';
+import { PracticeModal } from '../components/PracticeModal';
 import { colyseusService } from '../store/colyseusService';
 
 const TYPES = ["1v1", "2v2", "BR"];
@@ -21,6 +22,7 @@ export default function ChartScreen() {
   const [displayedPlayers, setDisplayedPlayers] = useState<string[]>([]);
   const [isSpinning, setIsSpinning] = useState(false);
   const [showWheelModal, setShowWheelModal] = useState(false);
+  const [showPracticeModal, setShowPracticeModal] = useState(false);
   const hasSpunRef = useRef(false);
   const isLeavingRef = useRef(false);
 
@@ -285,13 +287,22 @@ export default function ChartScreen() {
                 </View>
               ) : (
                 amISelected ? (
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={handleReadyToggle}
-                    className={`w-32 h-32 rounded-full items-center justify-center border-[8px] shadow-2xl ${isReady ? 'bg-green-500 border-green-300' : 'bg-gray-400/70 border-gray-200/70'}`}
-                  >
-                    <Text className={`text-6xl font-black ${isReady ? 'text-white' : 'text-gray-500'}`}>✓</Text>
-                  </TouchableOpacity>
+                  <View className="flex-row gap-6 items-center justify-center">
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      onPress={() => setShowPracticeModal(true)}
+                      className="w-24 h-24 rounded-full items-center justify-center border-[6px] border-blue-300 bg-blue-500 shadow-xl"
+                    >
+                      <Text className="text-sm font-black text-white tracking-widest text-center" adjustsFontSizeToFit numberOfLines={1}>TRY IT</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      onPress={handleReadyToggle}
+                      className={`w-32 h-32 rounded-full items-center justify-center border-[8px] shadow-2xl ${isReady ? 'bg-green-500 border-green-300' : 'bg-gray-400/70 border-gray-200/70'}`}
+                    >
+                      <Text className={`text-6xl font-black ${isReady ? 'text-white' : 'text-gray-500'}`}>✓</Text>
+                    </TouchableOpacity>
+                  </View>
                 ) : (
                   <View className="w-full">
                     <PartyButton title="DISMISS" color="secondary" onPress={() => setShowWheelModal(false)} />
@@ -358,6 +369,13 @@ export default function ChartScreen() {
 
           </View>
         </View>
+      )}
+
+      {showPracticeModal && (
+        <PracticeModal
+          category={displayedCategory}
+          onClose={() => setShowPracticeModal(false)}
+        />
       )}
     </View>
   );

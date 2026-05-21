@@ -1,10 +1,7 @@
 import { View, Text, TouchableOpacity } from 'react-native';
-import { useSelector } from 'react-redux';
-import { colyseusService } from '../../store/colyseusService';
-
+import { useGameData } from './useGameData';
 export function TappingRaceUI() {
-  const { players, playerName, selectedPlayers, timer } = useSelector((state: any) => state.lobby);
-  const myPlayer = players.find((p: any) => p.name === playerName);
+  const { players, selectedPlayers, timer, myPlayer, sendAction } = useGameData();
 
   return (
     <View className="flex-1 items-center justify-center pt-8 w-full">
@@ -13,7 +10,7 @@ export function TappingRaceUI() {
       <TouchableOpacity 
         activeOpacity={0.7}
         disabled={timer <= 0}
-        onPress={() => colyseusService.sendGameAction({ action: 'tap' })}
+        onPress={() => sendAction({ action: 'tap' })}
         className={`w-64 h-64 rounded-full items-center justify-center border-[12px] shadow-2xl mb-12 ${timer <= 0 ? 'bg-red-900 border-red-950 opacity-50' : 'bg-red-500 border-red-700'}`}
       >
         <Text className="text-white text-8xl font-black">{myPlayer?.gameScore || 0}</Text>

@@ -1,11 +1,7 @@
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { useSelector } from 'react-redux';
-import { colyseusService } from '../../store/colyseusService';
-
+import { useGameData } from './useGameData';
 export function LumberCutUI() {
-  const { players, playerName, timer } = useSelector((state: any) => state.lobby);
-  const myPlayer = players.find((p: any) => p.name === playerName);
-
+  const { timer, myPlayer, sendAction } = useGameData();
   let gameData: any = {};
   if (myPlayer?.gameData) {
     try { gameData = JSON.parse(myPlayer.gameData); } catch (e) {}
@@ -15,7 +11,7 @@ export function LumberCutUI() {
   const myTeam = teams.find((t: any) => t.members.includes(myPlayer?.id));
 
   const handlePull = (side: 'left' | 'right') => {
-    colyseusService.sendGameAction({ action: 'pull', side });
+    sendAction({ action: 'pull', side });
   };
 
   const target = gameData.targetPairs || 20;

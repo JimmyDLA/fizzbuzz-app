@@ -1,7 +1,5 @@
 import { Text, TouchableOpacity, View } from 'react-native';
-import { useSelector } from 'react-redux';
-import { colyseusService } from '../../store/colyseusService';
-
+import { useGameData } from './useGameData';
 const CHOICE_COLORS: any = {
   rock: { bg: 'bg-slate-600', border: 'border-slate-800' },
   paper: { bg: 'bg-blue-400', border: 'border-blue-600' },
@@ -9,9 +7,7 @@ const CHOICE_COLORS: any = {
 };
 
 export function RockPaperScissorsUI() {
-  const { players, playerName } = useSelector((state: any) => state.lobby);
-  const myPlayer = players.find((p: any) => p.name === playerName);
-
+  const { players, myPlayer, sendAction } = useGameData();
   let gameData: any = {};
   try {
     gameData = JSON.parse(myPlayer?.gameData || "{}");
@@ -20,7 +16,7 @@ export function RockPaperScissorsUI() {
   }
 
   const handlePick = (choice: string) => {
-    colyseusService.sendGameAction({ action: 'pick', choice });
+    sendAction({ action: 'pick', choice });
   };
 
   const myPick = gameData.results?.[myPlayer?.id];

@@ -1,18 +1,14 @@
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { useSelector } from 'react-redux';
-import { colyseusService } from '../../store/colyseusService';
-
+import { useGameData } from './useGameData';
 export function TriviaUI() {
-  const { players, playerName } = useSelector((state: any) => state.lobby);
-  const myPlayer = players.find((p: any) => p.name === playerName);
-
+  const { myPlayer, sendAction } = useGameData();
   let gameData: any = {};
   try {
     gameData = JSON.parse(myPlayer?.gameData || "{}");
   } catch (e) { }
 
   const handleAnswer = (ans: string) => {
-    colyseusService.sendGameAction({ action: 'answer', answer: ans });
+    sendAction({ action: 'answer', answer: ans });
   };
 
   const colors = [
