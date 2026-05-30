@@ -7,7 +7,7 @@ import { PracticeModal } from '../components/PracticeModal';
 import { colyseusService } from '../store/colyseusService';
 
 const TYPES = ["1v1", "2v2", "BR"];
-const CATS = ["Tapping Race", "Math Problem", "Hot Potato", "Lumber Cut", "Trivia", "Rock Paper Scissors", "Cyclone", "Balloon Inflate"];
+const CATS = ["Tapping Race", "Math Problem", "Hot Potato", "Lumber Cut", "Trivia", "Rock Paper Scissors", "Cyclone", "Balloon Inflate", "Simon Says"];
 
 export default function ChartScreen() {
   const { roomId, playerName, players: reduxPlayers, gamePhase, timer, currentGameType, currentCategory, selectedPlayers } = useSelector((state: any) => state.lobby);
