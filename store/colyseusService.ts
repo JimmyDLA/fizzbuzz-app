@@ -27,6 +27,13 @@ let currentRoom: Room | null = null;
 let practiceRoom: Room | null = null;
 
 export const colyseusService = {
+  get room() {
+    return currentRoom;
+  },
+  get practiceRoom() {
+    return practiceRoom;
+  },
+
   async connectAsHost(playerName: string) {
     try {
       currentRoom = await client.create("lobby", { name: playerName });
