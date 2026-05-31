@@ -11,6 +11,7 @@ import { LumberCutUI } from '../components/games/LumberCutUI';
 import { MathProblemUI } from '../components/games/MathProblemUI';
 import { RockPaperScissorsUI } from '../components/games/RockPaperScissorsUI';
 import { SimonSaysUI } from '../components/games/SimonSaysUI';
+import { ScrabbleUI } from '../components/games/ScrabbleUI';
 import { TappingRaceUI } from '../components/games/TappingRaceUI';
 import { TriviaUI } from '../components/games/TriviaUI';
 import { PartyButton } from '../components/PartyButton';
@@ -65,6 +66,7 @@ export default function GameScreen() {
       case "Cyclone": return <CycloneUI />;
       case "Balloon Inflate": return <BalloonInflateUI />;
       case "Simon Says": return <SimonSaysUI />;
+      case "Scrabble": return <ScrabbleUI />;
       default: return (
         <View className="flex-1 bg-red-500 justify-center items-center p-6">
           <Text className="text-white text-2xl font-bold text-center">

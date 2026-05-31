@@ -39,6 +39,7 @@ export const useGameData = () => {
     myPlayer,
     selectedPlayers,
     timer: activeState.timer || 0,
-    sendAction
+    sendAction,
+    isPractice
   };
 };
