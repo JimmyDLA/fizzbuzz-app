@@ -9,8 +9,8 @@ import { HotPotatoUI } from "./games/HotPotatoUI";
 import { LumberCutUI } from "./games/LumberCutUI";
 import { MathProblemUI } from "./games/MathProblemUI";
 import { RockPaperScissorsUI } from "./games/RockPaperScissorsUI";
-import { SimonSaysUI } from "./games/SimonSaysUI";
 import { ScrabbleUI } from "./games/ScrabbleUI";
+import { SimonSaysUI } from "./games/SimonSaysUI";
 import { TappingRaceUI } from "./games/TappingRaceUI";
 import { TriviaUI } from "./games/TriviaUI";
 import { GameProvider } from "./games/useGameData";
@@ -96,14 +96,7 @@ export function PracticeModal({
               </View>
             )}
             {practiceState.phase === "playing" && (
-              <>
-                <View className="absolute top-0 right-0 bg-white/20 px-6 py-2 rounded-full border-4 border-white/30 z-50 shadow-lg">
-                  <Text className="text-white font-black text-xl">
-                    {practiceState.timer}s
-                  </Text>
-                </View>
-                <View className="flex-1 w-full pt-16">{renderMiniGame()}</View>
-              </>
+              <View className="flex-1 w-full pt-16">{renderMiniGame()}</View>
             )}
             {practiceState.phase === "resolution" && (
               <View className="flex-1 justify-center items-center pb-20">
