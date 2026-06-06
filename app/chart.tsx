@@ -26,6 +26,7 @@ const CATS = [
   "Simon Says",
   "Scrabble",
   "Screen Painting",
+  "Perfection",
 ];
 
 export default function ChartScreen() {

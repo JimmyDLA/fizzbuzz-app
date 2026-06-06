@@ -8,6 +8,7 @@ import { CycloneUI } from "./games/CycloneUI";
 import { HotPotatoUI } from "./games/HotPotatoUI";
 import { LumberCutUI } from "./games/LumberCutUI";
 import { MathProblemUI } from "./games/MathProblemUI";
+import { PerfectionUI } from "./games/PerfectionUI";
 import { RockPaperScissorsUI } from "./games/RockPaperScissorsUI";
 import { ScrabbleUI } from "./games/ScrabbleUI";
 import { ScreenPaintingUI } from "./games/ScreenPaintingUI";
@@ -57,6 +58,8 @@ export function PracticeModal({
         return <ScrabbleUI />;
       case "Screen Painting":
         return <ScreenPaintingUI />;
+      case "Perfection":
+        return <PerfectionUI />;
       default:
         return null;
     }

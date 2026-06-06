@@ -15,6 +15,7 @@ import { ScrabbleUI } from '../components/games/ScrabbleUI';
 import { TappingRaceUI } from '../components/games/TappingRaceUI';
 import { TriviaUI } from '../components/games/TriviaUI';
 import { ScreenPaintingUI } from '../components/games/ScreenPaintingUI';
+import { PerfectionUI } from '../components/games/PerfectionUI';
 import { PartyButton } from '../components/PartyButton';
 import { colyseusService } from '../store/colyseusService';
 import { GameProvider } from '../components/games/useGameData';
@@ -69,6 +70,7 @@ export default function GameScreen() {
       case "Simon Says": return <SimonSaysUI />;
       case "Scrabble": return <ScrabbleUI />;
       case "Screen Painting": return <ScreenPaintingUI />;
+      case "Perfection": return <PerfectionUI />;
       default: return (
         <View className="flex-1 bg-red-500 justify-center items-center p-6">
           <Text className="text-white text-2xl font-bold text-center">
