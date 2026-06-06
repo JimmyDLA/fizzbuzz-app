@@ -10,6 +10,7 @@ import { LumberCutUI } from "./games/LumberCutUI";
 import { MathProblemUI } from "./games/MathProblemUI";
 import { RockPaperScissorsUI } from "./games/RockPaperScissorsUI";
 import { ScrabbleUI } from "./games/ScrabbleUI";
+import { ScreenPaintingUI } from "./games/ScreenPaintingUI";
 import { SimonSaysUI } from "./games/SimonSaysUI";
 import { TappingRaceUI } from "./games/TappingRaceUI";
 import { TriviaUI } from "./games/TriviaUI";
@@ -54,6 +55,8 @@ export function PracticeModal({
         return <SimonSaysUI />;
       case "Scrabble":
         return <ScrabbleUI />;
+      case "Screen Painting":
+        return <ScreenPaintingUI />;
       default:
         return null;
     }
