@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming, SharedValue } from 'react-native-reanimated';
 import { useGameData } from './useGameData';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -15,7 +15,7 @@ const RADIUS = SCREEN_WIDTH * 0.38;
 
 interface BulbProps {
   index: number;
-  activeIndex: Animated.SharedValue<number>;
+  activeIndex: SharedValue<number>;
   stoppedIndex: number | null;
 }
 
