@@ -13,6 +13,9 @@ const initialState = {
   lastLosers: [],
   lastGameResult: "",
   practiceState: null,
+  gameMode: null, // null, 'drinking', 'party'
+  ageVerified: false,
+  birthYear: null,
 };
 
 export const lobbySlice = createSlice({
@@ -31,12 +34,17 @@ export const lobbySlice = createSlice({
     setLastLosers: (state, action) => { state.lastLosers = action.payload; },
     setLastGameResult: (state, action) => { state.lastGameResult = action.payload; },
     setPracticeState: (state, action) => { state.practiceState = action.payload; },
+    setGameMode: (state, action) => { state.gameMode = action.payload; },
+    setAgeVerified: (state, action) => { state.ageVerified = action.payload; },
+    setBirthYear: (state, action) => { state.birthYear = action.payload; },
   },
 });
 
 export const { 
   setPlayerName, setRoomId, setPlayers, setSelectedPlayers, 
   setGamePhase, setTimer, setGameType, setGameCategory,
-  setLastWinners, setLastLosers, setLastGameResult, setPracticeState
+  setLastWinners, setLastLosers, setLastGameResult, setPracticeState,
+  setGameMode, setAgeVerified, setBirthYear
 } = lobbySlice.actions;
 export default lobbySlice.reducer;
+
