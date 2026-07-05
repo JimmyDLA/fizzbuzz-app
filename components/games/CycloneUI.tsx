@@ -139,7 +139,7 @@ export function CycloneUI() {
         </TouchableOpacity>
       </View>
 
-      {(localStop !== null || gameData.finished) && (
+      {localStop !== null && !gameData.finished && (
         <View style={styles.lockedArea}>
           <Text style={styles.resultText}>{message}</Text>
         </View>

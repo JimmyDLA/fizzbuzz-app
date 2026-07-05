@@ -240,14 +240,6 @@ export function ScreenPaintingUI() {
           PAINT EVERYWHERE!
         </Text>
       </View>
-
-      {gameData.finished && (
-        <View className="absolute inset-0 bg-black/60 items-center justify-center z-50">
-          <Text className="text-white text-6xl font-black uppercase text-center shadow-2xl">
-            {gameData.winnerId === myPlayer?.id ? "YOU WIN!" : "FINISHED!"}
-          </Text>
-        </View>
-      )}
     </View>
   );
 }

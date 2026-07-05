@@ -1,11 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, ScrollView, Dimensions, StyleSheet } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useGameData } from './useGameData';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { useGameData } from "./useGameData";
 
 interface ShapeProps {
   shapeIdx: number;
@@ -13,46 +11,73 @@ interface ShapeProps {
   color: string;
 }
 
+const practiceShapes = Array.from(Array(16).keys()).sort(
+  () => Math.random() - 0.5,
+);
+
 export function PerfectionShape({ shapeIdx, size, color }: ShapeProps) {
   const containerStyle = {
     width: size,
     height: size,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
   };
 
   switch (shapeIdx) {
     case 0: // Circle
       return (
         <View style={containerStyle}>
-          <View style={{ width: size * 0.9, height: size * 0.9, borderRadius: (size * 0.9) / 2, backgroundColor: color }} />
+          <View
+            style={{
+              width: size * 0.9,
+              height: size * 0.9,
+              borderRadius: (size * 0.9) / 2,
+              backgroundColor: color,
+            }}
+          />
         </View>
       );
     case 1: // Square
       return (
         <View style={containerStyle}>
-          <View style={{ width: size * 0.85, height: size * 0.85, backgroundColor: color, borderRadius: 4 }} />
+          <View
+            style={{
+              width: size * 0.85,
+              height: size * 0.85,
+              backgroundColor: color,
+              borderRadius: 4,
+            }}
+          />
         </View>
       );
     case 2: // Triangle
       return (
         <View style={containerStyle}>
-          <View style={{
-            width: 0,
-            height: 0,
-            borderLeftWidth: size * 0.45,
-            borderRightWidth: size * 0.45,
-            borderBottomWidth: size * 0.85,
-            borderLeftColor: 'transparent',
-            borderRightColor: 'transparent',
-            borderBottomColor: color,
-          }} />
+          <View
+            style={{
+              width: 0,
+              height: 0,
+              borderLeftWidth: size * 0.45,
+              borderRightWidth: size * 0.45,
+              borderBottomWidth: size * 0.85,
+              borderLeftColor: "transparent",
+              borderRightColor: "transparent",
+              borderBottomColor: color,
+            }}
+          />
         </View>
       );
     case 3: // Rectangle
       return (
         <View style={containerStyle}>
-          <View style={{ width: size * 0.95, height: size * 0.55, backgroundColor: color, borderRadius: 3 }} />
+          <View
+            style={{
+              width: size * 0.95,
+              height: size * 0.55,
+              backgroundColor: color,
+              borderRadius: 3,
+            }}
+          />
         </View>
       );
     case 4: // 5-point Star
@@ -64,13 +89,15 @@ export function PerfectionShape({ shapeIdx, size, color }: ShapeProps) {
     case 5: // Diamond
       return (
         <View style={containerStyle}>
-          <View style={{
-            width: size * 0.65,
-            height: size * 0.65,
-            backgroundColor: color,
-            transform: [{ rotate: '45deg' }],
-            borderRadius: 2,
-          }} />
+          <View
+            style={{
+              width: size * 0.65,
+              height: size * 0.65,
+              backgroundColor: color,
+              transform: [{ rotate: "45deg" }],
+              borderRadius: 2,
+            }}
+          />
         </View>
       );
     case 6: // Hexagon
@@ -88,48 +115,83 @@ export function PerfectionShape({ shapeIdx, size, color }: ShapeProps) {
     case 8: // Cross
       return (
         <View style={containerStyle}>
-          <View style={{ width: size * 0.85, height: size * 0.85, alignItems: 'center', justifyContent: 'center' }}>
-            <View style={{ position: 'absolute', width: size * 0.85, height: size * 0.25, backgroundColor: color, borderRadius: 3 }} />
-            <View style={{ position: 'absolute', width: size * 0.25, height: size * 0.85, backgroundColor: color, borderRadius: 3 }} />
+          <View
+            style={{
+              width: size * 0.85,
+              height: size * 0.85,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <View
+              style={{
+                position: "absolute",
+                width: size * 0.85,
+                height: size * 0.25,
+                backgroundColor: color,
+                borderRadius: 3,
+              }}
+            />
+            <View
+              style={{
+                position: "absolute",
+                width: size * 0.25,
+                height: size * 0.85,
+                backgroundColor: color,
+                borderRadius: 3,
+              }}
+            />
           </View>
         </View>
       );
     case 9: // Oval
       return (
         <View style={containerStyle}>
-          <View style={{
-            width: size * 0.95,
-            height: size * 0.6,
-            borderRadius: (size * 0.6) / 2,
-            backgroundColor: color,
-          }} />
+          <View
+            style={{
+              width: size * 0.95,
+              height: size * 0.6,
+              borderRadius: (size * 0.6) / 2,
+              backgroundColor: color,
+            }}
+          />
         </View>
       );
     case 10: // Trapezoid
       return (
         <View style={containerStyle}>
-          <View style={{
-            width: size * 0.45,
-            height: 0,
-            borderLeftWidth: size * 0.25,
-            borderRightWidth: size * 0.25,
-            borderBottomWidth: size * 0.8,
-            borderLeftColor: 'transparent',
-            borderRightColor: 'transparent',
-            borderBottomColor: color,
-          }} />
+          <View
+            style={{
+              width: size * 0.45,
+              height: 0,
+              borderLeftWidth: size * 0.25,
+              borderRightWidth: size * 0.25,
+              borderBottomWidth: size * 0.8,
+              borderLeftColor: "transparent",
+              borderRightColor: "transparent",
+              borderBottomColor: color,
+            }}
+          />
         </View>
       );
     case 11: // Heart
       return (
         <View style={containerStyle}>
-          <MaterialCommunityIcons name="heart" size={size * 0.95} color={color} />
+          <MaterialCommunityIcons
+            name="heart"
+            size={size * 0.95}
+            color={color}
+          />
         </View>
       );
     case 12: // Shield
       return (
         <View style={containerStyle}>
-          <MaterialCommunityIcons name="shield" size={size * 0.95} color={color} />
+          <MaterialCommunityIcons
+            name="shield"
+            size={size * 0.95}
+            color={color}
+          />
         </View>
       );
     case 13: // 6-point Star
@@ -141,19 +203,25 @@ export function PerfectionShape({ shapeIdx, size, color }: ShapeProps) {
     case 14: // Arrow
       return (
         <View style={containerStyle}>
-          <MaterialCommunityIcons name="arrow-up-bold" size={size} color={color} />
+          <MaterialCommunityIcons
+            name="arrow-up-bold"
+            size={size}
+            color={color}
+          />
         </View>
       );
     case 15: // Parallelogram
       return (
         <View style={containerStyle}>
-          <View style={{
-            width: size * 0.7,
-            height: size * 0.55,
-            backgroundColor: color,
-            transform: [{ skewX: '-20deg' }],
-            borderRadius: 2,
-          }} />
+          <View
+            style={{
+              width: size * 0.7,
+              height: size * 0.55,
+              backgroundColor: color,
+              transform: [{ skewX: "-20deg" }],
+              borderRadius: 2,
+            }}
+          />
         </View>
       );
     default:
@@ -162,18 +230,22 @@ export function PerfectionShape({ shapeIdx, size, color }: ShapeProps) {
 }
 
 export function PerfectionUI() {
-  const insets = useSafeAreaInsets();
   const { myPlayer, sendAction } = useGameData();
 
   let gameData: any = {};
   try {
     gameData = JSON.parse(myPlayer?.gameData || "{}");
-  } catch (e) { }
+  } catch (e) {}
 
-  const shapes = gameData.shapes || [];
+  const shapes = gameData.shapes || practiceShapes;
 
   const [matchedShapes, setMatchedShapes] = useState<number[]>([]);
-  const [boardLayout, setBoardLayout] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
+  const [boardLayout, setBoardLayout] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } | null>(null);
   const [draggingShape, setDraggingShape] = useState<number | null>(null);
   const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
 
@@ -183,7 +255,7 @@ export function PerfectionUI() {
   const dragPosRef = useRef({ x: 0, y: 0 });
 
   // Reset matched shapes on a new game/round when the shape layout changes
-  const shapesJoined = shapes.join(',');
+  const shapesJoined = shapes.join(",");
   useEffect(() => {
     setMatchedShapes([]);
   }, [shapesJoined]);
@@ -206,46 +278,50 @@ export function PerfectionUI() {
     setTimeout(measureLayouts, 200);
   }, [measureLayouts]);
 
-  const checkHit = useCallback((absX: number, absY: number, shapeIndex: number) => {
-    if (!boardLayout || shapes.length === 0) return;
+  const checkHit = useCallback(
+    (absX: number, absY: number, shapeIndex: number) => {
+      if (!boardLayout || shapes.length === 0) return;
 
-    const slotIdx = shapes.indexOf(shapeIndex);
-    if (slotIdx === -1) return;
+      const slotIdx = shapes.indexOf(shapeIndex);
+      if (slotIdx === -1) return;
 
-    const row = Math.floor(slotIdx / 4);
-    const col = slotIdx % 4;
-    const slotSize = boardLayout.width / 4;
+      const row = Math.floor(slotIdx / 4);
+      const col = slotIdx % 4;
+      const slotSize = boardLayout.width / 4;
 
-    const slotX = boardLayout.x + col * slotSize;
-    const slotY = boardLayout.y + row * slotSize;
+      const slotX = boardLayout.x + col * slotSize;
+      const slotY = boardLayout.y + row * slotSize;
 
-    // Bounding check with small tolerance padding
-    const tolerance = slotSize * 0.15;
-    const isHit =
-      absX >= slotX - tolerance &&
-      absX <= slotX + slotSize + tolerance &&
-      absY >= slotY - tolerance &&
-      absY <= slotY + slotSize + tolerance;
+      // Bounding check with small tolerance padding
+      const tolerance = slotSize * 0.15;
+      const isHit =
+        absX >= slotX - tolerance &&
+        absX <= slotX + slotSize + tolerance &&
+        absY >= slotY - tolerance &&
+        absY <= slotY + slotSize + tolerance;
 
-    if (isHit) {
-      import('expo-haptics').then(({ default: Haptics }) => {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }).catch(() => {});
+      if (isHit) {
+        Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Success,
+        ).catch(() => {});
 
-      setMatchedShapes(prev => [...prev, shapeIndex]);
-      sendAction({ action: 'place' });
-    } else {
-      import('expo-haptics').then(({ default: Haptics }) => {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      }).catch(() => {});
-    }
-  }, [boardLayout, shapes, sendAction]);
+        setMatchedShapes((prev) => [...prev, shapeIndex]);
+        sendAction({ action: "place" });
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(
+          () => {},
+        );
+      }
+    },
+    [boardLayout, shapes, sendAction],
+  );
 
-  const remainingShapes = Array.from({ length: 16 }, (_, i) => i)
-    .filter(idx => !matchedShapes.includes(idx));
+  const remainingShapes = Array.from({ length: 16 }, (_, i) => i).filter(
+    (idx) => !matchedShapes.includes(idx),
+  );
 
   return (
-    <View 
+    <View
       ref={containerRef}
       onLayout={onContainerLayout}
       style={styles.container}
@@ -255,40 +331,41 @@ export function PerfectionUI() {
         <Text className="text-white text-5xl font-black font-rounded text-center tracking-wider">
           {matchedShapes.length} / 16
         </Text>
-        <Text className="text-indigo-300 font-bold text-sm tracking-widest uppercase">
-          Shapes Matched
-        </Text>
       </View>
 
       {/* 4x4 Grid Board */}
-      <View 
+      <View
         ref={boardRef}
         onLayout={measureLayouts}
-        className="w-full aspect-square bg-slate-900/60 border-[6px] border-indigo-900/80 rounded-[32px] p-3 shadow-2xl flex-row flex-wrap justify-between"
+        className="w-full aspect-square bg-slate-900/30 border-[6px] border-indigo-900/80 rounded-[32px] p-3 shadow-2xl flex-row flex-wrap justify-between"
       >
         {shapes.length > 0 ? (
           shapes.map((shapeIdx: number, idx: number) => {
             const isMatched = matchedShapes.includes(shapeIdx);
             return (
-              <View 
+              <View
                 key={idx}
-                className={`w-[23%] aspect-square items-center justify-center rounded-2xl mb-[2%] ${
-                  isMatched 
-                    ? 'bg-emerald-500/10 border-[3px] border-emerald-500/40 shadow-md shadow-emerald-500/10' 
-                    : 'bg-black/40 border-2 border-indigo-950/60 border-dashed'
-                }`}
+                className={`w-[24%] h-[24%] items-center justify-center rounded-2xl mb-[1%] bg-emerald-500/50 border-[3px] border-emerald-500/40 shadow-md shadow-emerald-500/10
+                  ${
+                    isMatched
+                      ? "bg-emerald-500/10 border-[3px] border-emerald-500/40 shadow-md shadow-emerald-500/10"
+                      : "bg-black/40 border-2 border-indigo-950/60 border-dashed"
+                  }
+                `}
               >
-                <PerfectionShape 
-                  shapeIdx={shapeIdx} 
-                  size={isMatched ? 40 : 32} 
-                  color={isMatched ? '#FBBF24' : 'rgba(165, 180, 252, 0.15)'} 
+                <PerfectionShape
+                  shapeIdx={shapeIdx}
+                  size={isMatched ? 40 : 32}
+                  color={isMatched ? "#FBBF24" : "rgba(0, 0, 0, 0.77)"}
                 />
               </View>
             );
           })
         ) : (
           <View className="flex-1 items-center justify-center">
-            <Text className="text-indigo-300 font-bold text-lg">Loading Board...</Text>
+            <Text className="text-indigo-300 font-bold text-lg">
+              Loading Board...
+            </Text>
           </View>
         )}
       </View>
@@ -301,12 +378,16 @@ export function PerfectionUI() {
       </View>
 
       {/* Bottom Slider / Tray */}
-      <View className="w-full h-24 bg-indigo-950/40 rounded-3xl border-2 border-white/10 p-3 items-center justify-center mb-4">
+      <View className="w-full h-28 bg-indigo-950/40 rounded-3xl border-2 border-white/10 p-5 items-center justify-center mb-4 mt-2">
         {remainingShapes.length > 0 ? (
-          <ScrollView 
-            horizontal 
+          <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 12, paddingHorizontal: 4, alignItems: 'center' }}
+            contentContainerStyle={{
+              gap: 12,
+              paddingHorizontal: 4,
+              alignItems: "center",
+            }}
           >
             {remainingShapes.map((shapeIdx) => {
               const panGesture = Gesture.Pan()
@@ -324,14 +405,24 @@ export function PerfectionUI() {
                   dragPosRef.current = { x: e.absoluteX, y: e.absoluteY };
                 })
                 .onEnd((e) => {
-                  checkHit(dragPosRef.current.x, dragPosRef.current.y, shapeIdx);
+                  checkHit(
+                    dragPosRef.current.x,
+                    dragPosRef.current.y,
+                    shapeIdx,
+                  );
                   setDraggingShape(null);
                 });
 
               return (
                 <GestureDetector key={shapeIdx} gesture={panGesture}>
-                  <View className="w-16 h-16 bg-white/10 rounded-2xl border-2 border-white/20 items-center justify-center active:scale-95 shadow-md">
-                    <PerfectionShape shapeIdx={shapeIdx} size={36} color="#FBBF24" />
+                  <View
+                    className={`w-16 h-16 bg-white/10 rounded-2xl border-2 border-white/20 items-center justify-center active:scale-95 shadow-md ${draggingShape === shapeIdx ? "opacity-0" : "opacity-100"}`}
+                  >
+                    <PerfectionShape
+                      shapeIdx={shapeIdx}
+                      size={36}
+                      color="#FBBF24"
+                    />
                   </View>
                 </GestureDetector>
               );
@@ -346,26 +437,17 @@ export function PerfectionUI() {
 
       {/* Floating Active Dragging Overlay */}
       {draggingShape !== null && (
-        <View 
+        <View
           pointerEvents="none"
           style={[
             styles.dragOverlay,
             {
               left: dragPos.x - containerPagePos.x - 32,
               top: dragPos.y - containerPagePos.y - 32,
-            }
+            },
           ]}
         >
           <PerfectionShape shapeIdx={draggingShape} size={50} color="#FBBF24" />
-        </View>
-      )}
-
-      {/* Game Over / Win Overlay */}
-      {gameData.finished && (
-        <View className="absolute inset-0 bg-black/70 items-center justify-center z-50 rounded-[40px]">
-          <Text className="text-white text-5xl font-black uppercase text-center shadow-2xl font-rounded">
-            {gameData.winnerId === myPlayer?.id ? "YOU WIN!" : "FINISHED!"}
-          </Text>
         </View>
       )}
     </View>
@@ -376,14 +458,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 8,
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
   },
   dragOverlay: {
-    position: 'absolute',
+    position: "absolute",
     width: 64,
     height: 64,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     zIndex: 9999,
-  }
+  },
 });
