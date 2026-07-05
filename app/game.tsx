@@ -14,6 +14,8 @@ import { SimonSaysUI } from '../components/games/SimonSaysUI';
 import { ScrabbleUI } from '../components/games/ScrabbleUI';
 import { TappingRaceUI } from '../components/games/TappingRaceUI';
 import { TriviaUI } from '../components/games/TriviaUI';
+import { ScreenPaintingUI } from '../components/games/ScreenPaintingUI';
+import { PerfectionUI } from '../components/games/PerfectionUI';
 import { PartyButton } from '../components/PartyButton';
 import { colyseusService } from '../store/colyseusService';
 import { GameProvider } from '../components/games/useGameData';
@@ -34,6 +36,28 @@ export default function GameScreen() {
 
   const myPlayer = reduxPlayers.find((p: any) => p.name === playerName);
   const isReady = myPlayer?.isReady || false;
+
+  let gameData: any = {};
+  try {
+    gameData = JSON.parse(myPlayer?.gameData || "{}");
+  } catch (e) {}
+
+  let isWinner = false;
+  if (gameData.finished) {
+    if (currentCategory === "Cyclone") {
+      if (gameData.results) {
+        const myResult = gameData.results.find((r: any) => r.id === myPlayer?.id);
+        const bestDist = Math.min(...gameData.results.map((r: any) => r.distance));
+        isWinner = bestDist !== 999 && myResult?.distance === bestDist;
+      }
+    } else if (currentCategory === "Balloon Inflate") {
+      isWinner =
+        gameData.winnerId === myPlayer?.id ||
+        gameData.timeoutWinners?.includes(myPlayer?.id);
+    } else {
+      isWinner = gameData.winnerId === myPlayer?.id;
+    }
+  }
 
   const handleReadyToggle = () => {
     colyseusService.sendReady(true);
@@ -67,6 +91,8 @@ export default function GameScreen() {
       case "Balloon Inflate": return <BalloonInflateUI />;
       case "Simon Says": return <SimonSaysUI />;
       case "Scrabble": return <ScrabbleUI />;
+      case "Screen Painting": return <ScreenPaintingUI />;
+      case "Perfection": return <PerfectionUI />;
       default: return (
         <View className="flex-1 bg-red-500 justify-center items-center p-6">
           <Text className="text-white text-2xl font-bold text-center">
@@ -161,10 +187,18 @@ export default function GameScreen() {
 
   return (
     <GameProvider isPractice={false}>
-      <SafeAreaView className="flex-1 bg-black">
+      <SafeAreaView className="flex-1 bg-black relative">
         {gamePhase === 'countdown' && renderCountdown()}
         {gamePhase === 'playing' && renderPlaying()}
         {gamePhase === 'resolution' && renderResolution()}
+
+        {gamePhase === 'playing' && gameData.finished && (
+          <View className="absolute inset-0 bg-black/70 items-center justify-center z-50">
+            <Text className="text-white text-5xl font-black uppercase text-center shadow-2xl font-rounded">
+              {isWinner ? "YOU WIN!" : "YOU LOST"}
+            </Text>
+          </View>
+        )}
       </SafeAreaView>
     </GameProvider>
   );

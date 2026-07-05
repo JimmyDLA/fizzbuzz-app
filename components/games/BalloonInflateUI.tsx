@@ -151,12 +151,6 @@ export function BalloonInflateUI() {
           />
         </View>
       </View>
-
-      {gameData.finished && (
-        <View style={styles.resultOverlay}>
-          <Text style={styles.resultText}>{message}</Text>
-        </View>
-      )}
     </View>
   );
 }

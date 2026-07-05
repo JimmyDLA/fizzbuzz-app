@@ -8,8 +8,10 @@ import { CycloneUI } from "./games/CycloneUI";
 import { HotPotatoUI } from "./games/HotPotatoUI";
 import { LumberCutUI } from "./games/LumberCutUI";
 import { MathProblemUI } from "./games/MathProblemUI";
+import { PerfectionUI } from "./games/PerfectionUI";
 import { RockPaperScissorsUI } from "./games/RockPaperScissorsUI";
 import { ScrabbleUI } from "./games/ScrabbleUI";
+import { ScreenPaintingUI } from "./games/ScreenPaintingUI";
 import { SimonSaysUI } from "./games/SimonSaysUI";
 import { TappingRaceUI } from "./games/TappingRaceUI";
 import { TriviaUI } from "./games/TriviaUI";
@@ -54,6 +56,10 @@ export function PracticeModal({
         return <SimonSaysUI />;
       case "Scrabble":
         return <ScrabbleUI />;
+      case "Screen Painting":
+        return <ScreenPaintingUI />;
+      case "Perfection":
+        return <PerfectionUI />;
       default:
         return null;
     }
@@ -62,7 +68,7 @@ export function PracticeModal({
   return (
     <SafeAreaView
       className="absolute top-0 left-0 w-full h-[130%] z-50 px-6 pb-32"
-      style={{ backgroundColor: "rgba(0,0,0,0.95)" }}
+      style={{ backgroundColor: "rgb(0, 0, 0)" }}
     >
       <View className="w-full flex-row justify-between items-center mb-6">
         <View>
