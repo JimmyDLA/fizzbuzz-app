@@ -20,6 +20,7 @@ import {
   setAgeVerified,
   setGameMode,
   setPlayerName,
+  toggleTheme,
 } from "../store/lobbySlice";
 import { RootState } from "../store/store";
 
@@ -63,6 +64,9 @@ export default function HomeScreen() {
     }
   };
 
+  const theme = useSelector((state: RootState) => state.lobby.theme) || "light";
+  const isDark = theme === "dark";
+
   const renderBackgroundDebris = () => {
     return memphisShapes.map((shape, i) => {
       const transform = shape.rotate ? [{ rotate: shape.rotate }] : [];
@@ -77,7 +81,9 @@ export default function HomeScreen() {
               opacity: 0.15,
             }}
           >
-            <Text className="font-black tracking-widest text-lg">
+            <Text
+              className={`font-black tracking-widest ${isDark ? "text-zinc-700" : "text-black"} text-lg`}
+            >
               •••••{"\n"}•••••{"\n"}•••••
             </Text>
           </View>
@@ -94,7 +100,7 @@ export default function HomeScreen() {
             height: shape.size,
             borderRadius: shape.type === "circle" ? 999 : 4,
             borderWidth: 2,
-            borderColor: "#000000",
+            borderColor: isDark ? "#ffffff" : "#000000",
             transform: transform as any,
             opacity: 0.4,
           }}
@@ -109,7 +115,7 @@ export default function HomeScreen() {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View
           style={StyleSheet.absoluteFillObject}
-          className="bg-amber-50 justify-center px-6"
+          className={`${isDark ? "bg-zinc-950" : "bg-amber-50"} justify-center px-6`}
         >
           {renderBackgroundDebris()}
 
@@ -117,6 +123,22 @@ export default function HomeScreen() {
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             className="flex-1 justify-center w-full max-w-sm mx-auto"
           >
+            {/* Theme Toggle Button */}
+            <TouchableOpacity
+              onPress={() => dispatch(toggleTheme())}
+              style={{ position: "absolute", top: 50, left: 0, zIndex: 10 }}
+            >
+              <View
+                className={`${isDark ? "bg-zinc-800 border-white shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]" : "bg-white border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"} border-3 rounded-2xl px-3 py-1.5 flex-row items-center`}
+              >
+                <Text
+                  className={`${isDark ? "text-white" : "text-black"} font-black text-xs uppercase`}
+                >
+                  {isDark ? "🌙 DARK" : "☀️ LIGHT"}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
             {gameMode && (
               <TouchableOpacity
                 onPress={() => {
@@ -125,30 +147,40 @@ export default function HomeScreen() {
                 }}
                 style={{ position: "absolute", top: 50, right: 0, zIndex: 10 }}
               >
-                <View className="bg-white border-3 border-black rounded-2xl px-3 py-1.5 flex-row items-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
-                  <Text className="text-black font-black text-xs uppercase">
-                    ⚙️ {gameMode === "drinking" ? "🍻 Drinking" : "🎉 Party"}
+                <View
+                  className={`${isDark ? "bg-zinc-800 border-white shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]" : "bg-white border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"} border-3 rounded-2xl px-3 py-1.5 flex-row items-center`}
+                >
+                  <Text
+                    className={`${isDark ? "text-white" : "text-black"} font-black text-xs uppercase`}
+                  >
+                    ⚙️ {gameMode === "drinking" ? "Drinking" : "Party"}
                   </Text>
                 </View>
               </TouchableOpacity>
             )}
 
-            <View className="items-center mb-10 mt-12">
-              <View className="w-36 h-36 bg-yellow-400 border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] rounded-2xl rotate-[-4deg] items-center justify-center mb-6">
+            <View className="items-center mb-10 mt-16">
+              <View
+                className={`w-36 h-36 bg-yellow-400 border-4 ${isDark ? "border-white shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]" : "border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"} rounded-2xl rotate-[-4deg] items-center justify-center mb-6`}
+              >
                 <Text className="text-6xl font-black text-black">FB</Text>
               </View>
               <Text
-                className="text-6xl font-black text-black text-center mb-2 uppercase"
+                className={`text-6xl font-black ${isDark ? "text-white" : "text-black"} text-center mb-2 uppercase`}
                 style={{
-                  textShadowColor: "#facc15",
+                  textShadowColor: isDark ? "#ec4899" : "#facc15",
                   textShadowOffset: { width: 4, height: 4 },
                   textShadowRadius: 0,
                 }}
               >
                 FizzBuzz
               </Text>
-              <View className="bg-black py-1 px-4 rounded-xl border-2 border-black mt-1">
-                <Text className="text-yellow-400 font-black tracking-widest text-xs uppercase text-center">
+              <View
+                className={`py-1 px-4 rounded-xl border-2 ${isDark ? "border-white bg-zinc-800" : "border-black bg-black"} mt-1`}
+              >
+                <Text
+                  className={`font-black tracking-widest text-xs uppercase text-center ${isDark ? "text-white" : "text-yellow-400"}`}
+                >
                   {gameMode === "drinking"
                     ? "MINI DRINKING GAMES"
                     : "MINI PARTY GAMES"}
@@ -163,7 +195,7 @@ export default function HomeScreen() {
                   StyleSheet.absoluteFillObject,
                   { borderRadius: 24, top: 8, left: 8 },
                 ]}
-                className="bg-black"
+                className={isDark ? "bg-white" : "bg-black"}
               />
 
               {/* Card Body */}
@@ -171,10 +203,12 @@ export default function HomeScreen() {
                 style={{
                   borderRadius: 24,
                   borderWidth: 4,
-                  borderColor: "#000000",
+                  borderColor: isDark ? "#ffffff" : "#000000",
                   padding: 20,
                 }}
-                className="bg-cyan-300"
+                className={
+                  gameMode === "drinking" ? "bg-pink-300" : "bg-cyan-300"
+                }
               >
                 {mode === "home" ? (
                   <View>

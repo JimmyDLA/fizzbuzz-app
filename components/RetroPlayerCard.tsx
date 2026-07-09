@@ -1,5 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { useSelector } from "react-redux";
+import { RootState } from "../store/store";
 
 interface RetroPlayerCardProps {
   name: string;
@@ -18,8 +20,22 @@ export function RetroPlayerCard({
   score,
   isReady,
 }: RetroPlayerCardProps) {
-  const cardColorClass = isMe ? "bg-cyan-300" : "bg-white";
-  const avatarBgClass = isMe ? "bg-yellow-400" : "bg-pink-300";
+  const theme = useSelector((state: RootState) => state.lobby.theme) || "light";
+  const isDark = theme === "dark";
+
+  const cardColorClass = isMe
+    ? (isDark ? "bg-cyan-500" : "bg-cyan-300")
+    : (isDark ? "bg-zinc-800" : "bg-white");
+
+  const avatarBgClass = isMe
+    ? (isDark ? "bg-yellow-500" : "bg-yellow-400")
+    : (isDark ? "bg-pink-500" : "bg-pink-300");
+
+  const nameColorClass = isMe
+    ? "text-black"
+    : (isDark ? "text-white" : "text-black");
+
+  const rankTextColorClass = isDark ? "text-white" : "text-black";
 
   return (
     <View className="w-full relative mb-4">
@@ -29,7 +45,7 @@ export function RetroPlayerCard({
           StyleSheet.absoluteFillObject,
           { borderRadius: 20, top: 4, left: 4 },
         ]}
-        className="bg-black"
+        className={isDark ? "bg-white" : "bg-black"}
       />
 
       {/* Card Body */}
@@ -37,7 +53,7 @@ export function RetroPlayerCard({
         style={{
           borderRadius: 20,
           borderWidth: 3,
-          borderColor: "#000000",
+          borderColor: isDark ? "#ffffff" : "#000000",
           padding: 14,
         }}
         className={`flex-row items-center justify-between ${cardColorClass}`}
@@ -46,9 +62,9 @@ export function RetroPlayerCard({
           {/* Rank Prefix */}
           {rank !== undefined && (
             <Text
-              className="text-black font-black text-3xl mr-3"
+              className={`${rankTextColorClass} font-black text-3xl mr-3`}
               style={{
-                textShadowColor: "#facc15",
+                textShadowColor: isDark ? "#06b6d4" : "#facc15",
                 textShadowOffset: { width: 2, height: 2 },
                 textShadowRadius: 0,
               }}
@@ -68,7 +84,7 @@ export function RetroPlayerCard({
 
           {/* Player Name */}
           <Text
-            className="text-2xl font-black text-black flex-1"
+            className={`text-2xl font-black ${nameColorClass} flex-1`}
             numberOfLines={1}
           >
             {name}
@@ -87,7 +103,7 @@ export function RetroPlayerCard({
           <View
             style={{
               borderWidth: 2,
-              borderColor: "#000000",
+              borderColor: isDark ? "#ffffff" : "#000000",
               borderRadius: 12,
             }}
             className="flex-row items-center bg-yellow-400 px-3 py-1.5 ml-2 shadow-[2px_2px_0px_0px_#000]"
@@ -102,7 +118,11 @@ export function RetroPlayerCard({
         {/* Ready Status Indicator */}
         {isReady !== undefined && (
           <View
-            style={{ borderWidth: 2, borderColor: "#000000", borderRadius: 10 }}
+            style={{
+              borderWidth: 2,
+              borderColor: isDark ? "#ffffff" : "#000000",
+              borderRadius: 10,
+            }}
             className={`px-3 py-1.5 ml-2 ${isReady ? "bg-emerald-400" : "bg-pink-400"}`}
           >
             <Text className="text-black font-black text-sm">

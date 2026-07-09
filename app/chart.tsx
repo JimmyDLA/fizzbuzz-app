@@ -9,12 +9,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { PracticeModal } from "../components/PracticeModal";
 import { RetroButton } from "../components/RetroButton";
 import { RetroPlayerCard } from "../components/RetroPlayerCard";
 import { colyseusService } from "../store/colyseusService";
 import { RootState } from "../store/store";
+import { toggleTheme } from "../store/lobbySlice";
 
 const TYPES = ["1v1", "2v2", "BR"];
 const CATS = [
@@ -33,6 +34,7 @@ const CATS = [
 ];
 
 export default function ChartScreen() {
+  const dispatch = useDispatch();
   const {
     roomId,
     playerName,
@@ -42,6 +44,7 @@ export default function ChartScreen() {
     currentGameType,
     currentCategory,
     selectedPlayers,
+    theme,
   } = useSelector((state: RootState) => state.lobby);
 
   const players: any[] = reduxPlayers.length > 0 ? reduxPlayers : [];
@@ -250,6 +253,8 @@ export default function ChartScreen() {
     { type: "dots", color: "text-black", top: "65%", left: "12%" },
   ];
 
+  const isDark = theme === "dark";
+
   const renderBackgroundDebris = () => {
     return memphisShapes.map((shape, i) => {
       const transform = shape.rotate ? [{ rotate: shape.rotate }] : [];
@@ -264,7 +269,7 @@ export default function ChartScreen() {
               opacity: 0.15,
             }}
           >
-            <Text className="font-black tracking-widest text-lg">
+            <Text className={`font-black tracking-widest text-lg ${isDark ? "text-zinc-700" : "text-black"}`}>
               •••••{"\n"}•••••{"\n"}•••••
             </Text>
           </View>
@@ -281,7 +286,7 @@ export default function ChartScreen() {
             height: shape.size,
             borderRadius: shape.type === "circle" ? 999 : 4,
             borderWidth: 2,
-            borderColor: "#000000",
+            borderColor: isDark ? "#ffffff" : "#000000",
             transform: transform as any,
             opacity: 0.4,
           }}
@@ -294,7 +299,7 @@ export default function ChartScreen() {
   return (
     <View
       style={StyleSheet.absoluteFillObject}
-      className="bg-amber-50 justify-center pt-16"
+      className={`${isDark ? "bg-zinc-950" : "bg-amber-50"} justify-center pt-16`}
     >
       {renderBackgroundDebris()}
 
@@ -308,7 +313,7 @@ export default function ChartScreen() {
               StyleSheet.absoluteFillObject,
               { borderRadius: 12, top: 3, left: 3 },
             ]}
-            className="bg-black"
+            className={isDark ? "bg-white" : "bg-black"}
           />
           <View
             style={[
@@ -316,7 +321,7 @@ export default function ChartScreen() {
               {
                 borderRadius: 12,
                 borderWidth: 3,
-                borderColor: "#000000",
+                borderColor: isDark ? "#ffffff" : "#000000",
                 alignItems: "center",
                 justifyContent: "center",
               },
@@ -327,23 +332,52 @@ export default function ChartScreen() {
           </View>
         </TouchableOpacity>
 
-        <View className="flex-1 items-center mr-12">
+        <View className="flex-1 items-center">
           <Text
-            className="text-black text-4xl font-black tracking-widest uppercase"
+            className={`text-black text-4xl font-black tracking-widest uppercase ${isDark ? "text-white" : "text-black"}`}
             style={{
-              textShadowColor: "#facc15",
+              textShadowColor: isDark ? "#06b6d4" : "#facc15",
               textShadowOffset: { width: 3, height: 3 },
               textShadowRadius: 0,
             }}
           >
             Game Chart
           </Text>
-          <View className="bg-black px-3 py-0.5 rounded-lg border-2 border-black mt-1">
-            <Text className="text-yellow-400 font-black text-xs tracking-widest">
+          <View className={`px-3 py-0.5 rounded-lg border-2 ${isDark ? "border-white bg-zinc-800" : "border-black bg-black"} mt-1`}>
+            <Text className={`font-black text-xs tracking-widest ${isDark ? "text-yellow-300" : "text-yellow-400"}`}>
               ROOM: {roomId}
             </Text>
           </View>
         </View>
+
+        {/* Theme Toggle Button */}
+        <TouchableOpacity
+          onPress={() => dispatch(toggleTheme())}
+          style={{ width: 48, height: 48, position: "relative" }}
+        >
+          <View
+            style={[
+              StyleSheet.absoluteFillObject,
+              { borderRadius: 12, top: 3, left: 3 },
+            ]}
+            className={isDark ? "bg-white" : "bg-black"}
+          />
+          <View
+            style={[
+              StyleSheet.absoluteFillObject,
+              {
+                borderRadius: 12,
+                borderWidth: 3,
+                borderColor: isDark ? "#ffffff" : "#000000",
+                alignItems: "center",
+                justifyContent: "center",
+              },
+            ]}
+            className={isDark ? "bg-zinc-800" : "bg-white"}
+          >
+            <Text className="text-xl">{isDark ? "🌙" : "☀️"}</Text>
+          </View>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -448,8 +482,9 @@ export default function ChartScreen() {
       {showWheelModal && (
         <View
           style={StyleSheet.absoluteFillObject}
-          className="bg-amber-50/95 justify-center items-center px-6 z-[9999] pt-12"
+          className={`${isDark ? "bg-zinc-950/95" : "bg-amber-50/95"} justify-center items-center px-6 z-[9999] pt-12`}
         >
+          {renderBackgroundDebris()}
           <View className="w-full max-w-sm relative">
             {/* Card Shadow */}
             <View
@@ -457,7 +492,7 @@ export default function ChartScreen() {
                 StyleSheet.absoluteFillObject,
                 { borderRadius: 28, top: 8, left: 8 },
               ]}
-              className="bg-black"
+              className={isDark ? "bg-white" : "bg-black"}
             />
 
             {/* Card Body */}
@@ -465,14 +500,17 @@ export default function ChartScreen() {
               style={{
                 borderRadius: 28,
                 borderWidth: 5,
-                borderColor: "#000000",
+                borderColor: isDark ? "#ffffff" : "#000000",
                 padding: 24,
                 alignItems: "center",
-                backgroundColor: "#fee2e2",
+                backgroundColor: isDark ? "#31102f" : "#fee2e2",
               }}
               className="bg-pink-400"
             >
-              <View className="bg-yellow-400 border-4 border-black py-2 px-6 rounded-2xl shadow-[4px_4px_0px_0px_#000] rotate-[-2deg] mb-6">
+              <View 
+                style={{ borderColor: isDark ? "#ffffff" : "#000000" }}
+                className={`bg-yellow-400 border-4 py-2 px-6 rounded-2xl rotate-[-2deg] mb-6 ${isDark ? "shadow-[4px_4px_0px_0px_#fff]" : "shadow-[4px_4px_0px_0px_#000]"}`}
+              >
                 <Text className="text-black text-4xl font-black uppercase text-center tracking-wider">
                   {displayedType}
                 </Text>
@@ -487,22 +525,28 @@ export default function ChartScreen() {
                   if (displayedType === "2v2" && selectedPs.length === 4) {
                     return (
                       <View className="items-center justify-center">
-                        <View className="bg-cyan-300 px-5 py-2.5 rounded-xl border-3 border-black shadow-[3px_3px_0px_0px_#000]">
+                        <View 
+                          style={{ borderColor: isDark ? "#ffffff" : "#000000" }}
+                          className={`bg-cyan-300 px-5 py-2.5 rounded-xl border-3 ${isDark ? "shadow-[3px_3px_0px_0px_#fff]" : "shadow-[3px_3px_0px_0px_#000]"}`}
+                        >
                           <Text className="text-black font-black text-lg">
                             {selectedPs[0].name} & {selectedPs[1].name}
                           </Text>
                         </View>
                         <Text
-                          className="text-black font-black text-2xl my-2 italic"
+                          className={`font-black text-2xl my-2 italic ${isDark ? "text-white" : "text-black"}`}
                           style={{
-                            textShadowColor: "#facc15",
+                            textShadowColor: isDark ? "#ec4899" : "#facc15",
                             textShadowOffset: { width: 2, height: 2 },
                             textShadowRadius: 0,
                           }}
                         >
                           VS
                         </Text>
-                        <View className="bg-yellow-300 px-5 py-2.5 rounded-xl border-3 border-black shadow-[3px_3px_0px_0px_#000]">
+                        <View 
+                          style={{ borderColor: isDark ? "#ffffff" : "#000000" }}
+                          className={`bg-yellow-300 px-5 py-2.5 rounded-xl border-3 ${isDark ? "shadow-[3px_3px_0px_0px_#fff]" : "shadow-[3px_3px_0px_0px_#000]"}`}
+                        >
                           <Text className="text-black font-black text-lg">
                             {selectedPs[2].name} & {selectedPs[3].name}
                           </Text>
@@ -514,9 +558,10 @@ export default function ChartScreen() {
                   return selectedPs.map((p: any) => (
                     <View
                       key={p.id}
-                      className="bg-white px-4 py-2 rounded-xl border-3 border-black shadow-[2px_2px_0px_0px_#000]"
+                      style={{ borderColor: isDark ? "#ffffff" : "#000000" }}
+                      className={`px-4 py-2 rounded-xl border-3 ${isDark ? "bg-zinc-800 shadow-[2px_2px_0px_0px_#fff]" : "bg-white shadow-[2px_2px_0px_0px_#000]"}`}
                     >
-                      <Text className="text-black font-black text-lg">
+                      <Text className={`font-black text-lg ${isDark ? "text-white" : "text-black"}`}>
                         {p.name}
                       </Text>
                     </View>
@@ -524,7 +569,10 @@ export default function ChartScreen() {
                 })()}
               </View>
 
-              <View className="bg-indigo-400 p-5 rounded-2xl border-4 border-black w-full items-center justify-center mb-8 min-h-[120px]">
+              <View 
+                style={{ borderColor: isDark ? "#ffffff" : "#000000" }}
+                className={`p-5 rounded-2xl border-4 w-full items-center justify-center mb-8 min-h-[120px] bg-indigo-400 ${isDark ? "shadow-[4px_4px_0px_0px_#fff]" : "shadow-[4px_4px_0px_0px_#000]"}`}
+              >
                 <Text className="text-black/60 text-xs font-black uppercase tracking-widest mb-1">
                   CATEGORY
                 </Text>
@@ -545,7 +593,10 @@ export default function ChartScreen() {
 
               <View className="h-28 justify-center items-center w-full">
                 {isSpinning ? (
-                  <View className="w-full bg-white border-3 border-black py-3 rounded-2xl shadow-[3px_3px_0px_0px_#000] items-center justify-center">
+                  <View 
+                    style={{ borderColor: isDark ? "#ffffff" : "#000000" }}
+                    className={`w-full bg-white border-3 py-3 rounded-2xl ${isDark ? "shadow-[3px_3px_0px_0px_#fff]" : "shadow-[3px_3px_0px_0px_#000]"} items-center justify-center`}
+                  >
                     <Text className="text-black font-black text-center text-lg uppercase tracking-wider">
                       Spinning Wheel...
                     </Text>

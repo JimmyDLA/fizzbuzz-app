@@ -16,6 +16,7 @@ const initialState = {
   gameMode: null, // null, 'drinking', 'party'
   ageVerified: false,
   birthYear: null,
+  theme: 'light' as 'light' | 'dark',
 };
 
 export const lobbySlice = createSlice({
@@ -37,6 +38,8 @@ export const lobbySlice = createSlice({
     setGameMode: (state, action) => { state.gameMode = action.payload; },
     setAgeVerified: (state, action) => { state.ageVerified = action.payload; },
     setBirthYear: (state, action) => { state.birthYear = action.payload; },
+    toggleTheme: (state) => { state.theme = state.theme === 'light' ? 'dark' : 'light'; },
+    setTheme: (state, action) => { state.theme = action.payload; },
   },
 });
 
@@ -44,7 +47,7 @@ export const {
   setPlayerName, setRoomId, setPlayers, setSelectedPlayers, 
   setGamePhase, setTimer, setGameType, setGameCategory,
   setLastWinners, setLastLosers, setLastGameResult, setPracticeState,
-  setGameMode, setAgeVerified, setBirthYear
+  setGameMode, setAgeVerified, setBirthYear, toggleTheme, setTheme
 } = lobbySlice.actions;
 export default lobbySlice.reducer;
 

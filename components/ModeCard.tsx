@@ -1,6 +1,8 @@
 import * as Haptics from "expo-haptics";
 import React, { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useSelector } from "react-redux";
+import { RootState } from "../store/store";
 
 interface ModeCardProps {
   title: string;
@@ -20,6 +22,8 @@ export function ModeCard({
   className = "",
 }: ModeCardProps) {
   const [isPressed, setIsPressed] = useState(false);
+  const theme = useSelector((state: RootState) => state.lobby.theme) || "light";
+  const isDark = theme === "dark";
 
   return (
     <TouchableOpacity
@@ -39,7 +43,7 @@ export function ModeCard({
             StyleSheet.absoluteFillObject,
             { borderRadius: 24, top: 8, left: 8 },
           ]}
-          className="bg-black"
+          className={isDark ? "bg-white" : "bg-black"}
         />
 
         {/* Card Face */}
@@ -49,7 +53,7 @@ export function ModeCard({
             {
               borderRadius: 24,
               borderWidth: 4,
-              borderColor: "#000000",
+              borderColor: isDark ? "#ffffff" : "#000000",
               padding: 20,
               justifyContent: "space-between",
               transform: [

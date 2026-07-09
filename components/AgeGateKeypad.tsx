@@ -8,6 +8,8 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { useSelector } from "react-redux";
+import { RootState } from "../store/store";
 import { KeyButton } from "./KeyButton";
 
 interface AgeGateKeypadProps {
@@ -29,6 +31,9 @@ export function AgeGateKeypad({
   onSubmit,
   onBack,
 }: AgeGateKeypadProps) {
+  const theme = useSelector((state: RootState) => state.lobby.theme) || "light";
+  const isDark = theme === "dark";
+
   return (
     <Animated.View
       style={{
@@ -44,7 +49,7 @@ export function AgeGateKeypad({
           StyleSheet.absoluteFillObject,
           { borderRadius: 24, top: 8, left: 8 },
         ]}
-        className="bg-black"
+        className={isDark ? "bg-white" : "bg-black"}
       />
 
       {/* Card Body */}
@@ -52,9 +57,9 @@ export function AgeGateKeypad({
         style={{
           borderRadius: 24,
           borderWidth: 4,
-          borderColor: "#000000",
+          borderColor: isDark ? "#ffffff" : "#000000",
           padding: 20,
-          backgroundColor: "#fdf6e2",
+          backgroundColor: isDark ? "#18181b" : "#fdf6e2",
         }}
       >
         {/* Back Button */}
@@ -65,15 +70,15 @@ export function AgeGateKeypad({
           }}
           style={{ position: "absolute", top: 12, left: 12, zIndex: 10 }}
         >
-          <View className="bg-white border-2 border-black rounded-lg px-2 py-1 flex-row items-center">
-            <Text className="font-black text-xs text-black">◀ BACK</Text>
+          <View className={`${isDark ? "bg-zinc-800 border-white" : "bg-white border-black"} border-2 rounded-lg px-2 py-1 flex-row items-center`}>
+            <Text className={`font-black text-xs ${isDark ? "text-white" : "text-black"}`}>◀ BACK</Text>
           </View>
         </TouchableOpacity>
 
-        <Text className="text-3xl font-black text-black text-center mt-6 mb-2 tracking-tight">
+        <Text className={`text-3xl font-black ${isDark ? "text-white" : "text-black"} text-center mt-6 mb-2 tracking-tight`}>
           VERIFY AGE
         </Text>
-        <Text className="text-xs font-black text-black/60 text-center uppercase tracking-widest mb-4">
+        <Text className={`text-xs font-black ${isDark ? "text-white/60" : "text-black/60"} text-center uppercase tracking-widest mb-4`}>
           ENTER BIRTH YEAR
         </Text>
 
@@ -85,7 +90,7 @@ export function AgeGateKeypad({
                 StyleSheet.absoluteFillObject,
                 { borderRadius: 12, top: 3, left: 3 },
               ]}
-              className="bg-black"
+              className={isDark ? "bg-white" : "bg-black"}
             />
             <View
               style={[
@@ -93,7 +98,7 @@ export function AgeGateKeypad({
                 {
                   borderRadius: 12,
                   borderWidth: 3,
-                  borderColor: "#000000",
+                  borderColor: isDark ? "#ffffff" : "#000000",
                   alignItems: "center",
                   justifyContent: "center",
                 },
@@ -144,7 +149,9 @@ export function AgeGateKeypad({
               onPress={onSubmit}
               flexSpan={2}
               colorClass={
-                yearStr.length === 4 ? "bg-emerald-400" : "bg-gray-300"
+                yearStr.length === 4
+                  ? "bg-emerald-400"
+                  : (isDark ? "bg-zinc-700" : "bg-gray-300")
               }
               disabled={isVerifying}
             />

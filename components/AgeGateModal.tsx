@@ -1,15 +1,19 @@
 import * as Haptics from "expo-haptics";
 import React, { useRef, useState } from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { memphisShapes } from "../constants/theme";
 import { setAgeVerified, setBirthYear, setGameMode } from "../store/lobbySlice";
 import { AgeGateDenied } from "./AgeGateDenied";
 import { AgeGateKeypad } from "./AgeGateKeypad";
 import { ModeCard } from "./ModeCard";
+import { RootState } from "../store/store";
 
 export function AgeGateModal() {
   const dispatch = useDispatch();
+  const theme = useSelector((state: RootState) => state.lobby.theme) || "light";
+  const isDark = theme === "dark";
+
   const [step, setStep] = useState<"select" | "keypad" | "denied">("select");
   const [yearStr, setYearStr] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
@@ -134,7 +138,7 @@ export function AgeGateModal() {
             }}
           >
             <Text
-              className={`font-black tracking-widest ${shape.color} text-lg`}
+              className={`font-black tracking-widest ${isDark ? "text-zinc-700" : shape.color} text-lg`}
             >
               •••••{"\n"}•••••{"\n"}•••••
             </Text>
@@ -152,7 +156,7 @@ export function AgeGateModal() {
             height: shape.size,
             borderRadius: shape.type === "circle" ? 999 : 4,
             borderWidth: 2,
-            borderColor: "#000000",
+            borderColor: isDark ? "#ffffff" : "#000000",
             transform: transform as any,
             opacity: 0.4,
           }}
@@ -165,16 +169,16 @@ export function AgeGateModal() {
   return (
     <View
       style={StyleSheet.absoluteFillObject}
-      className="bg-amber-50 justify-center items-center px-6 z-[9999]"
+      className={`${isDark ? "bg-zinc-950" : "bg-amber-50"} justify-center items-center px-6 z-[9999]`}
     >
       {renderBackgroundDebris()}
 
       {step === "select" && (
         <View className="w-full max-w-sm items-center">
           <Text
-            className="text-5xl font-black text-black text-center mb-10 tracking-tighter uppercase"
+            className={`text-5xl font-black ${isDark ? "text-white" : "text-black"} text-center mb-10 tracking-tighter uppercase`}
             style={{
-              textShadowColor: "#facc15",
+              textShadowColor: isDark ? "#ec4899" : "#facc15",
               textShadowOffset: { width: 3, height: 3 },
               textShadowRadius: 0,
             }}

@@ -7,6 +7,8 @@ import {
   View,
   ViewStyle,
 } from "react-native";
+import { useSelector } from "react-redux";
+import { RootState } from "../store/store";
 
 interface RetroButtonProps {
   title: string;
@@ -28,17 +30,22 @@ export function RetroButton({
   style,
 }: RetroButtonProps) {
   const [isPressed, setIsPressed] = useState(false);
+  const theme = useSelector((state: RootState) => state.lobby.theme) || "light";
+  const isDark = theme === "dark";
 
   // Default color mappings matching the Memphis/Neo-Brutalist palette
   const baseColors = {
     primary: "bg-emerald-400", // Vibrant retro cyan
     secondary: "bg-yellow-400", // Taxi yellow
-    neutral: "bg-white", // Neutral gray
+    neutral: isDark ? "bg-zinc-800" : "bg-white", // Neutral gray/white
     success: "bg-cyan-600", // Playful retro green
     danger: "bg-pink-400", // Hot pink
   };
 
   const selectedColorClass = colorClass || baseColors[variant];
+  const activeShadowColorClass = shadowColorClass === "bg-black"
+    ? (isDark ? "bg-white" : "bg-black")
+    : shadowColorClass;
 
   const handlePressIn = () => {
     if (disabled) return;
@@ -49,6 +56,13 @@ export function RetroButton({
   const handlePressOut = () => {
     setIsPressed(false);
   };
+
+  // Determine text color based on theme and variant
+  const textColorClass = isDark
+    ? (variant === "neutral" ? "text-white" : "text-black")
+    : (variant === "neutral" ? "text-black" : "text-white");
+
+  const textShadowStyle = (variant === "neutral" || isDark) ? {} : styles.textShadow;
 
   return (
     <TouchableOpacity
@@ -62,7 +76,7 @@ export function RetroButton({
         {/* Shadow block offset */}
         <View
           style={[StyleSheet.absoluteFillObject, { borderRadius: 20 }]}
-          className={shadowColorClass}
+          className={activeShadowColorClass}
         />
         {/* Foreground button content */}
         <View
@@ -71,7 +85,7 @@ export function RetroButton({
             {
               borderRadius: 20,
               borderWidth: 4,
-              borderColor: "#000000",
+              borderColor: isDark ? "#ffffff" : "#000000",
               alignItems: "center",
               justifyContent: "center",
               paddingHorizontal: 16,
@@ -84,8 +98,8 @@ export function RetroButton({
           className={selectedColorClass}
         >
           <Text
-            className={`text-${variant === "neutral" ? "black" : "white"} text-2xl font-black tracking-widest text-center`}
-            style={variant === "neutral" ? {} : styles.textShadow}
+            className={`${textColorClass} text-2xl font-black tracking-widest text-center`}
+            style={textShadowStyle}
           >
             {title}
           </Text>

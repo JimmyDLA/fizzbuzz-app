@@ -1,5 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useSelector } from "react-redux";
+import { RootState } from "../store/store";
 
 interface AgeGateDeniedProps {
   onPlayPartyMode: () => void;
@@ -10,6 +12,9 @@ export function AgeGateDenied({
   onPlayPartyMode,
   onRetry,
 }: AgeGateDeniedProps) {
+  const theme = useSelector((state: RootState) => state.lobby.theme) || "light";
+  const isDark = theme === "dark";
+
   return (
     <View className="w-full max-w-sm items-center">
       <View style={{ width: "100%", position: "relative" }}>
@@ -19,7 +24,7 @@ export function AgeGateDenied({
             StyleSheet.absoluteFillObject,
             { borderRadius: 24, top: 8, left: 8 },
           ]}
-          className="bg-black"
+          className={isDark ? "bg-white" : "bg-black"}
         />
 
         {/* Card Face */}
@@ -27,19 +32,19 @@ export function AgeGateDenied({
           style={{
             borderRadius: 24,
             borderWidth: 4,
-            borderColor: "#000000",
+            borderColor: isDark ? "#ffffff" : "#000000",
             padding: 24,
-            backgroundColor: "#fee2e2",
+            backgroundColor: isDark ? "#450a0a" : "#fee2e2",
             alignItems: "center",
           }}
         >
           <Text className="text-6xl mb-4 font-black">🛑</Text>
 
-          <Text className="text-3xl font-black text-red-600 text-center mb-2 uppercase tracking-tight">
+          <Text className={`text-3xl font-black ${isDark ? "text-red-400" : "text-red-600"} text-center mb-2 uppercase tracking-tight`}>
             ACCESS DENIED
           </Text>
 
-          <Text className="text-center font-bold text-black/80 mb-6 text-sm">
+          <Text className={`text-center font-bold ${isDark ? "text-white/80" : "text-black/80"} mb-6 text-sm`}>
             You must be 21 or older to enter Drinking Mode. Try our
             high-energy Party Mode instead!
           </Text>
@@ -56,7 +61,7 @@ export function AgeGateDenied({
                   StyleSheet.absoluteFillObject,
                   { borderRadius: 16, top: 3, left: 3 },
                 ]}
-                className="bg-black"
+                className={isDark ? "bg-white" : "bg-black"}
               />
               <View
                 style={[
@@ -64,7 +69,7 @@ export function AgeGateDenied({
                   {
                     borderRadius: 16,
                     borderWidth: 3,
-                    borderColor: "#000000",
+                    borderColor: isDark ? "#ffffff" : "#000000",
                     alignItems: "center",
                     justifyContent: "center",
                   },
@@ -89,7 +94,7 @@ export function AgeGateDenied({
                   StyleSheet.absoluteFillObject,
                   { borderRadius: 16, top: 3, left: 3 },
                 ]}
-                className="bg-black"
+                className={isDark ? "bg-white" : "bg-black"}
               />
               <View
                 style={[
@@ -97,14 +102,14 @@ export function AgeGateDenied({
                   {
                     borderRadius: 16,
                     borderWidth: 3,
-                    borderColor: "#000000",
+                    borderColor: isDark ? "#ffffff" : "#000000",
                     alignItems: "center",
                     justifyContent: "center",
                   },
                 ]}
-                className="bg-white"
+                className={isDark ? "bg-zinc-800" : "bg-white"}
               >
-                <Text className="text-base font-black text-black">
+                <Text className={`text-base font-black ${isDark ? "text-white" : "text-black"}`}>
                   TRY ANOTHER YEAR
                 </Text>
               </View>
