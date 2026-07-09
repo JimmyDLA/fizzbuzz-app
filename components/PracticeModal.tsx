@@ -67,7 +67,7 @@ export function PracticeModal({
 
   return (
     <SafeAreaView
-      className="absolute top-0 left-0 w-full h-[130%] z-50 px-6 pb-32"
+      className="absolute top-0 left-0 w-full h-[130%] z-[10000] px-6 pb-32"
       style={{ backgroundColor: "rgb(0, 0, 0)" }}
     >
       <View className="w-full flex-row justify-between items-center mb-6">

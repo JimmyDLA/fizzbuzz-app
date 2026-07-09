@@ -6,7 +6,6 @@ import {
   Platform,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
@@ -14,6 +13,8 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { AgeGateModal } from "../components/AgeGateModal";
 import { RetroButton } from "../components/RetroButton";
+import { RetroInput } from "../components/RetroInput";
+import { memphisShapes } from "../constants/theme";
 import { colyseusService } from "../store/colyseusService";
 import {
   setAgeVerified,
@@ -37,11 +38,11 @@ export default function HomeScreen() {
 
   const handleHost = async () => {
     if (!name.trim()) return alert("Please enter your name!");
-    dispatch(setPlayerName(name));
+    dispatch(setPlayerName(name.trim()));
     try {
       console.log("Hosting game...", name);
 
-      const id = await colyseusService.connectAsHost(name);
+      const id = await colyseusService.connectAsHost(name.trim());
       router.push({ pathname: "/lobby", params: { action: "host", code: id } });
     } catch (e: any) {
       alert(e.message || "Failed to create room.");
@@ -52,51 +53,15 @@ export default function HomeScreen() {
   const handleJoin = async () => {
     if (!name.trim()) return alert("Please enter your name!");
     if (!roomCode.trim()) return alert("Please enter a room code!");
-    dispatch(setPlayerName(name));
+    dispatch(setPlayerName(name.trim()));
     try {
-      const id = await colyseusService.connectAsJoin(roomCode, name);
+      const id = await colyseusService.connectAsJoin(roomCode, name.trim());
       router.push({ pathname: "/lobby", params: { action: "join", code: id } });
     } catch (e: any) {
       alert(e.message || "Failed to join room.");
       console.log(e);
     }
   };
-
-  const memphisShapes = [
-    {
-      type: "circle",
-      color: "bg-yellow-400",
-      size: 24,
-      top: "10%",
-      left: "8%",
-    },
-    { type: "circle", color: "bg-pink-400", size: 16, top: "75%", left: "82%" },
-    {
-      type: "square",
-      color: "bg-cyan-400",
-      size: 20,
-      top: "22%",
-      left: "84%",
-      rotate: "45deg",
-    },
-    {
-      type: "square",
-      color: "bg-yellow-400",
-      size: 18,
-      top: "85%",
-      left: "12%",
-      rotate: "15deg",
-    },
-    {
-      type: "triangle",
-      color: "bg-pink-500",
-      size: 24,
-      top: "45%",
-      left: "10%",
-    },
-    { type: "dots", color: "text-black", top: "12%", left: "68%" },
-    { type: "dots", color: "text-black", top: "68%", left: "8%" },
-  ];
 
   const renderBackgroundDebris = () => {
     return memphisShapes.map((shape, i) => {
@@ -229,21 +194,16 @@ export default function HomeScreen() {
                   </View>
                 ) : (
                   <View>
-                    <TextInput
-                      style={{ borderWidth: 3, borderColor: "#000000" }}
-                      className="bg-white rounded-2xl px-4 py-3 text-3xl font-black text-center text-black mb-6 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                    <RetroInput
                       placeholder="YOUR NAME"
-                      placeholderTextColor="rgba(0,0,0,0.3)"
                       value={name}
                       onChangeText={setName}
                       maxLength={12}
                     />
                     {mode === "join" && (
-                      <TextInput
-                        style={{ borderWidth: 3, borderColor: "#000000" }}
-                        className="bg-white rounded-2xl px-4 py-3 text-3xl font-black text-center text-black mb-6 tracking-[0.2em] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                      <RetroInput
+                        className="tracking-[0.2em]"
                         placeholder="ROOM CODE"
-                        placeholderTextColor="rgba(0,0,0,0.3)"
                         value={roomCode}
                         onChangeText={(text) =>
                           setRoomCode(text.replace(/[^0-9]/g, ""))

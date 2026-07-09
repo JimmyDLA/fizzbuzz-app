@@ -76,15 +76,15 @@ export function RetroButton({
               justifyContent: "center",
               paddingHorizontal: 16,
               transform: [
-                { translateY: isPressed ? 4 : 0 },
-                { translateX: isPressed ? 4 : 0 },
+                { translateY: !isPressed ? -4 : 0 },
+                { translateX: !isPressed ? -4 : 0 },
               ],
             },
           ]}
           className={selectedColorClass}
         >
           <Text
-            className={`text-${variant === "neutral" ? "black" : "white"} text-2xl font-black tracking-widest uppercase text-center`}
+            className={`text-${variant === "neutral" ? "black" : "white"} text-2xl font-black tracking-widest text-center`}
             style={variant === "neutral" ? {} : styles.textShadow}
           >
             {title}

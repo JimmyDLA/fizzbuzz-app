@@ -4,14 +4,17 @@ import {
   Alert,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { useSelector } from "react-redux";
-import { PartyButton } from "../components/PartyButton";
 import { PracticeModal } from "../components/PracticeModal";
+import { RetroButton } from "../components/RetroButton";
+import { RetroPlayerCard } from "../components/RetroPlayerCard";
 import { colyseusService } from "../store/colyseusService";
+import { RootState } from "../store/store";
 
 const TYPES = ["1v1", "2v2", "BR"];
 const CATS = [
@@ -39,12 +42,14 @@ export default function ChartScreen() {
     currentGameType,
     currentCategory,
     selectedPlayers,
-  } = useSelector((state: any) => state.lobby);
+  } = useSelector((state: RootState) => state.lobby);
 
-  const players = reduxPlayers.length > 0 ? reduxPlayers : [];
+  const players: any[] = reduxPlayers.length > 0 ? reduxPlayers : [];
+  const selectedPlayersList: any[] = selectedPlayers || [];
+
   const myPlayer = players.find((p: any) => p.name === playerName);
   const isReady = myPlayer?.isReady || false;
-  const amISelected = selectedPlayers?.includes(myPlayer?.id) || false;
+  const amISelected = selectedPlayersList.includes(myPlayer?.id) || false;
 
   const [displayedType, setDisplayedType] = useState("?");
   const [displayedCategory, setDisplayedCategory] = useState("?");
@@ -91,12 +96,8 @@ export default function ChartScreen() {
         clearInterval(interval);
         setDisplayedType(currentGameType || "?");
         setDisplayedCategory(currentCategory || "?");
-        setDisplayedPlayers(selectedPlayers || []);
+        setDisplayedPlayers(selectedPlayersList);
         setIsSpinning(false);
-
-        if (!selectedPlayers?.includes(myPlayer?.id)) {
-          autoDismiss = setTimeout(() => setShowWheelModal(false), 3000);
-        }
       }, 2000);
     } else if (gamePhase !== "wheel") {
       setShowWheelModal(false);
@@ -213,30 +214,135 @@ export default function ChartScreen() {
     setShowDevModal(false);
   };
 
+  const memphisShapes = [
+    {
+      type: "circle",
+      color: "bg-yellow-400",
+      size: 24,
+      top: "8%",
+      left: "10%",
+    },
+    { type: "circle", color: "bg-pink-400", size: 16, top: "75%", left: "80%" },
+    {
+      type: "square",
+      color: "bg-cyan-400",
+      size: 20,
+      top: "25%",
+      left: "85%",
+      rotate: "45deg",
+    },
+    {
+      type: "square",
+      color: "bg-yellow-400",
+      size: 18,
+      top: "82%",
+      left: "15%",
+      rotate: "15deg",
+    },
+    {
+      type: "triangle",
+      color: "bg-pink-500",
+      size: 24,
+      top: "48%",
+      left: "8%",
+    },
+    { type: "dots", color: "text-black", top: "15%", left: "65%" },
+    { type: "dots", color: "text-black", top: "65%", left: "12%" },
+  ];
+
+  const renderBackgroundDebris = () => {
+    return memphisShapes.map((shape, i) => {
+      const transform = shape.rotate ? [{ rotate: shape.rotate }] : [];
+      if (shape.type === "dots") {
+        return (
+          <View
+            key={i}
+            style={{
+              position: "absolute",
+              top: shape.top as any,
+              left: shape.left as any,
+              opacity: 0.15,
+            }}
+          >
+            <Text className="font-black tracking-widest text-lg">
+              •••••{"\n"}•••••{"\n"}•••••
+            </Text>
+          </View>
+        );
+      }
+      return (
+        <View
+          key={i}
+          style={{
+            position: "absolute",
+            top: shape.top as any,
+            left: shape.left as any,
+            width: shape.size,
+            height: shape.size,
+            borderRadius: shape.type === "circle" ? 999 : 4,
+            borderWidth: 2,
+            borderColor: "#000000",
+            transform: transform as any,
+            opacity: 0.4,
+          }}
+          className={shape.color}
+        />
+      );
+    });
+  };
+
   return (
-    <View className="flex-1 bg-green-900 pt-16">
+    <View
+      style={StyleSheet.absoluteFillObject}
+      className="bg-amber-50 justify-center pt-16"
+    >
+      {renderBackgroundDebris()}
+
       <View className="flex-row items-center justify-between mb-8 w-full px-6">
         <TouchableOpacity
           onPress={handleLeaveGame}
-          className="bg-red-500 w-12 h-12 rounded-full items-center justify-center border-4 border-red-700 shadow-xl"
+          style={{ width: 48, height: 48, position: "relative" }}
         >
-          <Text className="text-white font-black text-xl">X</Text>
+          <View
+            style={[
+              StyleSheet.absoluteFillObject,
+              { borderRadius: 12, top: 3, left: 3 },
+            ]}
+            className="bg-black"
+          />
+          <View
+            style={[
+              StyleSheet.absoluteFillObject,
+              {
+                borderRadius: 12,
+                borderWidth: 3,
+                borderColor: "#000000",
+                alignItems: "center",
+                justifyContent: "center",
+              },
+            ]}
+            className="bg-pink-400"
+          >
+            <Text className="text-black font-black text-xl">X</Text>
+          </View>
         </TouchableOpacity>
 
         <View className="flex-1 items-center mr-12">
           <Text
-            className="text-white text-4xl font-black tracking-widest uppercase"
+            className="text-black text-4xl font-black tracking-widest uppercase"
             style={{
-              textShadowColor: "rgba(0,0,0,0.4)",
+              textShadowColor: "#facc15",
               textShadowOffset: { width: 3, height: 3 },
-              textShadowRadius: 1,
+              textShadowRadius: 0,
             }}
           >
             Game Chart
           </Text>
-          <Text className="text-yellow-400 font-bold text-lg mt-1 tracking-widest">
-            ROOM: {roomId}
-          </Text>
+          <View className="bg-black px-3 py-0.5 rounded-lg border-2 border-black mt-1">
+            <Text className="text-yellow-400 font-black text-xs tracking-widest">
+              ROOM: {roomId}
+            </Text>
+          </View>
         </View>
       </View>
 
@@ -253,42 +359,14 @@ export default function ChartScreen() {
               currentRank++;
             }
             return (
-              <View
+              <RetroPlayerCard
                 key={p.id}
-                className={`flex-row items-center justify-between p-5 mb-4 rounded-3xl border-b-8 ${p.id === myPlayer?.id ? "bg-blue-500 border-blue-700" : "bg-white/10 border-white/20"}`}
-              >
-                <View className="flex-row items-center flex-1">
-                  <Text
-                    className="text-yellow-400 font-black text-3xl mr-4"
-                    style={{
-                      textShadowColor: "rgba(0,0,0,0.3)",
-                      textShadowOffset: { width: 1, height: 1 },
-                      textShadowRadius: 1,
-                    }}
-                  >
-                    #{currentRank}
-                  </Text>
-                  <View className="w-12 h-12 bg-white/20 rounded-full items-center justify-center mr-3">
-                    <Text className="text-2xl font-black text-white">
-                      {p.name.charAt(0)}
-                    </Text>
-                  </View>
-                  <Text
-                    className="text-2xl font-black text-white flex-1"
-                    numberOfLines={1}
-                  >
-                    {p.name} {p.isHost && "👑"}
-                  </Text>
-                </View>
-                <View className="flex-row items-center bg-yellow-400 px-4 py-2 rounded-2xl ml-2 shadow-sm border-b-4 border-yellow-600">
-                  <View className="w-5 h-7 bg-yellow-200 rounded-[10px] border-2 border-orange-500 items-center justify-center mr-2 shadow-sm">
-                    <View className="w-1 h-4 bg-orange-400 rounded-full" />
-                  </View>
-                  <Text className="text-indigo-900 font-black text-2xl">
-                    {p.score}
-                  </Text>
-                </View>
-              </View>
+                name={p.name}
+                isMe={p.id === myPlayer?.id}
+                isHost={p.isHost}
+                rank={currentRank}
+                score={p.score}
+              />
             );
           });
         })()}
@@ -298,153 +376,204 @@ export default function ChartScreen() {
         <View className="pb-10 pt-4 w-full px-6">
           {myPlayer?.isHost ? (
             <View>
-              <PartyButton
+              <RetroButton
                 title="SPIN WHEEL!"
-                color="secondary"
+                variant="secondary"
                 onPress={() => colyseusService.startWheel()}
               />
               <TouchableOpacity
                 onPress={openDevModal}
-                className="mt-4 p-3 border-4 border-white/20 rounded-full mx-32"
+                style={{
+                  height: 48,
+                  position: "relative",
+                  width: "50%",
+                  alignSelf: "center",
+                  marginTop: 8,
+                }}
               >
-                <Text className="text-white text-center font-bold tracking-[0.2em] opacity-80">
-                  DEV MODE
-                </Text>
+                <View
+                  style={[
+                    StyleSheet.absoluteFillObject,
+                    { borderRadius: 16, top: 3, left: 3 },
+                  ]}
+                  className="bg-black"
+                />
+                <View
+                  style={[
+                    StyleSheet.absoluteFillObject,
+                    {
+                      borderRadius: 16,
+                      borderWidth: 3,
+                      borderColor: "#000000",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    },
+                  ]}
+                  className="bg-white"
+                >
+                  <Text className="text-black font-black text-sm tracking-wider">
+                    DEV MODE
+                  </Text>
+                </View>
               </TouchableOpacity>
             </View>
           ) : (
-            <View className="bg-black/30 p-8 rounded-[32px] items-center border-4 border-white/10">
-              <Text className="text-white text-2xl font-black opacity-80 uppercase text-center tracking-wider">
-                Waiting for host...
-              </Text>
+            <View className="relative w-full mb-4">
+              <View
+                style={[
+                  StyleSheet.absoluteFillObject,
+                  { borderRadius: 24, top: 4, left: 4 },
+                ]}
+                className="bg-black"
+              />
+              <View
+                style={{
+                  borderRadius: 24,
+                  borderWidth: 4,
+                  borderColor: "#000000",
+                  padding: 20,
+                  alignItems: "center",
+                }}
+                className="bg-pink-300"
+              >
+                <Text className="text-black text-2xl font-black uppercase text-center tracking-wider">
+                  Waiting for host...
+                </Text>
+              </View>
             </View>
           )}
         </View>
       )}
 
       {showWheelModal && (
-        <View className="absolute top-0 left-0 w-full h-[150%] bg-black/90 p-6 z-50 pt-32">
-          <View className="bg-pink-500 w-full p-8 rounded-[40px] border-[10px] border-pink-700 shadow-2xl items-center relative">
-            <Text
-              className="text-white text-5xl font-black mb-8 text-center shadow-lg uppercase"
+        <View
+          style={StyleSheet.absoluteFillObject}
+          className="bg-amber-50/95 justify-center items-center px-6 z-[9999] pt-12"
+        >
+          <View className="w-full max-w-sm relative">
+            {/* Card Shadow */}
+            <View
+              style={[
+                StyleSheet.absoluteFillObject,
+                { borderRadius: 28, top: 8, left: 8 },
+              ]}
+              className="bg-black"
+            />
+
+            {/* Card Body */}
+            <View
               style={{
-                textShadowColor: "rgba(0,0,0,0.3)",
-                textShadowOffset: { width: 3, height: 3 },
-                textShadowRadius: 1,
+                borderRadius: 28,
+                borderWidth: 5,
+                borderColor: "#000000",
+                padding: 24,
+                alignItems: "center",
+                backgroundColor: "#fee2e2",
               }}
+              className="bg-pink-400"
             >
-              {displayedType}
-            </Text>
+              <View className="bg-yellow-400 border-4 border-black py-2 px-6 rounded-2xl shadow-[4px_4px_0px_0px_#000] rotate-[-2deg] mb-6">
+                <Text className="text-black text-4xl font-black uppercase text-center tracking-wider">
+                  {displayedType}
+                </Text>
+              </View>
 
-            <View className="flex-row flex-wrap justify-center items-center mb-6 gap-3 min-h-[130px]">
-              {(() => {
-                const selectedPs = players.filter((p: any) =>
-                  displayedPlayers.includes(p.id),
-                );
-
-                if (displayedType === "2v2" && selectedPs.length === 4) {
-                  return (
-                    <View className="items-center justify-center flex-wrap">
-                      <View className="bg-indigo-500 px-5 py-3 rounded-full border-4 border-indigo-300 shadow-lg">
-                        <Text className="text-white font-black text-xl">
-                          {selectedPs[0].name} & {selectedPs[1].name}
-                        </Text>
-                      </View>
-                      <Text
-                        className="text-yellow-400 font-black text-3xl mx-4 italic"
-                        style={{
-                          textShadowColor: "rgba(0,0,0,0.5)",
-                          textShadowOffset: { width: 2, height: 2 },
-                          textShadowRadius: 1,
-                        }}
-                      >
-                        VS
-                      </Text>
-                      <View className="bg-rose-500 px-5 py-3 rounded-full border-4 border-rose-300 shadow-lg">
-                        <Text className="text-white font-black text-xl">
-                          {selectedPs[2].name} & {selectedPs[3].name}
-                        </Text>
-                      </View>
-                    </View>
+              <View className="flex-row flex-wrap justify-center items-center mb-6 gap-3 min-h-[110px]">
+                {(() => {
+                  const selectedPs = players.filter((p: any) =>
+                    displayedPlayers.includes(p.id),
                   );
-                }
 
-                return selectedPs.map((p: any) => (
-                  <View
-                    key={p.id}
-                    className="bg-white/20 px-5 py-3 rounded-full border-4 border-white/50"
-                  >
-                    <Text className="text-white font-black text-xl">
-                      {p.name}
+                  if (displayedType === "2v2" && selectedPs.length === 4) {
+                    return (
+                      <View className="items-center justify-center">
+                        <View className="bg-cyan-300 px-5 py-2.5 rounded-xl border-3 border-black shadow-[3px_3px_0px_0px_#000]">
+                          <Text className="text-black font-black text-lg">
+                            {selectedPs[0].name} & {selectedPs[1].name}
+                          </Text>
+                        </View>
+                        <Text
+                          className="text-black font-black text-2xl my-2 italic"
+                          style={{
+                            textShadowColor: "#facc15",
+                            textShadowOffset: { width: 2, height: 2 },
+                            textShadowRadius: 0,
+                          }}
+                        >
+                          VS
+                        </Text>
+                        <View className="bg-yellow-300 px-5 py-2.5 rounded-xl border-3 border-black shadow-[3px_3px_0px_0px_#000]">
+                          <Text className="text-black font-black text-lg">
+                            {selectedPs[2].name} & {selectedPs[3].name}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  }
+
+                  return selectedPs.map((p: any) => (
+                    <View
+                      key={p.id}
+                      className="bg-white px-4 py-2 rounded-xl border-3 border-black shadow-[2px_2px_0px_0px_#000]"
+                    >
+                      <Text className="text-black font-black text-lg">
+                        {p.name}
+                      </Text>
+                    </View>
+                  ));
+                })()}
+              </View>
+
+              <View className="bg-indigo-400 p-5 rounded-2xl border-4 border-black w-full items-center justify-center mb-8 min-h-[120px]">
+                <Text className="text-black/60 text-xs font-black uppercase tracking-widest mb-1">
+                  CATEGORY
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.4}
+                  className="text-white font-black uppercase text-center w-full text-3xl"
+                  style={{
+                    textShadowColor: "#000000",
+                    textShadowOffset: { width: 2, height: 2 },
+                    textShadowRadius: 0,
+                  }}
+                >
+                  {displayedCategory}
+                </Text>
+              </View>
+
+              <View className="h-28 justify-center items-center w-full">
+                {isSpinning ? (
+                  <View className="w-full bg-white border-3 border-black py-3 rounded-2xl shadow-[3px_3px_0px_0px_#000] items-center justify-center">
+                    <Text className="text-black font-black text-center text-lg uppercase tracking-wider">
+                      Spinning Wheel...
                     </Text>
                   </View>
-                ));
-              })()}
-            </View>
-
-            <View className="bg-indigo-600 p-8 rounded-3xl border-8 border-indigo-400 w-full items-center justify-center mb-10 shadow-inner min-h-[160px]">
-              <Text className="text-blue-200 text-xl font-black uppercase mb-2">
-                CATEGORY
-              </Text>
-              <Text
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.4}
-                className="text-white font-black uppercase text-center w-full"
-                style={{
-                  fontSize: 36,
-                  textShadowColor: "rgba(0,0,0,0.3)",
-                  textShadowOffset: { width: 2, height: 2 },
-                  textShadowRadius: 1,
-                }}
-              >
-                {displayedCategory}
-              </Text>
-            </View>
-
-            <View className="h-32 justify-center items-center w-full">
-              {isSpinning ? (
-                <View className="w-32 h-32 rounded-full border-[8px] border-white/30 items-center justify-center">
-                  <Text className="text-white/80 font-bold text-center text-lg">
-                    Spinning...
-                  </Text>
-                </View>
-              ) : amISelected ? (
-                <View className="flex-row gap-6 items-center justify-center">
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={() => setShowPracticeModal(true)}
-                    className="w-24 h-24 rounded-full items-center justify-center border-[6px] border-blue-300 bg-blue-500 shadow-xl"
-                  >
-                    <Text
-                      className="text-sm font-black text-white tracking-widest text-center"
-                      adjustsFontSizeToFit
-                      numberOfLines={1}
-                    >
-                      TRY IT
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={handleReadyToggle}
-                    className={`w-32 h-32 rounded-full items-center justify-center border-[8px] shadow-2xl ${isReady ? "bg-green-500 border-green-300" : "bg-gray-400/70 border-gray-200/70"}`}
-                  >
-                    <Text
-                      className={`text-6xl font-black ${isReady ? "text-white" : "text-gray-500"}`}
-                    >
-                      ✓
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <View className="w-full">
-                  <PartyButton
+                ) : amISelected ? (
+                  <View className="flex-row gap-4 items-center justify-center w-full">
+                    <RetroButton
+                      title="Try It"
+                      variant="success"
+                      onPress={() => setShowPracticeModal(true)}
+                      style={{ flex: 1 }}
+                    />
+                    <RetroButton
+                      title={isReady ? "READY ✓" : "READY UP!"}
+                      variant={isReady ? "primary" : "secondary"}
+                      onPress={handleReadyToggle}
+                      style={{ flex: 2 }}
+                    />
+                  </View>
+                ) : (
+                  <RetroButton
                     title="DISMISS"
-                    color="secondary"
+                    variant="danger"
                     onPress={() => setShowWheelModal(false)}
+                    style={{ width: "100%" }}
                   />
-                </View>
-              )}
+                )}
+              </View>
             </View>
           </View>
         </View>
@@ -452,28 +581,37 @@ export default function ChartScreen() {
 
       {showDevModal && (
         <View
-          className="absolute top-0 left-0 w-full h-[150%] z-50 pt-16 px-6 pb-32"
-          style={{ backgroundColor: "rgba(0,0,0,0.95)", position: "absolute" }}
+          style={[
+            StyleSheet.absoluteFillObject,
+            {
+              backgroundColor: "rgba(0,0,0,0.95)",
+              zIndex: 99999,
+              paddingTop: 50,
+              paddingHorizontal: 24,
+              height: "120%",
+              paddingBottom: 50,
+            },
+          ]}
         >
-          <View className="flex-1 w-full pt-4 pb-32">
+          <View className="flex-1 w-full max-w-sm mx-auto">
             <Text
-              className="text-yellow-400 text-3xl font-black mb-8 text-center uppercase tracking-widest px-2"
+              className="text-yellow-400 text-3xl font-black mb-6 text-center uppercase tracking-widest"
               style={{
-                textShadowColor: "rgba(0,0,0,0.5)",
+                textShadowColor: "#000",
                 textShadowOffset: { width: 2, height: 2 },
-                textShadowRadius: 1,
+                textShadowRadius: 0,
               }}
             >
               DEV OVERRIDE
             </Text>
             <ScrollView
-              className="w-full flex-1 mb-32"
-              showsVerticalScrollIndicator={false}
+              className="w-full flex-1 mb-24"
+              // showsVerticalScrollIndicator={true}
             >
-              <Text className="text-white font-black opacity-80 text-xl tracking-widest mb-4 ml-2">
+              <Text className="text-white font-black opacity-80 text-xl tracking-widest mb-3 ml-2">
                 GAME TYPE
               </Text>
-              <View className="flex-row gap-2 mb-8">
+              <View className="flex-row gap-2 mb-6">
                 {TYPES.map((t) => {
                   const isBlocked =
                     (devCategory === "Rock Paper Scissors" && t !== "1v1") ||
@@ -482,73 +620,87 @@ export default function ChartScreen() {
                     <Pressable
                       key={t}
                       onPress={() => handleDevTypeChange(t)}
-                      className={`flex-1 py-4 border-[6px] rounded-[32px] items-center ${devType === t ? "bg-indigo-600 border-indigo-400" : "bg-white/10 border-white/10"} ${isBlocked ? "opacity-20" : ""}`}
+                      style={{
+                        borderWidth: 3,
+                        borderColor: "#000000",
+                        height: 48,
+                        borderRadius: 14,
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                      className={`flex-1 ${devType === t ? "bg-cyan-300" : "bg-white"} ${isBlocked ? "opacity-35" : ""}`}
                     >
-                      <Text
-                        className={`font-black text-xl tracking-wider ${devType === t ? "text-white" : "text-gray-400"}`}
-                      >
-                        {t}
-                      </Text>
+                      <Text className="font-black text-black text-lg">{t}</Text>
                     </Pressable>
                   );
                 })}
               </View>
 
-              <Text className="text-white font-black opacity-80 text-xl tracking-widest mb-4 ml-2">
+              <Text className="text-white font-black opacity-80 text-xl tracking-widest mb-3 ml-2">
                 CATEGORY
               </Text>
-              <View className="flex-row flex-wrap gap-2 mb-8 border-b-4 border-white/10 pb-8">
+              <View className="flex-row flex-wrap gap-2 mb-6 border-b-2 border-white/10 pb-6">
                 {CATS.map((c) => (
                   <Pressable
                     key={c}
                     onPress={() => handleDevCategoryChange(c)}
-                    className={`w-[48%] py-4 border-[6px] rounded-[32px] items-center justify-center shadow-lg mb-2 ${devCategory === c ? "bg-pink-600 border-pink-400" : "bg-white/10 border-white/10"}`}
+                    style={{
+                      borderWidth: 3,
+                      borderColor: "#000000",
+                      height: 48,
+                      borderRadius: 14,
+                      justifyContent: "center",
+                      alignItems: "center",
+                      width: "48%",
+                      marginBottom: 8,
+                    }}
+                    className={devCategory === c ? "bg-pink-300" : "bg-white"}
                   >
-                    <Text
-                      className={`font-black text-center text-sm uppercase tracking-wider ${devCategory === c ? "text-white" : "text-gray-400"}`}
-                    >
+                    <Text className="font-black text-black text-xs text-center uppercase">
                       {c}
                     </Text>
                   </Pressable>
                 ))}
               </View>
 
-              <Text className="text-white font-black opacity-80 text-xl tracking-widest mb-4 ml-2">
+              <Text className="text-white font-black opacity-80 text-xl tracking-widest mb-3 ml-2">
                 PLAYERS ({devPlayers.length} SELECTED)
               </Text>
-              <View className="flex-row flex-wrap gap-3 mb-10">
+              <View className="flex-row flex-wrap gap-3 mb-8">
                 {players.map((p: any) => {
                   const isSelected = devPlayers.includes(p.id);
                   return (
-                    <View key={p.id}>
-                      <Pressable
-                        onPress={() => toggleDevPlayer(p.id)}
-                        className={`px-6 py-4 border-[6px] rounded-full items-center ${isSelected ? "bg-green-600 border-green-400" : "bg-white/10 border-white/10"}`}
-                      >
-                        <Text
-                          className={`font-black text-xl tracking-wider ${isSelected ? "text-white" : "text-gray-400"}`}
-                        >
-                          {p.name}
-                        </Text>
-                      </Pressable>
-                    </View>
+                    <Pressable
+                      key={p.id}
+                      onPress={() => toggleDevPlayer(p.id)}
+                      style={{
+                        borderWidth: 3,
+                        borderColor: "#000000",
+                        borderRadius: 20,
+                        paddingHorizontal: 16,
+                        paddingVertical: 8,
+                      }}
+                      className={isSelected ? "bg-emerald-400" : "bg-white"}
+                    >
+                      <Text className="font-black text-black text-sm">
+                        {p.name}
+                      </Text>
+                    </Pressable>
                   );
                 })}
               </View>
-              <View className="pt-4 gap-4 pb-12 shadow-2xl">
-                <PartyButton
+
+              <View className="pt-4 gap-4 pb-12">
+                <RetroButton
                   title="FORCE START"
-                  color="success"
+                  variant="success"
                   onPress={handleDevStart}
                 />
-                <Pressable
+                <RetroButton
+                  title="CANCEL"
+                  variant="danger"
                   onPress={() => setShowDevModal(false)}
-                  className="w-full bg-red-500 py-5 rounded-[40px] items-center border-[8px] border-red-700 shadow-2xl mt-2"
-                >
-                  <Text className="text-white font-black text-2xl tracking-[0.2em]">
-                    CANCEL
-                  </Text>
-                </Pressable>
+                />
               </View>
             </ScrollView>
           </View>
