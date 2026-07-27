@@ -34,6 +34,15 @@ export function PracticeModal({
     };
   }, []);
 
+  const handleRestart = async () => {
+    colyseusService.leavePractice();
+    try {
+      await colyseusService.joinPractice(category, playerName);
+    } catch (e) {
+      console.error("Failed to restart practice:", e);
+    }
+  };
+
   const renderMiniGame = () => {
     switch (category) {
       case "Tapping Race":
@@ -77,12 +86,22 @@ export function PracticeModal({
           </Text>
           <Text className="text-white/60 font-bold uppercase">{category}</Text>
         </View>
-        <TouchableOpacity
-          onPress={onClose}
-          className="bg-red-500 w-12 h-12 rounded-full items-center justify-center border-4 border-red-700 shadow-xl"
-        >
-          <Text className="text-white font-black text-xl">X</Text>
-        </TouchableOpacity>
+        <View className="flex-row items-center gap-3">
+          <TouchableOpacity
+            onPress={handleRestart}
+            className="bg-yellow-400 px-4 py-2 rounded-2xl border-4 border-yellow-600 shadow-lg items-center justify-center"
+          >
+            <Text className="text-black font-black text-xs uppercase tracking-wider">
+              RESTART
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={onClose}
+            className="bg-red-500 w-12 h-12 rounded-full items-center justify-center border-4 border-red-700 shadow-xl"
+          >
+            <Text className="text-white font-black text-xl">X</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {!practiceState ? (

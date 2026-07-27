@@ -1,74 +1,200 @@
-import { View, Text, TouchableOpacity } from 'react-native';
-import { useGameData } from './useGameData';
+import React, { useState } from "react";
+import { Text, TouchableOpacity, View, StyleSheet, Modal } from "react-native";
+import { useSelector } from "react-redux";
+import * as Haptics from "expo-haptics";
+import { useGameData } from "./useGameData";
+import { RootState } from "../../store/store";
+
 export function MathProblemUI() {
   const { myPlayer, sendAction } = useGameData();
+  const theme = useSelector((state: RootState) => state.lobby.theme) || "light";
+  const isDark = theme === "dark";
+  const [pressedIdx, setPressedIdx] = useState<number | null>(null);
+
   let gameData: any = {};
   try {
-     gameData = JSON.parse(myPlayer?.gameData || "{}");
+    gameData = JSON.parse(myPlayer?.gameData || "{}");
   } catch (e) {}
 
-  const handleAnswer = (ans: number) => {
+  const handleAnswer = (ans: number, idx: number) => {
     if (myPlayer?.gameScore === -1 || gameData.gameOver) return;
-    sendAction({ action: 'answer', answer: ans });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    sendAction({ action: "answer", answer: ans });
   };
 
   return (
-    <View className="flex-1 items-center justify-center pt-2 w-full px-2">
-      <Text className="text-white text-2xl font-black mb-6 text-center opacity-80 uppercase tracking-widest">SOLVE QUICKLY! ({(gameData.index ?? 0) + 1}/3)</Text>
-      
-      <View className="bg-white/20 py-8 rounded-[40px] border-8 border-white/50 mb-10 shadow-2xl w-full items-center">
-         <Text className="text-white text-8xl font-black " adjustsFontSizeToFit numberOfLines={1}>{gameData.question || '?'}</Text>
+    <View className="flex-1 items-center justify-center pt-2 w-full px-6">
+      <Text
+        className={`text-2xl font-black mb-6 text-center uppercase tracking-widest ${
+          isDark ? "text-white" : "text-black"
+        }`}
+        style={{
+          textShadowColor: isDark ? "#ec4899" : "#facc15",
+          textShadowOffset: { width: 2, height: 2 },
+          textShadowRadius: 0,
+        }}
+      >
+        {gameData.index < gameData.totalQuestions
+          ? `SOLVE QUICKLY! (${(gameData.index ?? 0) + 1}/${gameData.totalQuestions ?? 0})`
+          : "Done!"}
+      </Text>
+
+      {/* Question Card */}
+      <View style={styles.questionWrapper} className="mb-10">
+        {/* Card Shadow */}
+        <View
+          style={[StyleSheet.absoluteFillObject, { borderRadius: 28 }]}
+          className={isDark ? "bg-white" : "bg-black"}
+        />
+
+        {/* Card Body */}
+        <View
+          style={{
+            borderRadius: 28,
+            borderWidth: 4,
+            borderColor: isDark ? "#ffffff" : "#000000",
+            transform: [{ translateY: -6 }, { translateX: -6 }],
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+          className={isDark ? "bg-yellow-500" : "bg-yellow-300"}
+        >
+          <Text
+            className="text-black text-8xl font-black py-6"
+            adjustsFontSizeToFit
+            numberOfLines={1}
+          >
+            {gameData.question || "?"}
+          </Text>
+        </View>
       </View>
-      
+
+      {/* Option Buttons Grid */}
       <View className="flex-row flex-wrap justify-between w-full">
-         {gameData.options?.map((opt: number, idx: number) => {
-            const isLocked = gameData.isLockedOut;
-            return (
-              <TouchableOpacity 
-                 key={idx}
-                 activeOpacity={0.8}
-                 onPress={() => handleAnswer(opt)}
-                 disabled={isLocked || gameData.gameOver || gameData.isTransitioning}
-                 className={`w-[48%] aspect-square rounded-3xl items-center justify-center border-8 shadow-xl mb-4 ${
-                   isLocked 
-                     ? 'bg-slate-700 border-slate-900 opacity-50'
-                     : (gameData.gameOver && opt === gameData.correct) 
-                        ? 'bg-green-500 border-green-700' 
-                        : 'bg-blue-500 border-blue-700'
-                 }`}
+        {gameData.options?.map((opt: number, idx: number) => {
+          const isLocked = gameData.isLockedOut;
+          const isGameOver = gameData.gameOver;
+          const isTransitioning = gameData.isTransitioning;
+          const isDisabled = isLocked || isGameOver || isTransitioning;
+          const isCorrect = isGameOver && opt === gameData.correct;
+          const isThisPressed = pressedIdx === idx;
+
+          let btnBg = isDark ? "bg-cyan-400" : "bg-cyan-300";
+          if (isLocked) {
+            btnBg = "bg-zinc-600 opacity-50";
+          } else if (isCorrect) {
+            btnBg = "bg-emerald-400";
+          }
+
+          return (
+            <View key={idx} style={styles.optionWrapper} className="mb-4">
+              {/* Button Shadow */}
+              <View
+                style={[StyleSheet.absoluteFillObject, { borderRadius: 24 }]}
+                className={isDark ? "bg-white" : "bg-black"}
+              />
+
+              {/* Button Body */}
+              <TouchableOpacity
+                activeOpacity={1}
+                onPressIn={() => {
+                  if (!isDisabled) setPressedIdx(idx);
+                }}
+                onPressOut={() => setPressedIdx(null)}
+                onPress={() => handleAnswer(opt, idx)}
+                disabled={isDisabled}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  borderRadius: 24,
+                  borderWidth: 4,
+                  borderColor: isDark ? "#ffffff" : "#000000",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transform: [
+                    { translateY: !isThisPressed ? -4 : 0 },
+                    { translateX: !isThisPressed ? -4 : 0 },
+                  ],
+                }}
+                className={btnBg}
               >
-                 <Text className="text-white text-6xl font-black" adjustsFontSizeToFit numberOfLines={1}>{opt}</Text>
+                <Text className="text-black text-5xl font-black text-center">
+                  {opt}
+                </Text>
               </TouchableOpacity>
-            )
-         })}
+            </View>
+          );
+        })}
       </View>
-      
-      {gameData.isLockedOut && !gameData.gameOver && !gameData.isTransitioning && (
-         <Text className="text-red-400 font-black text-2xl mt-2 tracking-widest text-center uppercase shadow-sm">Waiting for someone to solve it...</Text>
-      )}
-      
-      {gameData.gameOver && gameData.winnerId !== myPlayer?.id && (
-         <Text className="text-yellow-400 font-black text-3xl mt-4 tracking-wider text-center uppercase shadow-sm">TOO SLOW!</Text>
-      )}
-      {gameData.gameOver && gameData.winnerId === myPlayer?.id && (
-         <Text className="text-green-400 font-black text-3xl mt-4 tracking-wider text-center uppercase shadow-sm">CORRECT!</Text>
-      )}
 
-      {gameData.isTransitioning && (
-        <View className="absolute z-50 bottom-20 left-2 w-full h-full justify-center items-center p-4 bg-black/60 rounded-3xl">
-          <View className="bg-slate-900 border-[8px] border-emerald-500 py-10 px-6 rounded-[48px] shadow-2xl w-full items-center pb-12 shadow-emerald-500/20">
-            <Text className="text-yellow-400 font-black text-xl tracking-[0.2em] mb-2 text-center uppercase">CORRECT ANSWER</Text>
-            <Text className="text-white text-5xl font-black text-center mb-8 tracking-tight px-2" adjustsFontSizeToFit numberOfLines={2}>
-              {gameData.correctAnswer}
-            </Text>
+      {/* Transition Modal overlay */}
+      <Modal visible={!!gameData.isTransitioning} transparent={true} animationType="fade">
+        <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.75)", justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }}>
+          <View className="w-full max-w-sm relative">
+            {/* Modal Shadow */}
+            <View
+              style={[StyleSheet.absoluteFillObject, { borderRadius: 28 }]}
+              className={isDark ? "bg-white" : "bg-black"}
+            />
 
-            <View className="bg-white/20 w-3/4 h-[4px] rounded-full mb-6" />
+            {/* Modal Body */}
+            {(() => {
+              const hasWinner = !!gameData.roundWinner && gameData.roundWinner !== "Nobody";
+              return (
+                <View
+                  style={{
+                    borderRadius: 28,
+                    borderWidth: 4,
+                    borderColor: isDark ? "#ffffff" : "#000000",
+                    transform: [{ translateY: -6 }, { translateX: -6 }],
+                    paddingHorizontal: 24,
+                    paddingVertical: 32,
+                    alignItems: "center",
+                  }}
+                  className={hasWinner ? "bg-emerald-400" : "bg-red-400"}
+                >
+                  <Text className="text-black font-black text-xl tracking-[0.2em] mb-2 text-center uppercase">
+                    CORRECT ANSWER
+                  </Text>
+                  <Text
+                    className="text-black text-6xl font-black text-center mb-6 tracking-tight px-2"
+                    adjustsFontSizeToFit
+                    numberOfLines={1}
+                  >
+                    {gameData.correctAnswer}
+                  </Text>
 
-            <Text className="text-emerald-400 font-black text-3xl text-center tracking-wider" adjustsFontSizeToFit numberOfLines={1}>{gameData.roundWinner}!</Text>
-            <Text className="text-slate-400 font-bold text-sm uppercase mb-1 tracking-[0.3em] text-center">SOLVED THE PROBLEM</Text>
+                  <View className="bg-black/20 w-3/4 h-[3px] rounded-full mb-6" />
+
+                  <Text
+                    className="text-white font-black text-2xl text-center tracking-wider bg-black px-5 py-2 rounded-2xl border-2 border-black"
+                    adjustsFontSizeToFit
+                    numberOfLines={1}
+                  >
+                    {hasWinner ? gameData.roundWinner : "NOBODY"}
+                  </Text>
+                  <Text className="text-black/85 font-black text-xs uppercase mt-2 tracking-[0.3em] text-center">
+                    {hasWinner ? "SOLVED THE PROBLEM!" : "SOLVED THE PROBLEM"}
+                  </Text>
+                </View>
+              );
+            })()}
           </View>
         </View>
-      )}
+      </Modal>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  questionWrapper: {
+    width: "100%",
+    height: 140,
+    position: "relative",
+  },
+  optionWrapper: {
+    width: "48%",
+    aspectRatio: 1,
+    position: "relative",
+  },
+});

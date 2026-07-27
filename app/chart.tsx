@@ -9,13 +9,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSelector, useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { PracticeModal } from "../components/PracticeModal";
 import { RetroButton } from "../components/RetroButton";
 import { RetroPlayerCard } from "../components/RetroPlayerCard";
 import { colyseusService } from "../store/colyseusService";
-import { RootState } from "../store/store";
 import { toggleTheme } from "../store/lobbySlice";
+import { RootState } from "../store/store";
 
 const TYPES = ["1v1", "2v2", "BR"];
 const CATS = [
@@ -269,7 +269,9 @@ export default function ChartScreen() {
               opacity: 0.15,
             }}
           >
-            <Text className={`font-black tracking-widest text-lg ${isDark ? "text-zinc-700" : "text-black"}`}>
+            <Text
+              className={`font-black tracking-widest text-lg ${isDark ? "text-zinc-700" : "text-black"}`}
+            >
               •••••{"\n"}•••••{"\n"}•••••
             </Text>
           </View>
@@ -343,8 +345,12 @@ export default function ChartScreen() {
           >
             Game Chart
           </Text>
-          <View className={`px-3 py-0.5 rounded-lg border-2 ${isDark ? "border-white bg-zinc-800" : "border-black bg-black"} mt-1`}>
-            <Text className={`font-black text-xs tracking-widest ${isDark ? "text-yellow-300" : "text-yellow-400"}`}>
+          <View
+            className={`px-3 py-0.5 rounded-lg border-2 ${isDark ? "border-white bg-zinc-800" : "border-black bg-black"} mt-1`}
+          >
+            <Text
+              className={`font-black text-xs tracking-widest ${isDark ? "text-yellow-300" : "text-yellow-400"}`}
+            >
               ROOM: {roomId}
             </Text>
           </View>
@@ -507,7 +513,7 @@ export default function ChartScreen() {
               }}
               className="bg-pink-400"
             >
-              <View 
+              <View
                 style={{ borderColor: isDark ? "#ffffff" : "#000000" }}
                 className={`bg-yellow-400 border-4 py-2 px-6 rounded-2xl rotate-[-2deg] mb-6 ${isDark ? "shadow-[4px_4px_0px_0px_#fff]" : "shadow-[4px_4px_0px_0px_#000]"}`}
               >
@@ -525,8 +531,10 @@ export default function ChartScreen() {
                   if (displayedType === "2v2" && selectedPs.length === 4) {
                     return (
                       <View className="items-center justify-center">
-                        <View 
-                          style={{ borderColor: isDark ? "#ffffff" : "#000000" }}
+                        <View
+                          style={{
+                            borderColor: isDark ? "#ffffff" : "#000000",
+                          }}
                           className={`bg-cyan-300 px-5 py-2.5 rounded-xl border-3 ${isDark ? "shadow-[3px_3px_0px_0px_#fff]" : "shadow-[3px_3px_0px_0px_#000]"}`}
                         >
                           <Text className="text-black font-black text-lg">
@@ -543,8 +551,10 @@ export default function ChartScreen() {
                         >
                           VS
                         </Text>
-                        <View 
-                          style={{ borderColor: isDark ? "#ffffff" : "#000000" }}
+                        <View
+                          style={{
+                            borderColor: isDark ? "#ffffff" : "#000000",
+                          }}
                           className={`bg-yellow-300 px-5 py-2.5 rounded-xl border-3 ${isDark ? "shadow-[3px_3px_0px_0px_#fff]" : "shadow-[3px_3px_0px_0px_#000]"}`}
                         >
                           <Text className="text-black font-black text-lg">
@@ -561,7 +571,9 @@ export default function ChartScreen() {
                       style={{ borderColor: isDark ? "#ffffff" : "#000000" }}
                       className={`px-4 py-2 rounded-xl border-3 ${isDark ? "bg-zinc-800 shadow-[2px_2px_0px_0px_#fff]" : "bg-white shadow-[2px_2px_0px_0px_#000]"}`}
                     >
-                      <Text className={`font-black text-lg ${isDark ? "text-white" : "text-black"}`}>
+                      <Text
+                        className={`font-black text-lg ${isDark ? "text-white" : "text-black"}`}
+                      >
                         {p.name}
                       </Text>
                     </View>
@@ -569,7 +581,7 @@ export default function ChartScreen() {
                 })()}
               </View>
 
-              <View 
+              <View
                 style={{ borderColor: isDark ? "#ffffff" : "#000000" }}
                 className={`p-5 rounded-2xl border-4 w-full items-center justify-center mb-8 min-h-[120px] bg-indigo-400 ${isDark ? "shadow-[4px_4px_0px_0px_#fff]" : "shadow-[4px_4px_0px_0px_#000]"}`}
               >
@@ -593,7 +605,7 @@ export default function ChartScreen() {
 
               <View className="h-28 justify-center items-center w-full">
                 {isSpinning ? (
-                  <View 
+                  <View
                     style={{ borderColor: isDark ? "#ffffff" : "#000000" }}
                     className={`w-full bg-white border-3 py-3 rounded-2xl ${isDark ? "shadow-[3px_3px_0px_0px_#fff]" : "shadow-[3px_3px_0px_0px_#000]"} items-center justify-center`}
                   >
@@ -741,7 +753,7 @@ export default function ChartScreen() {
                 })}
               </View>
 
-              <View className="pt-4 gap-4 pb-12">
+              <View className="pt-4 gap-4 pb-12 pl-1">
                 <RetroButton
                   title="FORCE START"
                   variant="success"

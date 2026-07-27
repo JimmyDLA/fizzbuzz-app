@@ -1,7 +1,12 @@
 import React from "react";
 import { ScrollView, Text, View } from "react-native";
+import { useSelector } from "react-redux";
+import { RootState } from "../store/store";
 
 export function DynamicGameResults({ rawData }: { rawData: string }) {
+  const theme = useSelector((state: RootState) => state.lobby.theme) || "light";
+  const isDark = theme === "dark";
+
   if (!rawData) return null;
 
   let data: any;
@@ -14,38 +19,72 @@ export function DynamicGameResults({ rawData }: { rawData: string }) {
   const renderLeaderboard = () => {
     return (
       <View className="w-full">
-        <Text className="text-indigo-200 text-xl font-black mb-4 text-center uppercase tracking-[0.2em]">
+        <Text
+          className={`font-black text-lg mb-4 text-center uppercase tracking-widest ${isDark ? "text-zinc-400" : "text-black"}`}
+        >
           {data.title}
         </Text>
-        <View className="flex-col gap-3">
-          {data.leaderboard?.map((item: any, idx: number) => (
-            <View
-              key={item.playerId}
-              className={`flex-row justify-between items-center px-5 py-3 rounded-[24px] border-4 ${item.isWinner ? "bg-emerald-600/90 border-emerald-400" : "bg-white/10 border-white/10"}`}
-            >
-              <View className="flex-row items-center flex-1 pr-4">
-                <Text
-                  className={`font-black text-xl w-8 ${item.isWinner ? "text-emerald-100" : "text-white/30"}`}
-                >
-                  {idx + 1}
-                </Text>
-                <Text
-                  className={`font-black text-xl uppercase flex-1 ${item.isWinner ? "text-white" : "text-slate-300"}`}
-                  numberOfLines={1}
-                >
-                  {item.playerName}
-                </Text>
+        <View className="flex-col gap-3 ">
+          {data.leaderboard?.map((item: any, idx: number) => {
+            const containerClass = item.isWinner
+              ? isDark
+                ? "bg-emerald-600/90 border-2 border-emerald-400"
+                : "bg-emerald-400 border-2 border-black"
+              : isDark
+                ? "bg-zinc-950 border-2 border-zinc-800"
+                : "bg-white border-2 border-black";
+
+            const numClass = item.isWinner
+              ? isDark
+                ? "text-emerald-100"
+                : "text-black"
+              : isDark
+                ? "text-white/30"
+                : "text-zinc-400";
+
+            const nameClass = item.isWinner
+              ? isDark
+                ? "text-white"
+                : "text-black"
+              : isDark
+                ? "text-slate-300"
+                : "text-black";
+
+            const labelClass = item.isWinner
+              ? isDark
+                ? "text-yellow-300"
+                : "text-black"
+              : isDark
+                ? "text-slate-400"
+                : "text-zinc-500";
+
+            return (
+              <View
+                key={item.playerId}
+                className={`flex-row justify-between items-center px-5 py-3 rounded-[24px] border-3 ${containerClass}`}
+              >
+                <View className="flex-row items-center flex-1 pr-4">
+                  <Text className={`font-black text-xl w-8 ${numClass}`}>
+                    {idx + 1}
+                  </Text>
+                  <Text
+                    className={`font-black text-lg uppercase flex-1 ${nameClass}`}
+                    numberOfLines={1}
+                  >
+                    {item.playerName}
+                  </Text>
+                </View>
+                <View className="items-end justify-center max-w-[50%] shrink-0">
+                  <Text
+                    className={`font-black text-xs tracking-wider text-right ${labelClass}`}
+                    numberOfLines={2}
+                  >
+                    {item.scoreLabel}
+                  </Text>
+                </View>
               </View>
-              <View className="items-end justify-center max-w-[50%] shrink-0">
-                <Text
-                  className={`font-black text-sm tracking-wider text-right ${item.isWinner ? "text-yellow-300" : "text-slate-400"}`}
-                  numberOfLines={2}
-                >
-                  {item.scoreLabel}
-                </Text>
-              </View>
-            </View>
-          ))}
+            );
+          })}
         </View>
       </View>
     );
@@ -54,39 +93,63 @@ export function DynamicGameResults({ rawData }: { rawData: string }) {
   const renderTimeline = () => {
     return (
       <View className="w-full">
-        <Text className="text-indigo-200 text-xl font-black mb-4 text-center uppercase tracking-[0.2em]">
+        <Text
+          className={`font-black text-lg mb-4 text-center uppercase tracking-widest ${isDark ? "text-zinc-400" : "text-black"}`}
+        >
           {data.title}
         </Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View className="flex-col gap-3">
-            {data.timeline?.map((item: any) => (
-              <View
-                key={item.playerId}
-                className={`flex-row items-center px-4 py-3 rounded-2xl border-4 ${item.isWinner ? "bg-emerald-600/40 border-emerald-500/50" : "bg-white/5 border-white/5"}`}
-              >
-                <Text
-                  className={`font-black text-lg uppercase w-24 ${item.isWinner ? "text-emerald-300" : "text-slate-400"}`}
-                  numberOfLines={1}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          className="flex-col w-[100%]"
+        >
+          <View className="flex-col w-[100%] gap-3">
+            {data.timeline?.map((item: any) => {
+              const containerClass = item.isWinner
+                ? isDark
+                  ? "bg-emerald-600/40 border-2 border-emerald-500/50"
+                  : "bg-emerald-400 border-2 border-black"
+                : isDark
+                  ? "bg-zinc-950 border-2 border-zinc-800"
+                  : "bg-white border-2 border-black";
+
+              const nameClass = item.isWinner
+                ? isDark
+                  ? "text-emerald-300"
+                  : "text-black"
+                : isDark
+                  ? "text-slate-400"
+                  : "text-black";
+
+              return (
+                <View
+                  key={item.playerId}
+                  className={`w-[100%] justify-items-start px-4 py-3 rounded-2xl border-3 ${containerClass}`}
                 >
-                  {item.playerName}
-                </Text>
-                <View className="flex-row gap-2">
-                  {item.events.map((ev: any, eIdx: number) => (
-                    <View
-                      key={eIdx}
-                      className={`w-12 h-14 rounded-xl border-[3px] items-center justify-center ${ev.success ? "bg-emerald-500/80 border-emerald-300" : "bg-red-500/80 border-red-300"}`}
-                    >
-                      <Text className="text-white font-black text-[10px] opacity-60 mb-1">
-                        {ev.label}
-                      </Text>
-                      <Text className="text-white font-black text-xl">
-                        {ev.success ? "✓" : "✗"}
-                      </Text>
-                    </View>
-                  ))}
+                  <Text
+                    className={`font-black text-sm uppercase w-24 mb-2 ${nameClass}`}
+                    numberOfLines={1}
+                  >
+                    {item.playerName}
+                  </Text>
+                  <View className="flex-row gap-2">
+                    {item.events.map((ev: any, eIdx: number) => (
+                      <View
+                        key={eIdx}
+                        className={`w-10 h-12 rounded-xl border-2 items-center justify-center ${ev.success ? "bg-emerald-500 border-black" : "bg-red-400 border-black"}`}
+                      >
+                        <Text className="text-black font-black text-[9px] mb-1">
+                          {ev.label}
+                        </Text>
+                        <Text className="text-black font-black text-[10px]">
+                          {ev.success ? "✓" : "✗"}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         </ScrollView>
       </View>

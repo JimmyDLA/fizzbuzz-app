@@ -1,14 +1,19 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useRef, useState } from "react";
-import { Animated, Text, TouchableOpacity, View } from "react-native";
+import { Animated, Text, TouchableOpacity, View, StyleSheet } from "react-native";
+import { useSelector } from "react-redux";
+import * as Haptics from "expo-haptics";
 import { colyseusService } from "../../store/colyseusService";
 import { useGameData } from "./useGameData";
+import { RootState } from "../../store/store";
 
 type TileState = { id: number; char: string; placedIndex: number | null };
 
 export function ScrabbleUI() {
   const { timer, myPlayer, sendAction, isPractice } = useGameData();
   const room = isPractice ? colyseusService.practiceRoom : colyseusService.room;
+  const theme = useSelector((state: RootState) => state.lobby.theme) || "light";
+  const isDark = theme === "dark";
 
   const [gameData, setGameData] = useState<any>(null);
   const [tiles, setTiles] = useState<TileState[]>([]);
@@ -21,6 +26,10 @@ export function ScrabbleUI() {
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const [pointsText, setPointsText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitPressed, setIsSubmitPressed] = useState(false);
+
+  const [pressedRackId, setPressedRackId] = useState<number | null>(null);
+  const [pressedSlotIdx, setPressedSlotIdx] = useState<number | null>(null);
 
   const triggerShake = React.useCallback(() => {
     shakeAnim.setValue(0);
@@ -80,7 +89,7 @@ export function ScrabbleUI() {
         }
       } catch (e) {}
     }
-  }, [myPlayer?.gameData]);
+  }, [myPlayer?.gameData, tiles.length]);
 
   // Listen for feedback messages
   useEffect(() => {
@@ -136,6 +145,7 @@ export function ScrabbleUI() {
   }, [room, pointsAnim, triggerShake]);
 
   const handleTapRack = (tileId: number) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setTiles((prev) => {
       const copy = [...prev];
       const tile = copy.find((t) => t.id === tileId);
@@ -154,6 +164,7 @@ export function ScrabbleUI() {
   };
 
   const handleTapSlot = (placedIndex: number) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setTiles((prev) => {
       const copy = [...prev];
       const tile = copy.find((t) => t.placedIndex === placedIndex);
@@ -172,12 +183,14 @@ export function ScrabbleUI() {
     const word = placedTiles.map((t) => t.char).join("");
 
     if (word.length < 2) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setFeedback({ text: "TOO SHORT!", type: "error" });
       triggerShake();
       setTimeout(() => setFeedback(null), 1500);
       return;
     }
 
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsSubmitting(true);
     sendAction({ action: "submit_word", word });
 
@@ -186,10 +199,12 @@ export function ScrabbleUI() {
   };
 
   const clearBoard = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setTiles((prev) => prev.map((t) => ({ ...t, placedIndex: null })));
   };
 
   const shuffleRack = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setTiles((prev) => {
       const rackTiles = prev.filter((t) => t.placedIndex === null);
       const placedTiles = prev.filter((t) => t.placedIndex !== null);
@@ -205,29 +220,54 @@ export function ScrabbleUI() {
 
   if (!gameData) {
     return (
-      <View className="flex-1 items-center justify-center">
-        <Text className="text-white font-black text-2xl">
+      <View className={`flex-1 items-center justify-center ${isDark ? "bg-zinc-950" : "bg-green-500"}`}>
+        <Text className={`font-black text-2xl uppercase tracking-widest ${isDark ? "text-white" : "text-black"}`}>
           LOADING SCRABBLE...
         </Text>
       </View>
     );
   }
 
-  const placedTiles = [0, 1, 2, 3, 4].map((idx) =>
+  const placedTilesList = [0, 1, 2, 3, 4].map((idx) =>
     tiles.find((t) => t.placedIndex === idx),
   );
   const rackTiles = tiles.filter((t) => t.placedIndex === null);
 
+  const getFeedbackBgColor = () => {
+    if (!feedback) return "bg-blue-500";
+    if (feedback.type === "success") return "bg-emerald-400";
+    if (feedback.type === "error") return "bg-red-400";
+    return "bg-cyan-400";
+  };
+
   return (
-    <View className="flex-1 items-center justify-between w-full px-4 py-8">
-      {/* HUD */}
-      <View className="items-center w-full">
-        <View className="flex-row justify-between w-full px-4">
-          <View className="items-center bg-black/40 px-4 py-2 rounded-xl relative">
-            <Text className="text-white/60 font-bold text-xs uppercase tracking-widest">
-              Score
+    <View className={`flex-1 items-center justify-between w-full px-6 py-8 ${isDark ? "bg-zinc-950" : "bg-green-500"}`}>
+      {/* HUD Header */}
+      <View className="items-center w-full relative">
+        <View style={styles.hudWrapper}>
+          {/* Shadow */}
+          <View
+            style={[StyleSheet.absoluteFillObject, { borderRadius: 16 }]}
+            className={isDark ? "bg-white" : "bg-black"}
+          />
+          {/* Face */}
+          <View
+            style={{
+              width: "100%",
+              height: "100%",
+              borderRadius: 16,
+              borderWidth: 3,
+              borderColor: isDark ? "#ffffff" : "#000000",
+              alignItems: "center",
+              justifyContent: "center",
+              transform: [{ translateY: -3 }, { translateX: -3 }]
+            }}
+            className={isDark ? "bg-yellow-600" : "bg-yellow-300"}
+          >
+            <Text className="text-black font-black text-xs uppercase tracking-widest">
+              SCORE
             </Text>
-            <Text className="text-yellow-400 font-black text-xl">
+            <Text className="text-black font-black text-2xl">
               {myPlayer?.gameScore || 0}
             </Text>
 
@@ -246,113 +286,285 @@ export function ScrabbleUI() {
                   },
                 ],
               }}
-              className="text-green-400 font-black text-2xl"
+              className="text-green-500 font-black text-2xl"
             >
               {pointsText}
             </Animated.Text>
           </View>
         </View>
 
+        {/* Floating Feedback Card */}
         {feedback && (
-          <View
-            className={`mt-6 px-6 py-2 rounded-full absolute top-16 z-10 ${
-              feedback.type === "success"
-                ? "bg-green-500"
-                : feedback.type === "error"
-                  ? "bg-red-500"
-                  : "bg-blue-500"
-            }`}
-          >
-            <Text className="text-white font-black text-xl">
-              {feedback.text}
-            </Text>
+          <View style={styles.feedbackWrapper}>
+            {/* Shadow */}
+            <View
+              style={[StyleSheet.absoluteFillObject, { borderRadius: 20 }]}
+              className={isDark ? "bg-white" : "bg-black"}
+            />
+            {/* Face */}
+            <View
+              style={{
+                width: "100%",
+                height: "100%",
+                borderRadius: 20,
+                borderWidth: 3,
+                borderColor: isDark ? "#ffffff" : "#000000",
+                justifyContent: "center",
+                alignItems: "center",
+                transform: [{ translateY: -3 }, { translateX: -3 }]
+              }}
+              className={getFeedbackBgColor()}
+            >
+              <Text className="text-black font-black text-lg uppercase tracking-wider">
+                {feedback.text}
+              </Text>
+            </View>
           </View>
         )}
       </View>
 
       {/* Play Area */}
-      <View className="w-full items-center mb-8">
+      <View className="w-full items-center mb-4">
         {/* Word Slots */}
         <Animated.View
           style={{ transform: [{ translateX: shakeAnim }] }}
-          className="flex-row gap-2 mb-12"
+          className="flex-row gap-2 mb-12 justify-center w-full"
         >
           {[0, 1, 2, 3, 4].map((slotIdx) => {
-            const tile = placedTiles[slotIdx];
+            const tile = placedTilesList[slotIdx];
+            const isThisPressed = pressedSlotIdx === slotIdx;
+            const translateOffset = tile && !isThisPressed ? -4 : 0;
+
             return (
-              <TouchableOpacity
-                key={`slot-${slotIdx}`}
-                activeOpacity={0.7}
-                onPress={() => tile && handleTapSlot(slotIdx)}
-                className={`w-14 h-16 rounded-lg justify-center items-center ${
-                  tile
-                    ? "bg-amber-100 border-b-4 border-amber-300"
-                    : "bg-black/20 border-2 border-dashed border-white/20"
-                }`}
-              >
-                {tile && (
-                  <Text className="text-amber-900 font-black text-3xl">
-                    {tile.char}
-                  </Text>
+              <View key={`slot-${slotIdx}`} style={styles.tileWrapper}>
+                {tile ? (
+                  <>
+                    {/* Shadow */}
+                    <View
+                      style={[StyleSheet.absoluteFillObject, { borderRadius: 16 }]}
+                      className={isDark ? "bg-white" : "bg-black"}
+                    />
+                    {/* Tile Face */}
+                    <TouchableOpacity
+                      activeOpacity={1}
+                      onPressIn={() => setPressedSlotIdx(slotIdx)}
+                      onPressOut={() => setPressedSlotIdx(null)}
+                      onPress={() => handleTapSlot(slotIdx)}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        borderRadius: 16,
+                        borderWidth: 3,
+                        borderColor: isDark ? "#ffffff" : "#000000",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        transform: [
+                          { translateY: translateOffset },
+                          { translateX: translateOffset }
+                        ]
+                      }}
+                      className="bg-amber-100"
+                    >
+                      <Text className="text-amber-900 font-black text-3xl">
+                        {tile.char}
+                      </Text>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <View
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      borderRadius: 16,
+                      borderWidth: 3,
+                      borderColor: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.15)",
+                      borderStyle: "dashed",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                    className={isDark ? "bg-zinc-900" : "bg-black/10"}
+                  />
                 )}
-              </TouchableOpacity>
+              </View>
             );
           })}
         </Animated.View>
 
         {/* Action Buttons */}
-        <View className="flex-row gap-4 mb-8">
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={clearBoard}
-            className="bg-zinc-800 px-4 py-3 rounded-xl border-b-4 border-zinc-950 flex-row items-center gap-2"
-          >
-            <Ionicons name="close-circle" size={20} color="#fff" />
-            <Text className="text-white font-bold">CLEAR</Text>
-          </TouchableOpacity>
+        <View className="flex-row gap-4 mb-10 justify-center w-full">
+          {/* CLEAR */}
+          <View style={styles.actionBtnWrapper}>
+            {/* Shadow */}
+            <View
+              style={[StyleSheet.absoluteFillObject, { borderRadius: 16 }]}
+              className={isDark ? "bg-white" : "bg-black"}
+            />
+            {/* Body */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={clearBoard}
+              style={{
+                width: "100%",
+                height: "100%",
+                borderRadius: 16,
+                borderWidth: 3,
+                borderColor: isDark ? "#ffffff" : "#000000",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                transform: [{ translateY: -3 }, { translateX: -3 }]
+              }}
+              className={isDark ? "bg-zinc-800" : "bg-zinc-200"}
+            >
+              <Ionicons name="close-circle" size={18} color={isDark ? "#ffffff" : "#000000"} />
+              <Text className={`font-black text-xs uppercase ${isDark ? "text-white" : "text-black"}`}>
+                CLEAR
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={shuffleRack}
-            className="bg-blue-600 px-4 py-3 rounded-xl border-b-4 border-blue-900 flex-row items-center gap-2"
-          >
-            <Ionicons name="shuffle" size={20} color="#fff" />
-            <Text className="text-white font-bold">SHUFFLE</Text>
-          </TouchableOpacity>
+          {/* SHUFFLE */}
+          <View style={styles.actionBtnWrapper}>
+            {/* Shadow */}
+            <View
+              style={[StyleSheet.absoluteFillObject, { borderRadius: 16 }]}
+              className={isDark ? "bg-white" : "bg-black"}
+            />
+            {/* Body */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={shuffleRack}
+              style={{
+                width: "100%",
+                height: "100%",
+                borderRadius: 16,
+                borderWidth: 3,
+                borderColor: isDark ? "#ffffff" : "#000000",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                transform: [{ translateY: -3 }, { translateX: -3 }]
+              }}
+              className="bg-cyan-400"
+            >
+              <Ionicons name="shuffle" size={18} color="#000000" />
+              <Text className="text-black font-black text-xs uppercase">
+                SHUFFLE
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Rack */}
-        <View className="flex-row gap-2 h-16 justify-center w-full">
-          {rackTiles.map((tile) => (
-            <TouchableOpacity
-              key={`rack-${tile.id}`}
-              activeOpacity={0.7}
-              onPress={() => handleTapRack(tile.id)}
-              className="w-14 h-16 bg-amber-100 rounded-lg justify-center items-center border-b-4 border-amber-300"
-            >
-              <Text className="text-amber-900 font-black text-3xl">
-                {tile.char}
-              </Text>
-            </TouchableOpacity>
-          ))}
+        <View className="flex-row gap-2 h-20 justify-center w-full">
+          {rackTiles.map((tile) => {
+            const isThisPressed = pressedRackId === tile.id;
+            const translateOffset = !isThisPressed ? -4 : 0;
+            return (
+              <View key={`rack-${tile.id}`} style={styles.tileWrapper}>
+                {/* Shadow */}
+                <View
+                  style={[StyleSheet.absoluteFillObject, { borderRadius: 16 }]}
+                  className={isDark ? "bg-white" : "bg-black"}
+                />
+                {/* Tile Face */}
+                <TouchableOpacity
+                  activeOpacity={1}
+                  onPressIn={() => setPressedRackId(tile.id)}
+                  onPressOut={() => setPressedRackId(null)}
+                  onPress={() => handleTapRack(tile.id)}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    borderRadius: 16,
+                    borderWidth: 3,
+                    borderColor: isDark ? "#ffffff" : "#000000",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    transform: [
+                      { translateY: translateOffset },
+                      { translateX: translateOffset }
+                    ]
+                  }}
+                  className="bg-amber-100"
+                >
+                  <Text className="text-amber-900 font-black text-3xl">
+                    {tile.char}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            );
+          })}
         </View>
       </View>
 
-      {/* Submit */}
-      <TouchableOpacity
-        activeOpacity={0.7}
-        onPress={submitWord}
-        disabled={timer <= 0 || isSubmitting}
-        className={`w-full max-w-sm py-4 rounded-2xl items-center border-b-8 mb-4 ${
-          timer <= 0 || isSubmitting
-            ? "bg-zinc-600 border-zinc-800"
-            : "bg-blue-500 border-blue-700"
-        }`}
-      >
-        <Text className="text-white font-black text-2xl tracking-widest">
-          SUBMIT WORD
-        </Text>
-      </TouchableOpacity>
+      {/* Submit Button */}
+      <View style={styles.submitWrapper} className="mb-4">
+        {/* Shadow */}
+        <View
+          style={[StyleSheet.absoluteFillObject, { borderRadius: 24 }]}
+          className={isDark ? "bg-white" : "bg-black"}
+        />
+        {/* Face */}
+        <TouchableOpacity
+          activeOpacity={1}
+          onPressIn={() => { if (timer > 0 && !isSubmitting) setIsSubmitPressed(true); }}
+          onPressOut={() => setIsSubmitPressed(false)}
+          onPress={submitWord}
+          disabled={timer <= 0 || isSubmitting}
+          style={{
+            width: "100%",
+            height: "100%",
+            borderRadius: 24,
+            borderWidth: 4,
+            borderColor: isDark ? "#ffffff" : "#000000",
+            alignItems: "center",
+            justifyContent: "center",
+            transform: [
+              { translateY: timer <= 0 || isSubmitting || isSubmitPressed ? 0 : -6 },
+              { translateX: timer <= 0 || isSubmitting || isSubmitPressed ? 0 : -6 }
+            ]
+          }}
+          className={timer <= 0 || isSubmitting ? (isDark ? "bg-zinc-700 opacity-50" : "bg-zinc-300 opacity-50") : "bg-blue-400"}
+        >
+          <Text className="text-black font-black text-2xl tracking-widest uppercase">
+            SUBMIT WORD
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  hudWrapper: {
+    width: 120,
+    height: 60,
+    position: "relative",
+  },
+  feedbackWrapper: {
+    position: "absolute",
+    top: 76,
+    width: "70%",
+    height: 48,
+    zIndex: 20,
+  },
+  tileWrapper: {
+    width: 56,
+    height: 64,
+    position: "relative",
+  },
+  actionBtnWrapper: {
+    width: 120,
+    height: 46,
+    position: "relative",
+  },
+  submitWrapper: {
+    width: "100%",
+    maxWidth: 340,
+    height: 64,
+    position: "relative",
+  }
+});

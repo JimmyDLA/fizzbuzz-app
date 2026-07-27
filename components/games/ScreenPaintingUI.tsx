@@ -34,6 +34,8 @@ export function ScreenPaintingUI() {
   const insets = useSafeAreaInsets();
   const { players, playerName } = useSelector((state: any) => state.lobby);
   const myPlayer = players.find((p: any) => p.name === playerName);
+  const theme = useSelector((state: any) => state.lobby.theme) || "light";
+  const isDark = theme === "dark";
 
   const [paths, setPaths] = useState<SkPath[]>([]);
   const pathsRef = useRef<SkPath[]>([]);
@@ -194,49 +196,88 @@ export function ScreenPaintingUI() {
     });
 
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      className={isDark ? "bg-zinc-950" : "bg-green-500"}
+    >
+      {/* Top HUD covered Card */}
       <View
         pointerEvents="none"
-        className="absolute top-2 left-0 right-0 items-center justify-center z-40"
+        className="absolute top-3 left-0 right-0 items-center justify-center z-40"
       >
-        <View className="bg-black/60 px-5 py-2 rounded-full border-2 border-white/20">
-          <Text className="text-white text-xl font-black font-rounded uppercase tracking-widest">
-            {currentCoverage}% COVERED
-          </Text>
+        <View style={styles.hudCardWrapper}>
+          {/* Shadow */}
+          <View
+            style={[StyleSheet.absoluteFillObject, { borderRadius: 16 }]}
+            className={isDark ? "bg-white" : "bg-black"}
+          />
+          {/* Face */}
+          <View
+            style={{
+              width: "100%",
+              height: "100%",
+              borderRadius: 16,
+              borderWidth: 3,
+              borderColor: isDark ? "#ffffff" : "#000000",
+              alignItems: "center",
+              justifyContent: "center",
+              transform: [{ translateY: -3 }, { translateX: -3 }],
+            }}
+            className={isDark ? "bg-yellow-600" : "bg-yellow-300"}
+          >
+            <Text className="text-black font-black text-sm uppercase tracking-widest">
+              {currentCoverage}% COVERED
+            </Text>
+          </View>
         </View>
       </View>
 
-      <GestureDetector gesture={pan}>
-        <View
-          onLayout={onLayout}
-          style={[
-            styles.canvasWrapper,
-            { marginTop: insets.top, marginBottom: insets.bottom },
-          ]}
-        >
-          <Canvas style={styles.canvas}>
-            {paths.map(
-              (p, i) =>
-                p && (
-                  <Path
-                    key={i}
-                    path={p}
-                    color={myColor}
-                    style="stroke"
-                    strokeWidth={60}
-                    strokeCap="round"
-                    strokeJoin="round"
-                  />
-                ),
-            )}
-            {/* Active path is rendered in the next frame anyway via touchHandler's state update trigger if we wanted, 
-              but for Skia it's better to just keep it in paths for the render loop */}
-          </Canvas>
-        </View>
-      </GestureDetector>
+      {/* Parent bordered wrapper (keeps GestureDetector and Canvas JSX fully untouched inside) */}
+      <View
+        style={{
+          flex: 1,
+          marginTop: 64,
+          borderWidth: 6,
+          borderColor: isDark ? "#ffffff" : "#000000",
+          borderRadius: 24,
+          overflow: "hidden",
+          backgroundColor: isDark ? "#000000" : "#ffffff",
+        }}
+      >
+        <GestureDetector gesture={pan}>
+          <View
+            onLayout={onLayout}
+            style={[
+              styles.canvasWrapper,
+              // { marginTop: insets.top, marginBottom: insets.bottom },
+            ]}
+          >
+            <Canvas style={styles.canvas}>
+              {paths.map(
+                (p, i) =>
+                  p && (
+                    <Path
+                      key={i}
+                      path={p}
+                      color={myColor}
+                      style="stroke"
+                      strokeWidth={60}
+                      strokeCap="round"
+                      strokeJoin="round"
+                    />
+                  ),
+              )}
+              {/* Active path is rendered in the next frame anyway via touchHandler's state update trigger if we wanted, 
+                but for Skia it's better to just keep it in paths for the render loop */}
+            </Canvas>
+          </View>
+        </GestureDetector>
+      </View>
 
       <View pointerEvents="none" style={styles.overlay}>
-        <Text className="text-gray-100 text-4xl font-black text-center uppercase rotate-12">
+        <Text
+          className={`font-black text-4xl text-center uppercase rotate-12 tracking-widest ${isDark ? "text-white/10" : "text-black/10"}`}
+        >
           PAINT EVERYWHERE!
         </Text>
       </View>
@@ -247,10 +288,15 @@ export function ScreenPaintingUI() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1E1E1E",
+  },
+  hudCardWrapper: {
+    width: 180,
+    height: 48,
+    position: "relative",
   },
   canvasWrapper: {
-    flex: 1,
+    width: "100%",
+    height: "100%",
     backgroundColor: "#FFFFFF", // Whitespace to be covered
     overflow: "hidden",
   },
