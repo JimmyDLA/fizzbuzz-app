@@ -1,6 +1,15 @@
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { ScrollView, Text, View, StyleSheet, TouchableOpacity } from "react-native";
+import LottieView from "lottie-react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  Animated,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
 import { DynamicGameResults } from "../components/DynamicGameResults";
@@ -18,8 +27,8 @@ import { TappingRaceUI } from "../components/games/TappingRaceUI";
 import { TriviaUI } from "../components/games/TriviaUI";
 import { GameProvider } from "../components/games/useGameData";
 import { RetroButton } from "../components/RetroButton";
-import { colyseusService } from "../store/colyseusService";
 import { memphisShapes } from "../constants/theme";
+import { colyseusService } from "../store/colyseusService";
 
 export default function GameScreen() {
   const router = useRouter();
@@ -49,10 +58,22 @@ export default function GameScreen() {
   const renderBackgroundDebris = () => {
     return memphisShapes.map((shape, i) => {
       const transform = shape.rotate ? [{ rotate: shape.rotate }] : [];
-      if (shape.type === 'dots') {
+      if (shape.type === "dots") {
         return (
-          <View key={i} style={{ position: 'absolute', top: shape.top as any, left: shape.left as any, opacity: 0.15 }}>
-            <Text className={`font-black tracking-widest text-lg ${isDark ? "text-zinc-700" : "text-black"}`}>•••••{"\n"}•••••{"\n"}•••••</Text>
+          <View
+            key={i}
+            style={{
+              position: "absolute",
+              top: shape.top as any,
+              left: shape.left as any,
+              opacity: 0.15,
+            }}
+          >
+            <Text
+              className={`font-black tracking-widest text-lg ${isDark ? "text-zinc-700" : "text-black"}`}
+            >
+              •••••{"\n"}•••••{"\n"}•••••
+            </Text>
           </View>
         );
       }
@@ -60,12 +81,12 @@ export default function GameScreen() {
         <View
           key={i}
           style={{
-            position: 'absolute',
+            position: "absolute",
             top: shape.top as any,
             left: shape.left as any,
             width: shape.size,
             height: shape.size,
-            borderRadius: shape.type === 'circle' ? 999 : 4,
+            borderRadius: shape.type === "circle" ? 999 : 4,
             borderWidth: 2,
             borderColor: isDark ? "#ffffff" : "#000000",
             transform: transform as any,
@@ -80,6 +101,71 @@ export default function GameScreen() {
   const handleReadyToggle = () => {
     colyseusService.sendReady(true);
   };
+
+  const [showBeerModal, setShowBeerModal] = useState(false);
+  const [hasDismissedModal, setHasDismissedModal] = useState(false);
+
+  const handleCloseBeerModal = () => {
+    setShowBeerModal(false);
+    setHasDismissedModal(true);
+  };
+
+  const losers = reduxPlayers.filter((p: any) => lastLosers?.includes(p.id));
+
+  const bounceAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (showBeerModal) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(bounceAnim, {
+            toValue: -8,
+            duration: 450,
+            useNativeDriver: true,
+          }),
+          Animated.timing(bounceAnim, {
+            toValue: 0,
+            duration: 450,
+            useNativeDriver: true,
+          }),
+        ]),
+      ).start();
+
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.08,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+        ]),
+      ).start();
+    } else {
+      bounceAnim.setValue(0);
+      pulseAnim.setValue(1);
+    }
+  }, [showBeerModal]);
+
+  useEffect(() => {
+    let showTimer: any;
+    if (gamePhase === "resolution" && !hasDismissedModal) {
+      showTimer = setTimeout(() => {
+        setShowBeerModal(true);
+      }, 200);
+    } else if (gamePhase !== "resolution") {
+      setShowBeerModal(false);
+      setHasDismissedModal(false);
+    }
+    return () => {
+      if (showTimer) clearTimeout(showTimer);
+    };
+  }, [gamePhase, hasDismissedModal]);
 
   useEffect(() => {
     if (gamePhase === "chart") {
@@ -111,7 +197,7 @@ export default function GameScreen() {
             borderColor: isDark ? "#ffffff" : "#000000",
             alignItems: "center",
             justifyContent: "center",
-            transform: [{ translateY: -6 }, { translateX: -6 }]
+            transform: [{ translateY: -6 }, { translateX: -6 }],
           }}
           className={isDark ? "bg-yellow-600" : "bg-yellow-300"}
         >
@@ -183,45 +269,52 @@ export default function GameScreen() {
               borderColor: isDark ? "#ffffff" : "#000000",
               alignItems: "center",
               justifyContent: "center",
-              transform: [{ translateY: -3 }, { translateX: -3 }]
+              transform: [{ translateY: -3 }, { translateX: -3 }],
             }}
             className={isDark ? "bg-zinc-900" : "bg-white"}
           >
-            <Text className={`font-black text-lg uppercase tracking-wider ${isDark ? "text-white" : "text-black"}`}>
+            <Text
+              className={`font-black text-lg uppercase tracking-wider ${isDark ? "text-white" : "text-black"}`}
+            >
               {currentCategory}
             </Text>
-            <Text className={`font-black text-[9px] uppercase tracking-widest mt-0.5 ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+            <Text
+              className={`font-black text-[9px] uppercase tracking-widest mt-0.5 ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
+            >
               {currentGameType}
             </Text>
           </View>
         </View>
 
         {/* Global Timer Badge */}
-        {currentCategory !== "Hot Potato" && currentCategory !== "Simon Says" && (
-          <View style={styles.timerBadge}>
-            {/* Shadow */}
-            <View
-              style={[StyleSheet.absoluteFillObject, { borderRadius: 24 }]}
-              className={isDark ? "bg-white" : "bg-black"}
-            />
-            {/* Face */}
-            <View
-              style={{
-                width: "100%",
-                height: "100%",
-                borderRadius: 24,
-                borderWidth: 3,
-                borderColor: isDark ? "#ffffff" : "#000000",
-                alignItems: "center",
-                justifyContent: "center",
-                transform: [{ translateY: -3 }, { translateX: -3 }]
-              }}
-              className="bg-rose-400"
-            >
-              <Text className="text-black font-black text-base font-mono">{timer}</Text>
+        {currentCategory !== "Hot Potato" &&
+          currentCategory !== "Simon Says" && (
+            <View style={styles.timerBadge}>
+              {/* Shadow */}
+              <View
+                style={[StyleSheet.absoluteFillObject, { borderRadius: 24 }]}
+                className={isDark ? "bg-white" : "bg-black"}
+              />
+              {/* Face */}
+              <View
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  borderRadius: 24,
+                  borderWidth: 3,
+                  borderColor: isDark ? "#ffffff" : "#000000",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transform: [{ translateY: -3 }, { translateX: -3 }],
+                }}
+                className="bg-rose-400"
+              >
+                <Text className="text-black font-black text-base font-mono">
+                  {timer}
+                </Text>
+              </View>
             </View>
-          </View>
-        )}
+          )}
 
         <View className="flex-1 w-full relative">{renderMiniGame()}</View>
       </View>
@@ -253,7 +346,7 @@ export default function GameScreen() {
               borderColor: isDark ? "#ffffff" : "#000000",
               alignItems: "center",
               justifyContent: "center",
-              transform: [{ translateY: -3 }, { translateX: -3 }]
+              transform: [{ translateY: -3 }, { translateX: -3 }],
             }}
             className="bg-rose-400"
           >
@@ -279,7 +372,7 @@ export default function GameScreen() {
               borderWidth: 4,
               borderColor: isDark ? "#ffffff" : "#000000",
               overflow: "hidden",
-              transform: [{ translateY: -5 }, { translateX: -5 }]
+              transform: [{ translateY: -5 }, { translateX: -5 }],
             }}
             className={isDark ? "bg-zinc-900" : "bg-orange-50"}
           >
@@ -292,59 +385,6 @@ export default function GameScreen() {
                   <DynamicGameResults rawData={lastGameResult} />
                 </View>
               )}
-
-              {/* Winners Header */}
-              <View className="flex-row items-center justify-center mb-4">
-                <Text className={`font-black text-lg text-center tracking-widest uppercase mr-2 ${isDark ? "text-yellow-400" : "text-black"}`}>
-                  WINNERS +3
-                </Text>
-                <View className="w-4 h-6 bg-yellow-300 rounded-[8px] border-2 border-black items-center justify-center">
-                  <View className="w-[3px] h-3 bg-black rounded-full opacity-80" />
-                </View>
-              </View>
-
-              {/* Winners list items */}
-              <View className="flex-row flex-wrap justify-center mb-6 gap-3">
-                {winners.map((p: any) => (
-                  <View
-                    key={p.id}
-                    className="bg-emerald-400 border-3 border-black px-4 py-1.5 rounded-full"
-                  >
-                    <Text className="text-black font-black text-sm uppercase tracking-wider">
-                      {p.name}
-                    </Text>
-                  </View>
-                ))}
-                {winners.length === 0 && (
-                  <Text className={`font-black uppercase text-xs ${isDark ? "text-white/40" : "text-black/40"}`}>
-                    Nobody
-                  </Text>
-                )}
-              </View>
-
-              {/* Losers Header */}
-              <Text className={`font-black text-lg mb-4 text-center tracking-widest uppercase ${isDark ? "text-rose-400" : "text-black"}`}>
-                DRINKS UP!
-              </Text>
-
-              {/* Losers list items */}
-              <View className="flex-row flex-wrap justify-center gap-3 mb-4">
-                {losers.map((p: any) => (
-                  <View
-                    key={p.id}
-                    className="bg-red-400 border-3 border-black px-4 py-1.5 rounded-full"
-                  >
-                    <Text className="text-black font-black text-sm uppercase tracking-wider">
-                      {p.name}
-                    </Text>
-                  </View>
-                ))}
-                {losers.length === 0 && (
-                  <Text className={`font-black uppercase text-xs ${isDark ? "text-white/40" : "text-black/40"}`}>
-                    Nobody
-                  </Text>
-                )}
-              </View>
             </ScrollView>
           </View>
         </View>
@@ -394,7 +434,7 @@ export default function GameScreen() {
                   borderColor: isDark ? "#ffffff" : "#000000",
                   alignItems: "center",
                   justifyContent: "center",
-                  transform: [{ translateY: -5 }, { translateX: -5 }]
+                  transform: [{ translateY: -5 }, { translateX: -5 }],
                 }}
                 className="bg-red-400"
               >
@@ -404,6 +444,124 @@ export default function GameScreen() {
               </View>
             </View>
           </View>
+        )}
+        {/* Beer Can Animation Modal on Results Screen */}
+        {gamePhase === "resolution" && showBeerModal && losers.length > 0 && (
+          <Modal visible={true} transparent animationType="fade">
+            <View className="flex-1 bg-black/75 items-center justify-center px-6">
+              <View className="w-[88%] max-w-[340px] relative">
+                {/* Dynamic Offset Shadow */}
+                <View
+                  style={{
+                    position: "absolute",
+                    top: 6,
+                    left: 6,
+                    right: -6,
+                    bottom: -6,
+                    borderRadius: 28,
+                  }}
+                  className={isDark ? "bg-white" : "bg-black"}
+                />
+                {/* Card Face - Content determines height dynamically */}
+                <View
+                  style={{
+                    borderRadius: 28,
+                    borderWidth: 4,
+                    borderColor: isDark ? "#ffffff" : "#000000",
+                    alignItems: "center",
+                    paddingVertical: 20,
+                    paddingHorizontal: 16,
+                    position: "relative",
+                  }}
+                  className={isDark ? "bg-zinc-900" : "bg-orange-50"}
+                >
+                  {/* Close 'X' Button on top-left inside the white box */}
+                  <TouchableOpacity
+                    onPress={handleCloseBeerModal}
+                    hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+                    style={{
+                      position: "absolute",
+                      top: 12,
+                      left: 12,
+                      zIndex: 999,
+                      elevation: 10,
+                      width: 36,
+                      height: 36,
+                      borderRadius: 18,
+                      borderWidth: 2.5,
+                      borderColor: isDark ? "#ffffff" : "#000000",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                    className="bg-rose-400"
+                    activeOpacity={0.7}
+                  >
+                    <Text className="text-black font-black text-base">✕</Text>
+                  </TouchableOpacity>
+
+                  {/* Animated "DRINK UP!" Header */}
+                  <Animated.View
+                    pointerEvents="none"
+                    style={{
+                      transform: [{ translateY: bounceAnim }],
+                      marginTop: 8,
+                      marginBottom: 8,
+                    }}
+                  >
+                    <Text
+                      className={`font-black text-3xl uppercase tracking-widest text-center ${isDark ? "text-rose-400" : "text-black"}`}
+                    >
+                      DRINK UP!
+                    </Text>
+                  </Animated.View>
+
+                  {/* Lottie Beer Can Animation */}
+                  <View pointerEvents="none">
+                    <LottieView
+                      source={require("../assets/images/beer_can.json")}
+                      autoPlay
+                      loop
+                      style={{ width: 150, height: 150, marginBottom: 0 }}
+                    />
+                  </View>
+
+                  {/* Losers List */}
+                  <View
+                    pointerEvents="none"
+                    style={{
+                      alignItems: "center",
+                      width: "100%",
+                    }}
+                  >
+                    <Text
+                      className={`font-black text-xs uppercase tracking-widest mb-2 text-center ${isDark ? "text-zinc-400" : "text-zinc-600"}`}
+                    >
+                      DRINKERS:
+                    </Text>
+                    <View className="flex-row flex-wrap justify-center gap-2 max-w-full">
+                      {losers.map((p: any) => (
+                        <View
+                          key={p.id}
+                          className="bg-red-500 border-2 border-black px-3.5 py-1 rounded-full shadow-[2px_2px_0px_0px_#000]"
+                        >
+                          <Text className="text-white font-black text-xs uppercase tracking-wider">
+                            {p.name}
+                          </Text>
+                        </View>
+                      ))}
+                      {losers.length === 0 && (
+                        <View className="bg-zinc-300 border-2 border-black px-3.5 py-1 rounded-full">
+                          <Text className="text-black font-black text-xs uppercase tracking-wider">
+                            NOBODY
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </Modal>
         )}
       </SafeAreaView>
     </GameProvider>
@@ -446,5 +604,5 @@ const styles = StyleSheet.create({
     width: 260,
     height: 100,
     position: "relative",
-  }
+  },
 });

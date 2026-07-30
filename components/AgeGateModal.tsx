@@ -189,7 +189,7 @@ export function AgeGateModal() {
           {/* Card 1: Party Mode */}
           <ModeCard
             title="PARTY MODE"
-            emoji="🎉"
+            iconName="party-popper"
             description="ALL AGES & SOBER FRIENDLY. Games, trivia, and group fun!"
             bgColorClass="bg-cyan-300"
             onPress={handleSelectPartyMode}
@@ -199,7 +199,7 @@ export function AgeGateModal() {
           {/* Card 2: Drinking Mode */}
           <ModeCard
             title="DRINKING MODE"
-            emoji="🍺"
+            iconName="beer"
             description="21+ ONLY. High-energy drinking challenges & group icebreakers."
             bgColorClass="bg-pink-400"
             onPress={handleSelectDrinkingMode}

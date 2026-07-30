@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useEffect } from 'react';
 import { ScrollView, Text, View, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
@@ -74,9 +75,14 @@ export default function LobbyScreen() {
         onPress={() => dispatch(toggleTheme())}
         style={{ position: 'absolute', top: 50, right: 24, zIndex: 10 }}
       >
-        <View className={`${isDark ? "bg-zinc-800 border-white shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]" : "bg-white border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"} border-3 rounded-2xl px-3 py-1.5 flex-row items-center`}>
+        <View className={`${isDark ? "bg-zinc-800 border-white shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]" : "bg-white border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"} border-3 rounded-2xl px-3 py-1.5 flex-row items-center gap-1.5`}>
+          <Ionicons
+            name={isDark ? "moon" : "sunny"}
+            size={14}
+            color={isDark ? "#ffffff" : "#000000"}
+          />
           <Text className={`${isDark ? "text-white" : "text-black"} font-black text-xs uppercase`}>
-            {isDark ? "🌙 DARK" : "☀️ LIGHT"}
+            {isDark ? "DARK" : "LIGHT"}
           </Text>
         </View>
       </TouchableOpacity>

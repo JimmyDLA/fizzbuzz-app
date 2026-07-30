@@ -1,5 +1,6 @@
 import React from "react";
 import { ScrollView, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
 
@@ -32,7 +33,7 @@ export function DynamicGameResults({ rawData }: { rawData: string }) {
                 : "bg-emerald-400 border-2 border-black"
               : isDark
                 ? "bg-zinc-950 border-2 border-zinc-800"
-                : "bg-white border-2 border-black";
+                : "bg-red-300 border-2 border-black";
 
             const numClass = item.isWinner
               ? isDark
@@ -40,14 +41,14 @@ export function DynamicGameResults({ rawData }: { rawData: string }) {
                 : "text-black"
               : isDark
                 ? "text-white/30"
-                : "text-zinc-400";
+                : "text-black";
 
             const nameClass = item.isWinner
               ? isDark
-                ? "text-white"
+                ? "text-emerald-300"
                 : "text-black"
               : isDark
-                ? "text-slate-300"
+                ? "text-slate-400"
                 : "text-black";
 
             const labelClass = item.isWinner
@@ -56,7 +57,7 @@ export function DynamicGameResults({ rawData }: { rawData: string }) {
                 : "text-black"
               : isDark
                 ? "text-slate-400"
-                : "text-zinc-500";
+                : "text-black";
 
             return (
               <View
@@ -111,7 +112,7 @@ export function DynamicGameResults({ rawData }: { rawData: string }) {
                   : "bg-emerald-400 border-2 border-black"
                 : isDark
                   ? "bg-zinc-950 border-2 border-zinc-800"
-                  : "bg-white border-2 border-black";
+                  : "bg-red-300 border-2 border-black";
 
               const nameClass = item.isWinner
                 ? isDark
@@ -141,9 +142,11 @@ export function DynamicGameResults({ rawData }: { rawData: string }) {
                         <Text className="text-black font-black text-[9px] mb-1">
                           {ev.label}
                         </Text>
-                        <Text className="text-black font-black text-[10px]">
-                          {ev.success ? "✓" : "✗"}
-                        </Text>
+                        <Ionicons
+                          name={ev.success ? "checkmark" : "close"}
+                          size={14}
+                          color="#000000"
+                        />
                       </View>
                     ))}
                   </View>

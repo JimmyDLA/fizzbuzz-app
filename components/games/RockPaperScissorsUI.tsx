@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Text, TouchableOpacity, View, StyleSheet, Modal } from 'react-native';
 import { useSelector } from 'react-redux';
+import { FontAwesome5 } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useGameData } from './useGameData';
 import { RootState } from '../../store/store';
@@ -293,9 +294,11 @@ export function RockPaperScissorsUI() {
               >
                 <Text className="text-black text-xs font-black uppercase mb-2">{choice}</Text>
                 <View className="w-14 h-14 bg-black/10 rounded-2xl items-center justify-center">
-                  <Text className="text-3xl">
-                    {choice === 'rock' ? '✊' : choice === 'paper' ? '✋' : '✌️'}
-                  </Text>
+                  <FontAwesome5
+                    name={choice === 'rock' ? 'hand-rock' : choice === 'paper' ? 'hand-paper' : 'hand-scissors'}
+                    size={26}
+                    color="#000000"
+                  />
                 </View>
               </TouchableOpacity>
             </View>
@@ -364,9 +367,11 @@ export function RockPaperScissorsUI() {
                           }}
                           className={CHOICE_COLORS[displayResults.player]?.bg}
                         >
-                          <Text className="text-3xl">
-                            {displayResults.player === 'rock' ? '✊' : displayResults.player === 'paper' ? '✋' : '✌️'}
-                          </Text>
+                          <FontAwesome5
+                            name={displayResults.player === 'rock' ? 'hand-rock' : displayResults.player === 'paper' ? 'hand-paper' : 'hand-scissors'}
+                            size={30}
+                            color="#000000"
+                          />
                         </View>
                         <Text className="text-black font-black text-[10px] uppercase text-center mt-2">YOU</Text>
                       </View>
@@ -387,9 +392,11 @@ export function RockPaperScissorsUI() {
                           }}
                           className={CHOICE_COLORS[displayResults.computer]?.bg}
                         >
-                          <Text className="text-3xl">
-                            {displayResults.computer === 'rock' ? '✊' : displayResults.computer === 'paper' ? '✋' : '✌️'}
-                          </Text>
+                          <FontAwesome5
+                            name={displayResults.computer === 'rock' ? 'hand-rock' : displayResults.computer === 'paper' ? 'hand-paper' : 'hand-scissors'}
+                            size={30}
+                            color="#000000"
+                          />
                         </View>
                         <Text className="text-black font-black text-[10px] uppercase text-center mt-2">COMP</Text>
                       </View>
@@ -413,9 +420,11 @@ export function RockPaperScissorsUI() {
                             }}
                             className={CHOICE_COLORS[choice]?.bg}
                           >
-                            <Text className="text-3xl">
-                              {choice === 'rock' ? '✊' : choice === 'paper' ? '✋' : '✌️'}
-                            </Text>
+                            <FontAwesome5
+                              name={choice === 'rock' ? 'hand-rock' : choice === 'paper' ? 'hand-paper' : 'hand-scissors'}
+                              size={30}
+                              color="#000000"
+                            />
                           </View>
                           <Text className="text-black font-black text-[10px] uppercase text-center mt-2" numberOfLines={1}>
                             {p.name}

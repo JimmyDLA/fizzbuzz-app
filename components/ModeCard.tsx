@@ -2,11 +2,12 @@ import * as Haptics from "expo-haptics";
 import React, { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSelector } from "react-redux";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { RootState } from "../store/store";
 
 interface ModeCardProps {
   title: string;
-  emoji: string;
+  iconName: keyof typeof MaterialCommunityIcons.glyphMap;
   description: string;
   bgColorClass: string;
   onPress: () => void;
@@ -15,7 +16,7 @@ interface ModeCardProps {
 
 export function ModeCard({
   title,
-  emoji,
+  iconName,
   description,
   bgColorClass,
   onPress,
@@ -68,7 +69,7 @@ export function ModeCard({
             <Text className="text-3xl font-black text-black tracking-tight">
               {title}
             </Text>
-            <Text className="text-3xl font-black">{emoji}</Text>
+            <MaterialCommunityIcons name={iconName} size={32} color="#000000" />
           </View>
           
           <Text className="text-base font-bold text-black/80">

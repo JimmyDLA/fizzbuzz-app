@@ -1,7 +1,9 @@
 import * as Haptics from "expo-haptics";
-import React, { useState } from "react";
+import LottieView from "lottie-react-native";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  ScrollView,
+  Animated,
+  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -18,6 +20,19 @@ export function LumberCutUI() {
 
   const [isLeftPressed, setIsLeftPressed] = useState(false);
   const [isRightPressed, setIsRightPressed] = useState(false);
+  const [isSawing, setIsSawing] = useState(false);
+  const sawTimeoutRef = useRef<any>(null);
+
+  useEffect(() => {
+    return () => {
+      if (sawTimeoutRef.current) {
+        clearTimeout(sawTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const sawTranslateX = useRef(new Animated.Value(-30)).current;
+  const sawTranslateY = useRef(new Animated.Value(0)).current;
 
   let gameData: any = {};
   if (myPlayer?.gameData) {
@@ -28,15 +43,46 @@ export function LumberCutUI() {
 
   const teams = gameData.teams || [];
   const myTeam = teams.find((t: any) => t.members.includes(myPlayer?.id));
+  const target = gameData.targetPairs || 20;
+
+  const currentPairs = myTeam?.pairs || 0;
+  const progressRatio = Math.min(1, currentPairs / target);
+
+  // Vertical Y translation from top of log (0) down to bottom (160)
+  const targetY = progressRatio * 160;
+  // Horizontal X translation (-30 when next is right, +30 when next is left)
+  const targetX = myTeam?.next === "right" ? -30 : 30;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(sawTranslateX, {
+        toValue: targetX,
+        friction: 6,
+        tension: 50,
+        useNativeDriver: true,
+      }),
+      Animated.spring(sawTranslateY, {
+        toValue: targetY,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [currentPairs, myTeam?.next, targetX, targetY]);
 
   const handlePull = (side: "left" | "right") => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     sendAction({ action: "pull", side });
+
+    setIsSawing(true);
+    if (sawTimeoutRef.current) {
+      clearTimeout(sawTimeoutRef.current);
+    }
+    sawTimeoutRef.current = setTimeout(() => {
+      setIsSawing(false);
+    }, 2000);
   };
 
-  const target = gameData.targetPairs || 20;
-
-  // Determine button mapping arrays
   const isSolo = myTeam?.members.length === 1;
   const amILeftPuller = myTeam?.members[0] === myPlayer?.id;
 
@@ -44,7 +90,7 @@ export function LumberCutUI() {
     <View className="flex-1 items-center justify-center w-full pt-4 px-6">
       {gameData.gameOver && gameData.winners?.includes(myPlayer?.id) && (
         <Text
-          className="text-green-500 text-5xl font-black mb-6 text-center uppercase"
+          className="text-green-500 text-5xl font-black mb-4 text-center uppercase"
           style={{
             textShadowColor: isDark ? "#ffffff" : "#000000",
             textShadowOffset: { width: 3, height: 3 },
@@ -56,7 +102,7 @@ export function LumberCutUI() {
       )}
       {gameData.gameOver && !gameData.winners?.includes(myPlayer?.id) && (
         <Text
-          className="text-red-500 text-5xl font-black mb-6 text-center uppercase"
+          className="text-red-500 text-5xl font-black mb-4 text-center uppercase"
           style={{
             textShadowColor: isDark ? "#ffffff" : "#000000",
             textShadowOffset: { width: 3, height: 3 },
@@ -67,103 +113,119 @@ export function LumberCutUI() {
         </Text>
       )}
 
-      {/* Teams progress panel */}
-      <View style={styles.teamsPanelWrapper} className="mb-8">
-        {/* Shadow Backing */}
+      {/* Progress HUD Badge */}
+      <View style={styles.hudBadgeWrapper} className="mb-4">
         <View
-          style={[StyleSheet.absoluteFillObject, { borderRadius: 32 }]}
+          style={[StyleSheet.absoluteFillObject, { borderRadius: 16 }]}
           className={isDark ? "bg-white" : "bg-black"}
         />
-
-        {/* Panel Body */}
         <View
           style={{
             width: "100%",
             height: "100%",
-            borderRadius: 32,
-            borderWidth: 4,
+            borderRadius: 16,
+            borderWidth: 3,
             borderColor: isDark ? "#ffffff" : "#000000",
-            padding: 16,
-            transform: [{ translateY: -6 }, { translateX: -6 }],
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            paddingHorizontal: 16,
+            transform: [{ translateY: -3 }, { translateX: -3 }],
           }}
           className={isDark ? "bg-zinc-900" : "bg-orange-100"}
         >
-          <ScrollView
-            className="flex-1 w-full"
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 10 }}
+          <Text
+            className={`font-black text-sm uppercase ${isDark ? "text-cyan-400" : "text-cyan-600"}`}
           >
-            {[...teams]
-              .sort((a, b) => b.pairs - a.pairs)
-              .map((t: any, idx: number) => {
-                const progress = Math.min((t.pairs / target) * 100, 100);
-                const isMyTeam = t.id === myTeam?.id;
-                return (
-                  <View key={idx} className="mb-4">
-                    <View className="flex-row justify-between mb-2 px-1">
-                      <Text
-                        className={`font-black uppercase tracking-wider ${isMyTeam ? (isDark ? "text-cyan-400" : "text-cyan-600") : isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                      >
-                        {t.id}
-                      </Text>
-                      <Text
-                        className={`font-black tracking-widest ${isMyTeam ? "text-yellow-500" : "text-zinc-500"}`}
-                      >
-                        {t.pairs} / {target}
-                      </Text>
-                    </View>
-                    <View
-                      style={{ borderColor: isDark ? "#ffffff" : "#000000" }}
-                      className="w-full h-9 bg-zinc-800 rounded-full border-3 overflow-hidden relative justify-center"
-                    >
-                      <View
-                        className={`absolute h-full left-0 ${isMyTeam ? (isDark ? "bg-cyan-400" : "bg-cyan-300") : "bg-orange-500 opacity-60"}`}
-                        style={{ width: `${progress}%` }}
-                      />
-                      <Text className="text-center font-black text-black tracking-[4px] z-10 text-[10px] uppercase">
-                        LUMBER
-                      </Text>
-                    </View>
-                  </View>
-                );
-              })}
-          </ScrollView>
+            {myTeam ? `TEAM ${myTeam.id}` : "SOLO"}
+          </Text>
+          <Text className="font-black text-base text-yellow-500 tracking-wider">
+            {Math.round(progressRatio * 100)}% CUT
+          </Text>
+        </View>
+      </View>
+
+      {/* 3D SAWING SCENE (Replaces Teams Progress Panel) */}
+      <View style={styles.sceneContainer} className="mb-6">
+        {/* Layer 0 (zIndex=0): Saw Dust Lottie Animations (Background) */}
+        <View
+          style={[
+            StyleSheet.absoluteFillObject,
+            { alignItems: "center", justifyContent: "center", zIndex: 0 },
+          ]}
+        >
+          {isSawing && (
+            <>
+              <LottieView
+                source={require("../../assets/images/saw_dust.json")}
+                autoPlay
+                loop={true}
+                style={{
+                  position: "absolute",
+                  width: 150,
+                  height: 150,
+                  opacity: 0.85,
+                  top: 178,
+                }}
+              />
+              <LottieView
+                source={require("../../assets/images/saw_dust.json")}
+                autoPlay
+                loop={true}
+                // duration={1000}
+                // speed={1.5}
+                style={{
+                  position: "absolute",
+                  width: 200,
+                  height: 200,
+                  opacity: 0.85,
+                  top: 178,
+                }}
+              />
+            </>
+          )}
+        </View>
+
+        {/* Layer 1 (zIndex=1): Hand Saw (Crosscut Saw) */}
+        <Animated.View
+          style={{
+            position: "absolute",
+            top: 25,
+            zIndex: 1,
+            transform: [
+              { translateX: sawTranslateX },
+              { translateY: sawTranslateY },
+            ],
+          }}
+        >
+          <Image
+            source={require("../../assets/images/crosscut_saw.png")}
+            style={{ width: 400, height: 100 }}
+            resizeMode="stretch"
+          />
+        </Animated.View>
+
+        {/* Layer 2 (zIndex=2): Lumber Log (Foreground) */}
+        <View
+          style={{
+            position: "absolute",
+            top: 35,
+            zIndex: 2,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Image
+            source={require("../../assets/images/lumber_log.png")}
+            style={{ width: 220, height: 220 }}
+            resizeMode="contain"
+          />
         </View>
       </View>
 
       {/* PHYSICAL CONTROLS */}
       {!gameData.gameOver && timer > 0 && (
-        <View className="w-full pb-12">
-          {/* Saw status banner */}
-          <View style={styles.sawBannerWrapper} className="mb-8">
-            {/* Shadow Backing */}
-            <View
-              style={[StyleSheet.absoluteFillObject, { borderRadius: 20 }]}
-              className={isDark ? "bg-white" : "bg-black"}
-            />
-            {/* Body */}
-            <View
-              style={{
-                width: "100%",
-                height: "100%",
-                borderRadius: 20,
-                borderWidth: 4,
-                borderColor: isDark ? "#ffffff" : "#000000",
-                justifyContent: "center",
-                alignItems: "center",
-                transform: [{ translateY: -4 }, { translateX: -4 }],
-              }}
-              className={isDark ? "bg-zinc-800" : "bg-yellow-100"}
-            >
-              <Text
-                className={`text-center font-black text-2xl ${isDark ? "text-white" : "text-black"} tracking-[0.2em] uppercase`}
-              >
-                CROSSCUT SAW
-              </Text>
-            </View>
-          </View>
-
-          {/* Pull Buttons Grid */}
+        <View className="w-full pb-8">
           <View className="flex-row justify-center w-full gap-4">
             {(isSolo || amILeftPuller) &&
               (() => {
@@ -171,7 +233,6 @@ export function LumberCutUI() {
                 const translateOffset = isEnabled && !isLeftPressed ? -8 : 0;
                 return (
                   <View style={styles.buttonContainer}>
-                    {/* Shadow Backing */}
                     <View
                       style={[
                         StyleSheet.absoluteFillObject,
@@ -179,7 +240,6 @@ export function LumberCutUI() {
                       ]}
                       className={isDark ? "bg-white" : "bg-black"}
                     />
-                    {/* Button Body */}
                     <TouchableOpacity
                       activeOpacity={1}
                       onPressIn={() => {
@@ -225,7 +285,6 @@ export function LumberCutUI() {
                 const translateOffset = isEnabled && !isRightPressed ? -8 : 0;
                 return (
                   <View style={styles.buttonContainer}>
-                    {/* Shadow Backing */}
                     <View
                       style={[
                         StyleSheet.absoluteFillObject,
@@ -233,7 +292,6 @@ export function LumberCutUI() {
                       ]}
                       className={isDark ? "bg-white" : "bg-black"}
                     />
-                    {/* Button Body */}
                     <TouchableOpacity
                       activeOpacity={1}
                       onPressIn={() => {
@@ -280,19 +338,21 @@ export function LumberCutUI() {
 }
 
 const styles = StyleSheet.create({
-  teamsPanelWrapper: {
+  hudBadgeWrapper: {
     width: "100%",
-    height: 250,
+    height: 48,
     position: "relative",
   },
-  sawBannerWrapper: {
-    width: "100%",
-    height: 64,
+  sceneContainer: {
+    width: 320,
+    height: 280,
     position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
   },
   buttonContainer: {
     flex: 1,
-    height: 120,
+    height: 110,
     position: "relative",
   },
 });

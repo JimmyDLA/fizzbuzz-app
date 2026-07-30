@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Animated, Dimensions, StyleSheet, Text, View } from "react-native";
 import { useSelector } from "react-redux";
 import * as Haptics from "expo-haptics";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useGameData } from "./useGameData";
 import { RootState } from "../../store/store";
 
@@ -37,7 +38,12 @@ const Balloon = ({
   return (
     <View style={[styles.balloonContainer, isMe && styles.myBalloonContainer]}>
       {isBurst ? (
-        <Text style={[{ fontSize: isMe ? 80 : 40 }, styles.burstIcon]}>💥</Text>
+        <MaterialCommunityIcons
+          name="flash"
+          size={isMe ? 80 : 40}
+          color={isDark ? "#ffffff" : "#000000"}
+          style={styles.burstIcon}
+        />
       ) : (
         <Animated.View
           style={[
@@ -68,7 +74,14 @@ const Balloon = ({
           {size}%
         </Text>
       </View>
-      {isWinner && <Text style={styles.winnerCrown}>👑</Text>}
+      {isWinner && (
+        <MaterialCommunityIcons
+          name="crown"
+          size={24}
+          color="#eab308"
+          style={styles.winnerCrown}
+        />
+      )}
     </View>
   );
 };

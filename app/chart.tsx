@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -45,6 +46,7 @@ export default function ChartScreen() {
     currentCategory,
     selectedPlayers,
     theme,
+    lastWinners,
   } = useSelector((state: RootState) => state.lobby);
 
   const players: any[] = reduxPlayers.length > 0 ? reduxPlayers : [];
@@ -62,6 +64,27 @@ export default function ChartScreen() {
   const [showPracticeModal, setShowPracticeModal] = useState(false);
   const hasSpunRef = useRef(false);
   const isLeavingRef = useRef(false);
+  const [animationKey, setAnimationKey] = useState(0);
+  const celebratedWinnersRef = useRef<string>("");
+
+  useEffect(() => {
+    if (gamePhase !== "chart") {
+      setAnimationKey(0);
+      celebratedWinnersRef.current = "";
+      return;
+    }
+
+    if (gamePhase === "chart" && lastWinners && lastWinners.length > 0) {
+      const winnersKey = lastWinners.join(",");
+      if (celebratedWinnersRef.current !== winnersKey) {
+        celebratedWinnersRef.current = winnersKey;
+        const timer = setTimeout(() => {
+          setAnimationKey((prev) => prev + 1);
+        }, 350);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [gamePhase, lastWinners]);
 
   // Dev Modal State
   const [showDevModal, setShowDevModal] = useState(false);
@@ -381,7 +404,11 @@ export default function ChartScreen() {
             ]}
             className={isDark ? "bg-zinc-800" : "bg-white"}
           >
-            <Text className="text-xl">{isDark ? "🌙" : "☀️"}</Text>
+            <Ionicons
+              name={isDark ? "moon" : "sunny"}
+              size={20}
+              color={isDark ? "#ffffff" : "#000000"}
+            />
           </View>
         </TouchableOpacity>
       </View>
@@ -398,6 +425,7 @@ export default function ChartScreen() {
             if (index > 0 && p.score < sortedPlayers[index - 1].score) {
               currentRank++;
             }
+            const isWinner = (lastWinners as any[])?.includes(p.id);
             return (
               <RetroPlayerCard
                 key={p.id}
@@ -406,6 +434,8 @@ export default function ChartScreen() {
                 isHost={p.isHost}
                 rank={currentRank}
                 score={p.score}
+                isWinner={isWinner}
+                triggerAnimationKey={isWinner ? animationKey : 0}
               />
             );
           });
@@ -622,7 +652,7 @@ export default function ChartScreen() {
                       style={{ flex: 1 }}
                     />
                     <RetroButton
-                      title={isReady ? "READY ✓" : "READY UP!"}
+                      title={isReady ? "READY!" : "READY UP!"}
                       variant={isReady ? "primary" : "secondary"}
                       onPress={handleReadyToggle}
                       style={{ flex: 2 }}
