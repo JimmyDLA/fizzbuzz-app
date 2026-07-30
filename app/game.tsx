@@ -533,11 +533,6 @@ export default function GameScreen() {
                       width: "100%",
                     }}
                   >
-                    <Text
-                      className={`font-black text-xs uppercase tracking-widest mb-2 text-center ${isDark ? "text-zinc-400" : "text-zinc-600"}`}
-                    >
-                      DRINKERS:
-                    </Text>
                     <View className="flex-row flex-wrap justify-center gap-2 max-w-full">
                       {losers.map((p: any) => (
                         <View

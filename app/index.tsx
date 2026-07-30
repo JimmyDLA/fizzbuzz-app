@@ -154,12 +154,17 @@ export default function HomeScreen() {
                 style={{ position: "absolute", top: 50, right: 0, zIndex: 10 }}
               >
                 <View
-                  className={`${isDark ? "bg-zinc-800 border-white shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]" : "bg-white border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"} border-3 rounded-2xl px-3 py-1.5 flex-row items-center`}
+                  className={`${isDark ? "bg-zinc-800 border-white shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]" : "bg-white border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"} border-3 rounded-2xl px-3 py-1.5 flex-row items-center gap-1.5`}
                 >
+                  <Ionicons
+                    name="settings-sharp"
+                    size={14}
+                    color={isDark ? "#ffffff" : "#000000"}
+                  />
                   <Text
                     className={`${isDark ? "text-white" : "text-black"} font-black text-xs uppercase`}
                   >
-                    ⚙️ {gameMode === "drinking" ? "Drinking" : "Party"}
+                    {gameMode === "drinking" ? "Drinking" : "Party"}
                   </Text>
                 </View>
               </TouchableOpacity>

@@ -70,16 +70,26 @@ export function AgeGateKeypad({
           }}
           style={{ position: "absolute", top: 12, left: 12, zIndex: 10 }}
         >
-          <View className={`${isDark ? "bg-zinc-800 border-white" : "bg-white border-black"} border-2 rounded-lg px-2 py-1 flex-row items-center`}>
-            <Text className={`font-black text-xs ${isDark ? "text-white" : "text-black"}`}>◀ BACK</Text>
+          <View
+            className={`${isDark ? "bg-zinc-800 border-white" : "bg-white border-black"} border-2 rounded-lg px-2 py-1 flex-row items-center`}
+          >
+            <Text
+              className={`font-black text-xs ${isDark ? "text-white" : "text-black"}`}
+            >
+              ◀ BACK
+            </Text>
           </View>
         </TouchableOpacity>
 
-        <Text className={`text-3xl font-black ${isDark ? "text-white" : "text-black"} text-center mt-6 mb-2 tracking-tight`}>
-          VERIFY AGE
-        </Text>
-        <Text className={`text-xs font-black ${isDark ? "text-white/60" : "text-black/60"} text-center uppercase tracking-widest mb-4`}>
+        <Text
+          className={`text-3xl font-black ${isDark ? "text-white" : "text-black"} text-center mt-6 mb-2 tracking-tight`}
+        >
           ENTER BIRTH YEAR
+        </Text>
+        <Text
+          className={`text-xs font-black ${isDark ? "text-white/60" : "text-black/60"} text-center uppercase tracking-widest mb-4`}
+        >
+          VERIFY AGE
         </Text>
 
         {/* Display Input Box */}
@@ -151,7 +161,9 @@ export function AgeGateKeypad({
               colorClass={
                 yearStr.length === 4
                   ? "bg-emerald-400"
-                  : (isDark ? "bg-zinc-700" : "bg-gray-300")
+                  : isDark
+                    ? "bg-zinc-700"
+                    : "bg-gray-300"
               }
               disabled={isVerifying}
             />

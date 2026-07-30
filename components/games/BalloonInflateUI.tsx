@@ -1,11 +1,12 @@
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
+import * as Haptics from "expo-haptics";
+import LottieView from "lottie-react-native";
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, Dimensions, StyleSheet, Text, View } from "react-native";
 import { useSelector } from "react-redux";
-import * as Haptics from "expo-haptics";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useGameData } from "./useGameData";
 import { RootState } from "../../store/store";
+import { useGameData } from "./useGameData";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -35,31 +36,73 @@ const Balloon = ({
     }).start();
   }, [size, isBurst, isMe, scale]);
 
+  const balloonColor = isMe ? "#fb7185" : "#22d3ee";
+  const borderColor = isDark ? "#ffffff" : "#000000";
+
   return (
     <View style={[styles.balloonContainer, isMe && styles.myBalloonContainer]}>
       {isBurst ? (
-        <MaterialCommunityIcons
-          name="flash"
-          size={isMe ? 80 : 40}
-          color={isDark ? "#ffffff" : "#000000"}
-          style={styles.burstIcon}
+        <LottieView
+          source={require("../../assets/images/confetti.json")}
+          autoPlay
+          loop={false}
+          style={{
+            width: isMe ? 220 : 120,
+            height: isMe ? 220 : 120,
+            position: "absolute",
+            top: isMe ? -40 : -20,
+            zIndex: 30,
+          }}
         />
       ) : (
         <Animated.View
-          style={[
-            styles.balloon,
-            isMe ? styles.myBalloonColor : styles.otherBalloonColor,
-            {
-              transform: [{ scale }],
-              borderColor: isDark ? "#ffffff" : "#000000"
-            },
-          ]}
-        />
+          style={{
+            alignItems: "center",
+            transform: [{ scale }],
+          }}
+        >
+          {/* Main Teardrop Balloon Body */}
+          <View
+            style={[
+              styles.balloonBody,
+              {
+                backgroundColor: balloonColor,
+                borderColor: borderColor,
+              },
+            ]}
+          >
+            {/* Specular Highlight Sheen */}
+            <View style={styles.balloonHighlight} />
+          </View>
+
+          {/* Balloon Tied Knot */}
+          <View
+            style={[
+              styles.balloonKnot,
+              {
+                backgroundColor: balloonColor,
+                borderColor: borderColor,
+              },
+            ]}
+          />
+
+          {/* Balloon String */}
+          <View
+            style={[
+              styles.balloonString,
+              {
+                backgroundColor: isDark
+                  ? "rgba(255,255,255,0.7)"
+                  : "rgba(0,0,0,0.7)",
+              },
+            ]}
+          />
+        </Animated.View>
       )}
       <View
         style={[
           styles.nameTag,
-          { borderColor: isDark ? "#ffffff" : "#000000" }
+          { borderColor: isDark ? "#ffffff" : "#000000" },
         ]}
         className={isDark ? "bg-zinc-800" : "bg-white"}
       >
@@ -87,7 +130,7 @@ const Balloon = ({
 };
 
 export function BalloonInflateUI() {
-  const { players, myPlayer, sendAction } = useGameData();
+  const { players, selectedPlayers, myPlayer, sendAction } = useGameData();
   const theme = useSelector((state: RootState) => state.lobby.theme) || "light";
   const isDark = theme === "dark";
 
@@ -112,22 +155,16 @@ export function BalloonInflateUI() {
     gameData = JSON.parse(myPlayer?.gameData || "{}");
   } catch (e) {}
 
-  const otherPlayers = players.filter((p: any) => p.id !== myPlayer?.id);
-
-  let message = "";
-  if (gameData.finished) {
-    if (
-      gameData.winnerId === myPlayer?.id ||
-      gameData.timeoutWinners?.includes(myPlayer?.id)
-    ) {
-      message = "YOU WIN!";
-    } else {
-      message = "YOU LOSE!";
-    }
-  }
+  const selectedPlayersList = selectedPlayers || [];
+  const otherPlayers = players.filter(
+    (p: any) => p.id !== myPlayer?.id && selectedPlayersList.includes(p.id),
+  );
 
   return (
-    <View style={styles.container} className={isDark ? "bg-zinc-950" : "bg-green-500"}>
+    <View
+      style={styles.container}
+      className={isDark ? "bg-zinc-950" : "bg-green-500"}
+    >
       {/* Top area: Opponent balloons */}
       <View style={styles.opponentsRow}>
         {otherPlayers.map((p: any) => {
@@ -205,7 +242,7 @@ export function BalloonInflateUI() {
             borderColor: isDark ? "#ffffff" : "#000000",
             alignItems: "center",
             justifyContent: "center",
-            transform: [{ translateY: -5 }, { translateX: -5 }]
+            transform: [{ translateY: -5 }, { translateX: -5 }],
           }}
           className={isDark ? "bg-yellow-600" : "bg-yellow-300"}
         >
@@ -224,36 +261,6 @@ export function BalloonInflateUI() {
           </View>
         </View>
       </View>
-
-      {/* Winner/Loser Overlay Card */}
-      {gameData.finished && (
-        <View style={StyleSheet.absoluteFillObject} className="justify-center items-center px-6 z-50 bg-black/75">
-          <View className="w-full max-w-sm relative">
-            {/* Shadow */}
-            <View
-              style={[StyleSheet.absoluteFillObject, { borderRadius: 28 }]}
-              className={isDark ? "bg-white" : "bg-black"}
-            />
-            {/* Body */}
-            <View
-              style={{
-                borderRadius: 28,
-                borderWidth: 4,
-                borderColor: isDark ? "#ffffff" : "#000000",
-                transform: [{ translateY: -6 }, { translateX: -6 }],
-                paddingHorizontal: 24,
-                paddingVertical: 36,
-                alignItems: "center",
-              }}
-              className={message === "YOU WIN!" ? "bg-emerald-400" : "bg-red-400"}
-            >
-              <Text className="text-black font-black text-4xl text-center uppercase tracking-widest">
-                {message}
-              </Text>
-            </View>
-          </View>
-        </View>
-      )}
     </View>
   );
 }
@@ -267,10 +274,12 @@ const styles = StyleSheet.create({
     flex: 1,
     flexWrap: "wrap",
     flexDirection: "row",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     alignItems: "flex-start",
-    paddingTop: 40,
-    gap: 20,
+    paddingTop: 80,
+    paddingLeft: 20,
+    paddingRight: 130, // Ensures opponent balloons wrap cleanly before reaching the pump slider
+    gap: 14,
   },
   myBalloonZone: {
     position: "absolute",
@@ -292,21 +301,46 @@ const styles = StyleSheet.create({
     width: 150,
     height: 250,
   },
-  balloon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginBottom: 10,
+  balloonBody: {
+    width: 48,
+    height: 58,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderBottomLeftRadius: 22,
+    borderBottomRightRadius: 22,
     borderWidth: 3,
+    position: "relative",
+    overflow: "hidden",
+  },
+  balloonHighlight: {
+    position: "absolute",
+    top: 6,
+    left: 7,
+    width: 10,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.45)",
+    transform: [{ rotate: "-25deg" }],
+  },
+  balloonKnot: {
+    width: 10,
+    height: 7,
+    borderWidth: 2,
+    borderBottomLeftRadius: 4,
+    borderBottomRightRadius: 4,
+    borderTopLeftRadius: 2,
+    borderTopRightRadius: 2,
+    marginTop: -2,
+  },
+  balloonString: {
+    width: 2,
+    height: 12,
+    borderRadius: 1,
+    marginTop: 0,
+    marginBottom: 4,
   },
   burstIcon: {
     marginBottom: 20,
-  },
-  myBalloonColor: {
-    backgroundColor: "#fb7185", // Pink balloon
-  },
-  otherBalloonColor: {
-    backgroundColor: "#22d3ee", // Cyan balloon
   },
   nameTag: {
     marginTop: 20,
