@@ -15,8 +15,10 @@ import { PracticeModal } from "../components/PracticeModal";
 import { RetroButton } from "../components/RetroButton";
 import { RetroPlayerCard } from "../components/RetroPlayerCard";
 import { colyseusService } from "../store/colyseusService";
-import { toggleTheme } from "../store/lobbySlice";
+import { SettingsDropdown } from "../components/SettingsDropdown";
 import { RootState } from "../store/store";
+import { isExpoGo } from "../utils/environment";
+import { playSpinSound, stopSpinSound } from "../utils/sound";
 
 const TYPES = ["1v1", "2v2", "BR"];
 const CATS = [
@@ -30,7 +32,7 @@ const CATS = [
   "Balloon Inflate",
   "Simon Says",
   "Scrabble",
-  "Screen Painting",
+  ...(isExpoGo ? [] : ["Screen Painting"]),
   "Perfection",
 ];
 
@@ -101,6 +103,7 @@ export default function ChartScreen() {
       hasSpunRef.current = true;
       setIsSpinning(true);
       setShowWheelModal(true);
+      playSpinSound();
 
       let requiredCount = 2;
       if (currentGameType === "1v1") requiredCount = 2;
@@ -124,16 +127,19 @@ export default function ChartScreen() {
         setDisplayedCategory(currentCategory || "?");
         setDisplayedPlayers(selectedPlayersList);
         setIsSpinning(false);
+        stopSpinSound();
       }, 2000);
     } else if (gamePhase !== "wheel") {
       setShowWheelModal(false);
       hasSpunRef.current = false;
+      stopSpinSound();
     }
 
     return () => {
       clearInterval(interval);
       clearTimeout(timeout);
       clearTimeout(autoDismiss);
+      stopSpinSound();
     };
   }, [
     gamePhase,
@@ -379,38 +385,8 @@ export default function ChartScreen() {
           </View>
         </View>
 
-        {/* Theme Toggle Button */}
-        <TouchableOpacity
-          onPress={() => dispatch(toggleTheme())}
-          style={{ width: 48, height: 48, position: "relative" }}
-        >
-          <View
-            style={[
-              StyleSheet.absoluteFillObject,
-              { borderRadius: 12, top: 3, left: 3 },
-            ]}
-            className={isDark ? "bg-white" : "bg-black"}
-          />
-          <View
-            style={[
-              StyleSheet.absoluteFillObject,
-              {
-                borderRadius: 12,
-                borderWidth: 3,
-                borderColor: isDark ? "#ffffff" : "#000000",
-                alignItems: "center",
-                justifyContent: "center",
-              },
-            ]}
-            className={isDark ? "bg-zinc-800" : "bg-white"}
-          >
-            <Ionicons
-              name={isDark ? "moon" : "sunny"}
-              size={20}
-              color={isDark ? "#ffffff" : "#000000"}
-            />
-          </View>
-        </TouchableOpacity>
+        {/* Settings Dropdown Button */}
+        <SettingsDropdown />
       </View>
 
       <ScrollView

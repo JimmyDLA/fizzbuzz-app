@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store/store";
+import { playButtonClickSound } from "../../utils/sound";
 import { useGameData } from "./useGameData";
 
 export function TriviaUI() {
@@ -24,6 +25,7 @@ export function TriviaUI() {
   } catch (e) {}
 
   const handleAnswer = (opt: string, idx: number) => {
+    playButtonClickSound();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     sendAction({ action: "answer", answer: opt });
   };
@@ -106,6 +108,7 @@ export function TriviaUI() {
                 {/* Touchable Button Body */}
                 <TouchableOpacity
                   activeOpacity={1}
+                  delayPressIn={0}
                   onPressIn={() => {
                     if (!isDisabled) setPressedIdx(idx);
                   }}

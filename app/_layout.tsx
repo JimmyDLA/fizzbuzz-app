@@ -1,12 +1,18 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
-import '../global.css';
-import { Provider } from 'react-redux';
-import { store } from '../store/store';
+import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import 'react-native-reanimated';
+import { Provider } from 'react-redux';
+import '../global.css';
+import { store } from '../store/store';
+import { startBackgroundMusic } from '../utils/sound';
 
 export default function RootLayout() {
+  useEffect(() => {
+    startBackgroundMusic();
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Provider store={store}>

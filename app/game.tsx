@@ -1,3 +1,9 @@
+import { isExpoGo } from "@/utils/environment";
+import {
+  playBeerOpeningSound,
+  playCountDownSound,
+  playWhistleSound,
+} from "@/utils/sound";
 import { useRouter } from "expo-router";
 import LottieView from "lottie-react-native";
 import { useEffect, useRef, useState } from "react";
@@ -116,7 +122,12 @@ export default function GameScreen() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    if (showBeerModal) {
+    let soundTimer: any;
+    if (showBeerModal && losers.length > 0) {
+      soundTimer = setTimeout(() => {
+        playBeerOpeningSound();
+      }, 1000);
+
       Animated.loop(
         Animated.sequence([
           Animated.timing(bounceAnim, {
@@ -150,11 +161,14 @@ export default function GameScreen() {
       bounceAnim.setValue(0);
       pulseAnim.setValue(1);
     }
-  }, [showBeerModal]);
+    return () => {
+      if (soundTimer) clearTimeout(soundTimer);
+    };
+  }, [showBeerModal, losers.length]);
 
   useEffect(() => {
     let showTimer: any;
-    if (gamePhase === "resolution" && !hasDismissedModal) {
+    if (gamePhase === "resolution" && !hasDismissedModal && losers.length > 0) {
       showTimer = setTimeout(() => {
         setShowBeerModal(true);
       }, 200);
@@ -162,10 +176,31 @@ export default function GameScreen() {
       setShowBeerModal(false);
       setHasDismissedModal(false);
     }
+    if (gamePhase === "countdown" && timer === 3) {
+      playCountDownSound();
+    }
     return () => {
       if (showTimer) clearTimeout(showTimer);
     };
-  }, [gamePhase, hasDismissedModal]);
+  }, [gamePhase, hasDismissedModal, timer, losers.length]);
+
+  const wasFinishedRef = useRef(false);
+
+  useEffect(() => {
+    const isEnded =
+      gamePhase === "resolution" ||
+      (gamePhase === "playing" && gameData.finished);
+
+    if (isEnded && !wasFinishedRef.current) {
+      playWhistleSound();
+      wasFinishedRef.current = true;
+    } else if (
+      gamePhase === "countdown" ||
+      (gamePhase === "playing" && !gameData.finished)
+    ) {
+      wasFinishedRef.current = false;
+    }
+  }, [gamePhase, gameData.finished]);
 
   useEffect(() => {
     if (gamePhase === "chart") {
@@ -175,39 +210,45 @@ export default function GameScreen() {
     }
   }, [gamePhase, isReady, router]);
 
-  const renderCountdown = () => (
-    <View className="flex-1 bg-transparent justify-center items-center px-6">
-      <Text className="text-white font-black text-2xl uppercase tracking-widest text-center mb-10">
-        PREPARE TO PLAY!
-      </Text>
+  const renderCountdown = () => {
+    console.log("Countdown phase, timer:", timer);
+    // setTimeout(() => {
+    //   playCountDownSound();
+    // }, 2000);
+    return (
+      <View className="flex-1 bg-transparent justify-center items-center px-6">
+        <Text className="text-white font-black text-2xl uppercase tracking-widest text-center mb-10">
+          PREPARE TO PLAY!
+        </Text>
 
-      <View style={styles.countdownCard}>
-        {/* Shadow */}
-        <View
-          style={[StyleSheet.absoluteFillObject, { borderRadius: 40 }]}
-          className={isDark ? "bg-white" : "bg-black"}
-        />
-        {/* Card Face */}
-        <View
-          style={{
-            width: "100%",
-            height: "100%",
-            borderRadius: 40,
-            borderWidth: 5,
-            borderColor: isDark ? "#ffffff" : "#000000",
-            alignItems: "center",
-            justifyContent: "center",
-            transform: [{ translateY: -6 }, { translateX: -6 }],
-          }}
-          className={isDark ? "bg-yellow-600" : "bg-yellow-300"}
-        >
-          <Text className="text-black font-black text-8xl font-mono text-center">
-            {timer}
-          </Text>
+        <View style={styles.countdownCard}>
+          {/* Shadow */}
+          <View
+            style={[StyleSheet.absoluteFillObject, { borderRadius: 40 }]}
+            className={isDark ? "bg-white" : "bg-black"}
+          />
+          {/* Card Face */}
+          <View
+            style={{
+              width: "100%",
+              height: "100%",
+              borderRadius: 40,
+              borderWidth: 5,
+              borderColor: isDark ? "#ffffff" : "#000000",
+              alignItems: "center",
+              justifyContent: "center",
+              transform: [{ translateY: -6 }, { translateX: -6 }],
+            }}
+            className={isDark ? "bg-yellow-600" : "bg-yellow-300"}
+          >
+            <Text className="text-black font-black text-8xl font-mono text-center">
+              {timer}
+            </Text>
+          </View>
         </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   const renderMiniGame = () => {
     switch (currentCategory) {
@@ -232,7 +273,15 @@ export default function GameScreen() {
       case "Scrabble":
         return <ScrabbleUI />;
       case "Screen Painting":
-        return <ScreenPaintingUI />;
+        return isExpoGo ? (
+          <View className="flex-1 bg-yellow-500 justify-center items-center p-6">
+            <Text className="text-black text-2xl font-bold text-center uppercase tracking-widest">
+              Screen Painting requires a Development Build!
+            </Text>
+          </View>
+        ) : (
+          <ScreenPaintingUI />
+        );
       case "Perfection":
         return <PerfectionUI />;
       default:
@@ -515,16 +564,6 @@ export default function GameScreen() {
                     </Text>
                   </Animated.View>
 
-                  {/* Lottie Beer Can Animation */}
-                  <View pointerEvents="none">
-                    <LottieView
-                      source={require("../assets/images/beer_can.json")}
-                      autoPlay
-                      loop
-                      style={{ width: 150, height: 150, marginBottom: 0 }}
-                    />
-                  </View>
-
                   {/* Losers List */}
                   <View
                     pointerEvents="none"
@@ -552,6 +591,16 @@ export default function GameScreen() {
                         </View>
                       )}
                     </View>
+                  </View>
+
+                  {/* Lottie Beer Can Animation */}
+                  <View pointerEvents="none">
+                    <LottieView
+                      source={require("../assets/images/beer_can.json")}
+                      autoPlay
+                      loop
+                      style={{ width: 150, height: 150, marginBottom: 0 }}
+                    />
                   </View>
                 </View>
               </View>

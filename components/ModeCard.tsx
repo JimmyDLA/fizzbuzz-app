@@ -1,8 +1,9 @@
+import { playButtonClickSound } from "@/utils/sound";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSelector } from "react-redux";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { RootState } from "../store/store";
 
 interface ModeCardProps {
@@ -32,6 +33,7 @@ export function ModeCard({
       onPressIn={() => {
         setIsPressed(true);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        playButtonClickSound();
       }}
       onPressOut={() => setIsPressed(false)}
       onPress={onPress}
@@ -71,11 +73,11 @@ export function ModeCard({
             </Text>
             <MaterialCommunityIcons name={iconName} size={32} color="#000000" />
           </View>
-          
+
           <Text className="text-base font-bold text-black/80">
             {description}
           </Text>
-          
+
           <View className="bg-white border-2 border-black rounded-xl py-2 px-4 self-end">
             <Text className="font-black text-black">START PLAYING →</Text>
           </View>

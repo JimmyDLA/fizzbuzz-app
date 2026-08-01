@@ -1,5 +1,4 @@
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import {
   Keyboard,
@@ -7,21 +6,18 @@ import {
   Platform,
   StyleSheet,
   Text,
-  TouchableOpacity,
   TouchableWithoutFeedback,
-  View,
+  View
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { AgeGateModal } from "../components/AgeGateModal";
 import { RetroButton } from "../components/RetroButton";
 import { RetroInput } from "../components/RetroInput";
+import { SettingsDropdown } from "../components/SettingsDropdown";
 import { memphisShapes } from "../constants/theme";
 import { colyseusService } from "../store/colyseusService";
 import {
-  setAgeVerified,
-  setGameMode,
-  setPlayerName,
-  toggleTheme,
+  setPlayerName
 } from "../store/lobbySlice";
 import { RootState } from "../store/store";
 
@@ -124,51 +120,11 @@ export default function HomeScreen() {
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             className="flex-1 justify-center w-full max-w-sm mx-auto"
           >
-            {/* Theme Toggle Button */}
-            <TouchableOpacity
-              onPress={() => dispatch(toggleTheme())}
-              style={{ position: "absolute", top: 50, left: 0, zIndex: 10 }}
-            >
-              <View
-                className={`${isDark ? "bg-zinc-800 border-white shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]" : "bg-white border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"} border-3 rounded-2xl px-3 py-1.5 flex-row items-center gap-1.5`}
-              >
-                <Ionicons
-                  name={isDark ? "moon" : "sunny"}
-                  size={14}
-                  color={isDark ? "#ffffff" : "#000000"}
-                />
-                <Text
-                  className={`${isDark ? "text-white" : "text-black"} font-black text-xs uppercase`}
-                >
-                  {isDark ? "DARK" : "LIGHT"}
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            {gameMode && (
-              <TouchableOpacity
-                onPress={() => {
-                  dispatch(setGameMode(null));
-                  dispatch(setAgeVerified(false));
-                }}
-                style={{ position: "absolute", top: 50, right: 0, zIndex: 10 }}
-              >
-                <View
-                  className={`${isDark ? "bg-zinc-800 border-white shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]" : "bg-white border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"} border-3 rounded-2xl px-3 py-1.5 flex-row items-center gap-1.5`}
-                >
-                  <Ionicons
-                    name="settings-sharp"
-                    size={14}
-                    color={isDark ? "#ffffff" : "#000000"}
-                  />
-                  <Text
-                    className={`${isDark ? "text-white" : "text-black"} font-black text-xs uppercase`}
-                  >
-                    {gameMode === "drinking" ? "Drinking" : "Party"}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            )}
+            {/* Consolidated Settings Button (Top Right) */}
+            <SettingsDropdown
+              isHomeScreen
+              style={{ position: "absolute", top: 50, right: 0, zIndex: 10 }}
+            />
 
             <View className="items-center mb-10 mt-16">
               <View

@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Animated, Text, TouchableOpacity, View, StyleSheet } from "react-native";
 import { useSelector } from "react-redux";
 import * as Haptics from "expo-haptics";
+import { playNegativeSound, playPositiveSound } from "../../utils/sound";
 import { colyseusService } from "../../store/colyseusService";
 import { useGameData } from "./useGameData";
 import { RootState } from "../../store/store";
@@ -100,6 +101,7 @@ export function ScrabbleUI() {
       setIsSubmitting(false);
 
       if (message.isValid) {
+        playPositiveSound();
         setFeedback({
           text: `+${message.word.length} POINTS!`,
           type: "success",
@@ -124,9 +126,11 @@ export function ScrabbleUI() {
         // Clear board after successful submit
         setTiles((prev) => prev.map((t) => ({ ...t, placedIndex: null })));
       } else if (message.isDuplicate) {
+        playNegativeSound();
         setFeedback({ text: "ALREADY FOUND!", type: "info" });
         triggerShake();
       } else {
+        playNegativeSound();
         setFeedback({ text: "INVALID WORD!", type: "error" });
         triggerShake();
       }
@@ -183,6 +187,7 @@ export function ScrabbleUI() {
     const word = placedTiles.map((t) => t.char).join("");
 
     if (word.length < 2) {
+      playNegativeSound();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setFeedback({ text: "TOO SHORT!", type: "error" });
       triggerShake();

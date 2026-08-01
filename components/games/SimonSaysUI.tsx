@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store/store";
+import { playSimonSound } from "../../utils/sound";
 import { useGameData } from "./useGameData";
 
 export function SimonSaysUI() {
@@ -11,6 +12,16 @@ export function SimonSaysUI() {
 
   const [gameData, setGameData] = useState<any>(null);
   const [activeColorIndex, setActiveColorIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (
+      activeColorIndex !== null &&
+      activeColorIndex >= 0 &&
+      activeColorIndex <= 3
+    ) {
+      playSimonSound(activeColorIndex);
+    }
+  }, [activeColorIndex]);
 
   // Local state for Practice Mode
   const [localGameData, setLocalGameData] = useState<{
@@ -383,6 +394,7 @@ export function SimonSaysUI() {
               <TouchableOpacity
                 key={c.idx}
                 activeOpacity={0.85}
+                delayPressIn={0}
                 onPress={() => displayTap(c.idx)}
                 disabled={displayPhase !== "input" || displayIsEliminated}
                 style={[

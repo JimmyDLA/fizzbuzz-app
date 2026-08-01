@@ -1,8 +1,14 @@
 import LottieView from "lottie-react-native";
 import React, { useEffect, useRef, useState } from "react";
-import { Animated, StyleSheet, Text, View } from "react-native";
+import {
+  Animated,
+  StyleSheet,
+  Text,
+  View
+} from "react-native";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
+import { playCoinDropSound } from "../utils/sound";
 
 interface RetroPlayerCardProps {
   name: string;
@@ -29,10 +35,13 @@ export function RetroPlayerCard({
   const isDark = theme === "dark";
 
   const isWinnerOfLastGame = !!isWinner && score !== undefined;
-  const previousScore = isWinnerOfLastGame ? Math.max(0, score - 3) : (score ?? 0);
+  const previousScore = isWinnerOfLastGame
+    ? Math.max(0, score - 3)
+    : (score ?? 0);
 
   const [hasCompletedAnimation, setHasCompletedAnimation] = useState(false);
   const [displayScore, setDisplayScore] = useState(previousScore);
+  const [testKey, setTestKey] = useState(0);
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const lastProcessedKeyRef = useRef<number>(0);
 
@@ -79,6 +88,7 @@ export function RetroPlayerCard({
       const t1 = setTimeout(() => {
         setDisplayScore(Math.max(0, score - 2));
         triggerPop();
+        playCoinDropSound();
       }, 200);
 
       const t2 = setTimeout(() => {
@@ -204,11 +214,14 @@ export function RetroPlayerCard({
             <View className="w-5 h-7 bg-yellow-200 rounded-[8px] border-2 border-black items-center justify-center mr-2">
               <View className="w-1 h-3.5 bg-black rounded-full" />
             </View>
-            <Text className="text-black font-black text-xl">{displayScore}</Text>
+            <Text className="text-black font-black text-xl">
+              {displayScore}
+            </Text>
 
-            {triggerAnimationKey !== undefined && triggerAnimationKey > 0 && (
+            {((triggerAnimationKey !== undefined && triggerAnimationKey > 0) ||
+              testKey > 0) && (
               <LottieView
-                key={triggerAnimationKey}
+                key={`${triggerAnimationKey || 0}-${testKey}`}
                 source={require("../assets/images/coins_animation.json")}
                 autoPlay
                 loop={false}
@@ -233,10 +246,12 @@ export function RetroPlayerCard({
               borderColor: isDark ? "#ffffff" : "#000000",
               borderRadius: 10,
             }}
-            className={`px-3 py-1.5 ml-2 ${isReady ? "bg-emerald-400" : "bg-pink-400"}`}
+            className={`px-3 py-1.5 ml-2 ${
+              isReady ? "bg-emerald-400" : "bg-zinc-300"
+            }`}
           >
-            <Text className="text-black font-black text-sm">
-              {isReady ? "READY" : "WAIT"}
+            <Text className="text-black font-black text-xs uppercase">
+              {isReady ? "READY" : "WAITING"}
             </Text>
           </View>
         )}

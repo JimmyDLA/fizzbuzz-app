@@ -14,7 +14,8 @@
     "ios:build:prod": "eas build --profile production --platform ios",
     "android:build:dev": "eas build --profile development --platform android",
     "android:build:prev": "eas build --profile preview --platform android",
-    "android:build:prod": "eas build --profile production --platform android"
+    "android:build:prod": "eas build --profile production --platform android",
+    "postinstall": "node ./scripts/patch-xcode-check.js"
   },
   "dependencies": {
     "@colyseus/sdk": "^0.17.35",
@@ -30,6 +31,7 @@
     "crypto-browserify": "^3.12.1",
     "events": "^3.3.0",
     "expo": "~54.0.33",
+    "expo-audio": "~1.1.1",
     "expo-build-properties": "~1.0.10",
     "expo-constants": "~18.0.13",
     "expo-crypto": "~15.0.8",

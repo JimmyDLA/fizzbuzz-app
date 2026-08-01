@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { TouchableOpacity, Text, View } from 'react-native';
+import { useClickSound } from '../hooks/useClickSound';
 
 interface PartyButtonProps {
   title: string;
@@ -9,6 +10,7 @@ interface PartyButtonProps {
 
 export function PartyButton({ title, onPress, color = 'primary' }: PartyButtonProps) {
   const [isPressed, setIsPressed] = useState(false);
+  const playClickSound = useClickSound();
   const baseColors = {
     primary: 'bg-blue-500', secondary: 'bg-yellow-400', danger: 'bg-red-500', success: 'bg-green-500',
   };
@@ -16,8 +18,19 @@ export function PartyButton({ title, onPress, color = 'primary' }: PartyButtonPr
     primary: 'bg-blue-700', secondary: 'bg-yellow-600', danger: 'bg-red-700', success: 'bg-green-700',
   };
 
+  const handlePressIn = () => {
+    setIsPressed(true);
+    playClickSound();
+  };
+
   return (
-    <TouchableOpacity activeOpacity={1} onPressIn={() => setIsPressed(true)} onPressOut={() => setIsPressed(false)} onPress={onPress}>
+    <TouchableOpacity
+      activeOpacity={1}
+      delayPressIn={0}
+      onPressIn={handlePressIn}
+      onPressOut={() => setIsPressed(false)}
+      onPress={onPress}
+    >
       <View className="mb-4 h-20">
         <View className={`absolute top-2 w-full h-[68px] rounded-3xl ${borderColors[color]}`} />
         <View className={`absolute w-full h-[68px] rounded-3xl items-center justify-center flex-row px-4 ${baseColors[color]} ${isPressed ? 'top-2' : 'top-0'}`}>

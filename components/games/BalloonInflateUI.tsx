@@ -6,6 +6,10 @@ import React, { useEffect, useRef, useState } from "react";
 import { Animated, Dimensions, StyleSheet, Text, View } from "react-native";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store/store";
+import {
+  playBalloonInflateSound,
+  playBalloonPopSound,
+} from "../../utils/sound";
 import { useGameData } from "./useGameData";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -27,6 +31,7 @@ const Balloon = ({
 }) => {
   // Base scale is 0.5 (size 0), grows to 2.5 (size 100)
   const scale = useRef(new Animated.Value(0.5)).current;
+  const wasBurstRef = useRef(false);
 
   useEffect(() => {
     Animated.spring(scale, {
@@ -35,6 +40,14 @@ const Balloon = ({
       bounciness: 12,
     }).start();
   }, [size, isBurst, isMe, scale]);
+
+  useEffect(() => {
+    if (isBurst && !wasBurstRef.current) {
+      playBalloonPopSound();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+    wasBurstRef.current = isBurst;
+  }, [isBurst]);
 
   const balloonColor = isMe ? "#fb7185" : "#22d3ee";
   const borderColor = isDark ? "#ffffff" : "#000000";
@@ -135,6 +148,33 @@ export function BalloonInflateUI() {
   const isDark = theme === "dark";
 
   const [pumpState, setPumpState] = useState("down");
+  const playedThresholdsRef = useRef<Set<number>>(new Set());
+
+  let gameData: any = {};
+  try {
+    gameData = JSON.parse(myPlayer?.gameData || "{}");
+  } catch (e) {}
+
+  const mySize = gameData.size || 0;
+
+  useEffect(() => {
+    if (mySize === 0) {
+      playedThresholdsRef.current.clear();
+      return;
+    }
+
+    const thresholds = [20, 40, 60, 80];
+    thresholds.forEach((th) => {
+      if (
+        mySize >= th &&
+        mySize < 100 &&
+        !playedThresholdsRef.current.has(th)
+      ) {
+        playedThresholdsRef.current.add(th);
+        playBalloonInflateSound();
+      }
+    });
+  }, [mySize]);
 
   const onSliderChange = (val: number) => {
     if (gameData.finished) return;
@@ -149,11 +189,6 @@ export function BalloonInflateUI() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
   };
-
-  let gameData: any = {};
-  try {
-    gameData = JSON.parse(myPlayer?.gameData || "{}");
-  } catch (e) {}
 
   const selectedPlayersList = selectedPlayers || [];
   const otherPlayers = players.filter(

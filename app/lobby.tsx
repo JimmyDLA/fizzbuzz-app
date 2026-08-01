@@ -8,7 +8,7 @@ import { colyseusService } from '../store/colyseusService';
 import { RootState } from '../store/store';
 import { memphisShapes } from '../constants/theme';
 import { RetroPlayerCard } from '../components/RetroPlayerCard';
-import { toggleTheme } from '../store/lobbySlice';
+import { SettingsDropdown } from '../components/SettingsDropdown';
 
 export default function LobbyScreen() {
   const router = useRouter();
@@ -70,22 +70,10 @@ export default function LobbyScreen() {
     <View style={StyleSheet.absoluteFillObject} className={`${isDark ? "bg-zinc-950" : "bg-amber-50"} justify-center pt-16`}>
       {renderBackgroundDebris()}
 
-      {/* Theme Toggle Button */}
-      <TouchableOpacity
-        onPress={() => dispatch(toggleTheme())}
+      {/* Settings Dropdown Button */}
+      <SettingsDropdown
         style={{ position: 'absolute', top: 50, right: 24, zIndex: 10 }}
-      >
-        <View className={`${isDark ? "bg-zinc-800 border-white shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]" : "bg-white border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"} border-3 rounded-2xl px-3 py-1.5 flex-row items-center gap-1.5`}>
-          <Ionicons
-            name={isDark ? "moon" : "sunny"}
-            size={14}
-            color={isDark ? "#ffffff" : "#000000"}
-          />
-          <Text className={`${isDark ? "text-white" : "text-black"} font-black text-xs uppercase`}>
-            {isDark ? "DARK" : "LIGHT"}
-          </Text>
-        </View>
-      </TouchableOpacity>
+      />
 
       <View className="items-center mb-8 px-6 mt-6">
         <View 

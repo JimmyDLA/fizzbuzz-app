@@ -1,3 +1,4 @@
+import { playButtonClickSound } from "../../utils/sound";
 import React, { useState } from "react";
 import { Text, TouchableOpacity, View, StyleSheet, Modal } from "react-native";
 import { useSelector } from "react-redux";
@@ -18,6 +19,7 @@ export function MathProblemUI() {
 
   const handleAnswer = (ans: number, idx: number) => {
     if (myPlayer?.gameScore === -1 || gameData.gameOver) return;
+    playButtonClickSound();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     sendAction({ action: "answer", answer: ans });
   };
@@ -97,6 +99,7 @@ export function MathProblemUI() {
               {/* Button Body */}
               <TouchableOpacity
                 activeOpacity={1}
+                delayPressIn={0}
                 onPressIn={() => {
                   if (!isDisabled) setPressedIdx(idx);
                 }}

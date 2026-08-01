@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { playNegativeSound, playPapSound } from "../../utils/sound";
 import { useGameData } from "./useGameData";
 
 interface ShapeProps {
@@ -301,6 +302,7 @@ export function PerfectionUI() {
         absY <= slotY + slotSize + tolerance;
 
       if (isHit) {
+        playPapSound();
         Haptics.notificationAsync(
           Haptics.NotificationFeedbackType.Success,
         ).catch(() => {});
@@ -308,6 +310,7 @@ export function PerfectionUI() {
         setMatchedShapes((prev) => [...prev, shapeIndex]);
         sendAction({ action: "place" });
       } else {
+        playNegativeSound();
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(
           () => {},
         );

@@ -7,11 +7,15 @@ import {
   StrokeCap,
   StrokeJoin,
 } from "@shopify/react-native-skia";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Dimensions, StyleSheet, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
+import {
+  playPaintSplat1Sound,
+  playPaintSplat2Sound,
+} from "../../utils/sound";
 import { colyseusService } from "../../store/colyseusService";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -46,6 +50,36 @@ export function ScreenPaintingUI() {
 
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [currentCoverage, setCurrentCoverage] = useState(0);
+  const playedSplatThresholdsRef = useRef<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (currentCoverage === 0) {
+      playedSplatThresholdsRef.current.clear();
+      return;
+    }
+
+    const thresholds = [
+      { pct: 20, sound: 1 },
+      { pct: 40, sound: 2 },
+      { pct: 60, sound: 1 },
+      { pct: 80, sound: 2 },
+    ];
+
+    thresholds.forEach(({ pct, sound }) => {
+      if (
+        currentCoverage >= pct &&
+        currentCoverage < 100 &&
+        !playedSplatThresholdsRef.current.has(pct)
+      ) {
+        playedSplatThresholdsRef.current.add(pct);
+        if (sound === 1) {
+          playPaintSplat1Sound();
+        } else {
+          playPaintSplat2Sound();
+        }
+      }
+    });
+  }, [currentCoverage]);
 
   const onLayout = useCallback((event: any) => {
     const { width, height } = event.nativeEvent.layout;

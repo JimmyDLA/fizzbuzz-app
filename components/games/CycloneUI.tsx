@@ -1,3 +1,8 @@
+import {
+  playButtonClickSound,
+  playWhooshSound,
+  stopWhooshSound,
+} from "@/utils/sound";
 import * as Haptics from "expo-haptics";
 import React, { useEffect, useState } from "react";
 import {
@@ -107,24 +112,29 @@ export function CycloneUI() {
       -1,
       false,
     );
+    playWhooshSound();
 
-    return () => cancelAnimation(activeIndex);
+    return () => {
+      cancelAnimation(activeIndex);
+      stopWhooshSound();
+    };
   }, []);
 
   // When game finishes (server timeout or all stopped), hardcode to stoppedIndex if it wasn't captured locally
   useEffect(() => {
-    if (
-      gameData.finished &&
-      localStop === null &&
-      gameData.stoppedIndex !== null
-    ) {
-      setLocalStop(gameData.stoppedIndex);
+    if (gameData.finished) {
+      stopWhooshSound();
+      if (localStop === null && gameData.stoppedIndex !== null) {
+        setLocalStop(gameData.stoppedIndex);
+      }
     }
-  }, [gameData.finished, gameData.stoppedIndex]);
+  }, [gameData.finished, gameData.stoppedIndex, localStop]);
 
   const handleStop = () => {
     if (localStop !== null || gameData.finished) return; // Already stopped
+    playButtonClickSound();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    stopWhooshSound();
 
     // Capture precise visually rendered index
     const currentIndex = Math.floor(activeIndex.value) % NUM_LIGHTS;
@@ -198,6 +208,7 @@ export function CycloneUI() {
           {/* Button Face */}
           <TouchableOpacity
             activeOpacity={1}
+            delayPressIn={0}
             onPressIn={() => {
               if (!isDisabled) setIsPressed(true);
             }}

@@ -2,6 +2,7 @@ import * as Haptics from "expo-haptics";
 import React, { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSelector } from "react-redux";
+import { useClickSound } from "../hooks/useClickSound";
 import { RootState } from "../store/store";
 
 interface KeyButtonProps {
@@ -24,6 +25,7 @@ export function KeyButton({
   const [isPressed, setIsPressed] = useState(false);
   const theme = useSelector((state: RootState) => state.lobby.theme) || "light";
   const isDark = theme === "dark";
+  const playClickSound = useClickSound();
 
   const activeColorClass = colorClass === "bg-white"
     ? (isDark ? "bg-zinc-800" : "bg-white")
@@ -36,6 +38,7 @@ export function KeyButton({
   const handlePressIn = () => {
     if (disabled) return;
     setIsPressed(true);
+    playClickSound();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
@@ -50,6 +53,7 @@ export function KeyButton({
   return (
     <TouchableOpacity
       activeOpacity={1}
+      delayPressIn={0}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       onPress={disabled ? undefined : onPress}
