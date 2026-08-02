@@ -187,20 +187,19 @@ export default function GameScreen() {
   const wasFinishedRef = useRef(false);
 
   useEffect(() => {
-    const isEnded =
-      gamePhase === "resolution" ||
-      (gamePhase === "playing" && gameData.finished);
+    const isGameEnd =
+      gamePhase === "playing" && (gameData.finished || timer === 0);
 
-    if (isEnded && !wasFinishedRef.current) {
+    if (isGameEnd && !wasFinishedRef.current) {
       playWhistleSound();
       wasFinishedRef.current = true;
     } else if (
       gamePhase === "countdown" ||
-      (gamePhase === "playing" && !gameData.finished)
+      (gamePhase === "playing" && !gameData.finished && timer > 0)
     ) {
       wasFinishedRef.current = false;
     }
-  }, [gamePhase, gameData.finished]);
+  }, [gamePhase, gameData.finished, timer]);
 
   useEffect(() => {
     if (gamePhase === "chart") {

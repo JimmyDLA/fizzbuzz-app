@@ -177,12 +177,24 @@ export function ScreenPaintingUI() {
           }
 
           const coverage = opaqueCount / totalPixels;
-          setCurrentCoverage(Math.round(coverage * 100));
+          const roundedCoverage = Math.min(100, Math.round(coverage * 100));
+          setCurrentCoverage(roundedCoverage);
 
-          // 99% coverage threshold for better UX (accounting for small gaps/corners)
-          if (coverage === 1) {
-            isFinished.current = true;
-            colyseusService.sendGameAction({ action: "finished" });
+          // Report current progress to server so leaderboard reflects exact % painted
+          colyseusService.sendGameAction({
+            action: "progress",
+            coverage: roundedCoverage,
+          });
+
+          // 99% coverage or rounded 100% threshold for finishing & declaring winner
+          if (roundedCoverage >= 100 || coverage >= 0.99) {
+            if (!isFinished.current) {
+              isFinished.current = true;
+              colyseusService.sendGameAction({
+                action: "finished",
+                coverage: 100,
+              });
+            }
           }
         }
       } catch (e) {
