@@ -17,8 +17,17 @@ import { RetroPlayerCard } from "../components/RetroPlayerCard";
 import { colyseusService } from "../store/colyseusService";
 import { SettingsDropdown } from "../components/SettingsDropdown";
 import { RootState } from "../store/store";
+import {
+  FINAL_SPECIALTY_CARDS,
+  SpecialtyCard,
+  SpecialtyCardModal,
+} from "../components/SpecialtyCardModal";
 import { isExpoGo } from "../utils/environment";
-import { playSpinSound, stopSpinSound } from "../utils/sound";
+import {
+  playButtonClickSound,
+  playSpinSound,
+  stopSpinSound,
+} from "../utils/sound";
 
 const TYPES = ["1v1", "2v2", "BR"];
 const CATS = [
@@ -64,6 +73,18 @@ export default function ChartScreen() {
   const [isSpinning, setIsSpinning] = useState(false);
   const [showWheelModal, setShowWheelModal] = useState(false);
   const [showPracticeModal, setShowPracticeModal] = useState(false);
+  const [showSpecialtyModal, setShowSpecialtyModal] = useState(false);
+  const [drawnSpecialtyCard, setDrawnSpecialtyCard] =
+    useState<SpecialtyCard | null>(null);
+
+  const drawRandomSpecialtyCard = () => {
+    playButtonClickSound();
+    const randomIndex = Math.floor(
+      Math.random() * FINAL_SPECIALTY_CARDS.length,
+    );
+    setDrawnSpecialtyCard(FINAL_SPECIALTY_CARDS[randomIndex]);
+    setShowSpecialtyModal(true);
+  };
   const hasSpunRef = useRef(false);
   const isLeavingRef = useRef(false);
   const [animationKey, setAnimationKey] = useState(0);
@@ -782,6 +803,41 @@ export default function ChartScreen() {
           onClose={() => setShowPracticeModal(false)}
         />
       )}
+
+      {/* Temp Floating Action Button to Draw Random Specialty Card */}
+      <View style={{ position: "absolute", bottom: 28, right: 20, zIndex: 9999 }}>
+        <TouchableOpacity
+          onPress={drawRandomSpecialtyCard}
+          style={{
+            backgroundColor: "#f59e0b",
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            borderRadius: 30,
+            borderWidth: 3,
+            borderColor: "#000000",
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 4,
+            elevation: 8,
+          }}
+        >
+          <Ionicons name="card" size={20} color="#000000" />
+          <Text className="font-black text-black text-xs uppercase tracking-wider">
+            SPECIALTY CARD
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <SpecialtyCardModal
+        visible={showSpecialtyModal}
+        card={drawnSpecialtyCard}
+        onClose={() => setShowSpecialtyModal(false)}
+        onDrawNew={drawRandomSpecialtyCard}
+      />
     </View>
   );
 }
