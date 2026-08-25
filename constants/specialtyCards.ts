@@ -94,3 +94,14 @@ export const SPECIALTY_CARDS: Record<SpecialtyCardType, SpecialtyCardConfig> = {
     phaseText: "Match Setup Phase",
   },
 };
+
+export function getCardConfig(cardId: string): SpecialtyCardConfig {
+  if (!cardId) return SPECIALTY_CARDS.respin;
+  const norm = cardId.toLowerCase().replace(/\s+/g, "_");
+  if (norm === "turbo") return SPECIALTY_CARDS.turbo;
+  if (norm === "shield") return SPECIALTY_CARDS.shield;
+  if (norm === "double_points" || norm === "doublepoints") return SPECIALTY_CARDS.double_points;
+  if (norm === "respin") return SPECIALTY_CARDS.respin;
+  if (norm === "wild_card" || norm === "wildcard") return SPECIALTY_CARDS.wild_card;
+  return SPECIALTY_CARDS.respin;
+}

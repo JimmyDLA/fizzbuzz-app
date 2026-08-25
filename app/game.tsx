@@ -1,9 +1,11 @@
 import { isExpoGo } from "@/utils/environment";
 import {
   playBeerOpeningSound,
+  playButtonClickSound,
   playCountDownSound,
   playWhistleSound,
 } from "@/utils/sound";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import LottieView from "lottie-react-native";
 import { useEffect, useRef, useState } from "react";
@@ -18,6 +20,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
+import { CardAnnouncementPopup } from "../components/CardAnnouncementPopup";
+import { CardDock } from "../components/CardDock";
 import { DynamicGameResults } from "../components/DynamicGameResults";
 import { BalloonInflateUI } from "../components/games/BalloonInflateUI";
 import { CycloneUI } from "../components/games/CycloneUI";
@@ -53,7 +57,8 @@ export default function GameScreen() {
     lastGameResult,
   } = useSelector((state: any) => state.lobby);
 
-  const myPlayer = reduxPlayers.find((p: any) => p.name === playerName);
+  const players: any[] = reduxPlayers || [];
+  const myPlayer = players.find((p: any) => p.name === playerName);
   const isReady = myPlayer?.isReady || false;
 
   let gameData: any = {};
@@ -210,14 +215,27 @@ export default function GameScreen() {
     }
   }, [gamePhase, isReady, router]);
 
+  const [showBeerShieldPicker, setShowBeerShieldPicker] = useState(false);
+
+  const activeEffectPlayers = players.filter((p: any) => {
+    if (!p.activeEffects) return false;
+    try {
+      const fx = JSON.parse(p.activeEffects);
+      return fx.turbo || fx.doublePoints;
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const amILoser = losers.some((p: any) => p.id === myPlayer?.id);
+  const hasShieldCard = myPlayer?.cards?.some(
+    (c: string) => c.toLowerCase().replace(/\s+/g, "_") === "shield"
+  );
+
   const renderCountdown = () => {
-    console.log("Countdown phase, timer:", timer);
-    // setTimeout(() => {
-    //   playCountDownSound();
-    // }, 2000);
     return (
       <View className="flex-1 bg-transparent justify-center items-center px-6">
-        <Text className="text-white font-black text-2xl uppercase tracking-widest text-center mb-10">
+        <Text className="text-white font-black text-2xl uppercase tracking-widest text-center mb-6">
           PREPARE TO PLAY!
         </Text>
 
@@ -246,6 +264,40 @@ export default function GameScreen() {
             </Text>
           </View>
         </View>
+
+        {activeEffectPlayers.length > 0 && (
+          <View className="mt-8 px-4 py-3 bg-zinc-900/90 rounded-2xl border-2 border-black items-center max-w-xs">
+            <Text className="text-zinc-400 font-bold text-[10px] uppercase tracking-widest mb-2">
+              ACTIVE SPECIALTY CARDS
+            </Text>
+            <View className="flex-row flex-wrap justify-center gap-2">
+              {activeEffectPlayers.map((p: any) => {
+                let fx: any = {};
+                try {
+                  fx = JSON.parse(p.activeEffects);
+                } catch (e) {}
+                return (
+                  <View key={p.id} className="flex-row items-center gap-1">
+                    {fx.turbo && (
+                      <View className="bg-cyan-400 border border-black px-2.5 py-1 rounded-full">
+                        <Text className="text-black font-black text-[10px] uppercase">
+                          {p.name} (TURBO)
+                        </Text>
+                      </View>
+                    )}
+                    {fx.doublePoints && (
+                      <View className="bg-amber-400 border border-black px-2.5 py-1 rounded-full">
+                        <Text className="text-black font-black text-[10px] uppercase">
+                          {p.name} (DOUBLE POINTS)
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
       </View>
     );
   };
@@ -545,7 +597,7 @@ export default function GameScreen() {
                     className="bg-rose-400"
                     activeOpacity={0.7}
                   >
-                    <Text className="text-black font-black text-base">✕</Text>
+                    <Text className="text-black font-black text-base">X</Text>
                   </TouchableOpacity>
 
                   {/* Animated "DRINK UP!" Header */}
@@ -602,11 +654,72 @@ export default function GameScreen() {
                       style={{ width: 150, height: 150, marginBottom: 0 }}
                     />
                   </View>
+
+                  {/* Shield Card Trigger inside Beer Modal */}
+                  {amILoser && hasShieldCard && (
+                    <TouchableOpacity
+                      onPress={() => {
+                        playButtonClickSound();
+                        setShowBeerShieldPicker(true);
+                      }}
+                      className="mt-2 bg-pink-500 border-3 border-black px-6 py-2.5 rounded-full shadow-[3px_3px_0px_0px_#000] items-center"
+                      activeOpacity={0.8}
+                    >
+                      <Text className="text-white font-black text-xs uppercase tracking-wider">
+                        USE SHIELD CARD
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
             </View>
           </Modal>
         )}
+
+        {/* Shield Target Picker Modal from Beer Modal */}
+        <Modal visible={showBeerShieldPicker} transparent animationType="slide">
+          <View className="flex-1 bg-black/90 justify-center items-center p-6">
+            <View className="w-full max-w-sm bg-zinc-900 border-4 border-pink-500 rounded-3xl p-6 items-center">
+              <Ionicons name="shield-checkmark" size={48} color="#EC4899" />
+              <Text className="text-pink-400 font-black text-xl uppercase tracking-wider text-center mt-2 mb-1">
+                SHIELD TARGET
+              </Text>
+              <Text className="text-zinc-400 font-bold text-xs uppercase text-center mb-4">
+                Select a player to receive your drink penalty:
+              </Text>
+
+              <View className="w-full gap-2 mb-6">
+                {players
+                  .filter((p: any) => p.id !== myPlayer?.id)
+                  .map((p: any) => (
+                    <TouchableOpacity
+                      key={p.id}
+                      onPress={() => {
+                        playButtonClickSound();
+                        colyseusService.useCard("SHIELD", { targetPlayerId: p.id });
+                        setShowBeerShieldPicker(false);
+                        setShowBeerModal(false);
+                      }}
+                      className="w-full bg-pink-500/20 border-2 border-pink-500 py-3 rounded-2xl items-center"
+                    >
+                      <Text className="text-pink-300 font-black text-sm uppercase">
+                        PASS DRINK TO {p.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+              </View>
+
+              <RetroButton
+                title="CANCEL"
+                variant="secondary"
+                onPress={() => setShowBeerShieldPicker(false)}
+              />
+            </View>
+          </View>
+        </Modal>
+
+        <CardDock />
+        <CardAnnouncementPopup />
       </SafeAreaView>
     </GameProvider>
   );

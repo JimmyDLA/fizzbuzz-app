@@ -106,7 +106,14 @@ export function ScreenPaintingUI() {
     gameData = JSON.parse(myPlayer?.gameData || "{}");
   } catch (e) {}
 
+  let isTurbo = false;
+  try {
+    const fx = JSON.parse(myPlayer?.activeEffects || "{}");
+    isTurbo = !!fx.turbo;
+  } catch (e) {}
+
   const myColor = COLORS[gameData.colorIndex ?? 0] ?? COLORS[0];
+  const activeStrokeWidth = isTurbo ? 90 : 60; // 1.5x stroke width for Turbo
 
   // Layout calculations considering SafeArea and actual view dimensions dynamically
   const canvasWidth = dimensions.width || SCREEN_WIDTH;
@@ -137,7 +144,7 @@ export function ScreenPaintingUI() {
 
         const paint = Skia.Paint();
         paint.setColor(Skia.Color(myColor));
-        paint.setStrokeWidth(60); // Thick brush
+        paint.setStrokeWidth(activeStrokeWidth); // Dynamic brush width
         paint.setStyle(PaintStyle.Stroke);
         paint.setStrokeCap(StrokeCap.Round);
         paint.setStrokeJoin(StrokeJoin.Round);
@@ -295,7 +302,7 @@ export function ScreenPaintingUI() {
                       path={p}
                       color={myColor}
                       style="stroke"
-                      strokeWidth={60}
+                      strokeWidth={activeStrokeWidth}
                       strokeCap="round"
                       strokeJoin="round"
                     />

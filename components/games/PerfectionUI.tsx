@@ -307,7 +307,27 @@ export function PerfectionUI() {
           Haptics.NotificationFeedbackType.Success,
         ).catch(() => {});
 
-        setMatchedShapes((prev) => [...prev, shapeIndex]);
+        let isTurbo = false;
+        try {
+          const fx = JSON.parse(myPlayer?.activeEffects || "{}");
+          isTurbo = !!fx.turbo;
+        } catch (e) {}
+
+        setMatchedShapes((prev) => {
+          const newMatched = [...prev, shapeIndex];
+          // For every 4 pieces matched, auto-match the next piece for Turbo players
+          if (isTurbo && newMatched.length % 4 === 0 && newMatched.length < 16) {
+            const nextUnmatched = shapes.find((s: number) => !newMatched.includes(s));
+            if (nextUnmatched !== undefined) {
+              newMatched.push(nextUnmatched);
+              setTimeout(() => {
+                sendAction({ action: "place" });
+              }, 150);
+            }
+          }
+          return newMatched;
+        });
+
         sendAction({ action: "place" });
       } else {
         playNegativeSound();
@@ -316,7 +336,7 @@ export function PerfectionUI() {
         );
       }
     },
-    [boardLayout, shapes, sendAction],
+    [boardLayout, shapes, sendAction, myPlayer?.activeEffects],
   );
 
   const remainingShapes = Array.from({ length: 16 }, (_, i) => i).filter(

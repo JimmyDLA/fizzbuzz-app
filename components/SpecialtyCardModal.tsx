@@ -119,12 +119,12 @@ export function SpecialtyCardModal({
           {/* Action Buttons underneath Card */}
           <View className="w-[255px] gap-3 mt-6">
             <RetroButton
-              title="🎲 DRAW ANOTHER"
+              title="DRAW ANOTHER"
               variant="secondary"
               onPress={handleDrawNew}
             />
             <RetroButton
-              title="🃏 CLAIM CARD"
+              title="CLAIM CARD"
               variant="success"
               onPress={handleClose}
             />

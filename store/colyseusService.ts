@@ -2,7 +2,7 @@ import type { Room } from '@colyseus/sdk';
 import * as Colyseus from '@colyseus/sdk';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer, setLastGameResult, setPracticeState } from './lobbySlice';
+import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer, setLastGameResult, setPracticeState, setPendingCardAward, setCardAnnouncement } from './lobbySlice';
 import { store } from './store';
 
 
@@ -94,6 +94,28 @@ export const colyseusService = {
   setupRoomListeners(room: any) {
     store.dispatch(setRoomId(room.id || room.roomId));
 
+    room.onMessage("CardUsedEvent", (event: any) => {
+      console.log(`[SpecialtyCard] CardUsedEvent:`, event);
+      // If used by someone else, show 3-second card announcement
+      if (event.userId && event.userId !== room.sessionId) {
+        store.dispatch(setCardAnnouncement({
+          cardId: event.cardId,
+          playerName: event.playerName,
+          message: event.message || event.description,
+          targetName: event.targetName,
+        }));
+      }
+    });
+
+    room.onMessage("CardAwardedEvent", (event: any) => {
+      console.log(`[SpecialtyCard] CardAwardedEvent:`, event);
+      store.dispatch(setPendingCardAward({
+        cardId: event.cardId,
+        reason: event.reason,
+        message: event.message,
+      }));
+    });
+
     room.state.players?.onAdd?.((player: any, sessionId: string) => {
       player.onChange(() => {
         this.syncPlayersState(room);
@@ -143,6 +165,22 @@ export const colyseusService = {
     });
   },
 
+  useCard(cardId: string, payload?: any) {
+    if (currentRoom) {
+      currentRoom.send("use_card", { cardId, ...payload });
+    }
+  },
+
+  discardCard(cardIndexOrId: number | string) {
+    if (currentRoom) {
+      if (typeof cardIndexOrId === "number") {
+        currentRoom.send("discard_card", { cardIndex: cardIndexOrId });
+      } else {
+        currentRoom.send("discard_card", { cardId: cardIndexOrId });
+      }
+    }
+  },
+
   syncPlayersState(room: any) {
     const playersArray: any[] = [];
     room.state?.players?.forEach((player: any, key: string) => {
@@ -156,6 +194,12 @@ export const colyseusService = {
         drinks: player.drinks || 0,
         gameScore: player.gameScore || 0,
         gameData: player.gameData || "",
+        cards: player.cards
+          ? player.cards.toArray
+            ? player.cards.toArray()
+            : Array.from(player.cards)
+          : [],
+        activeEffects: player.activeEffects || "",
       });
     });
     store.dispatch(setPlayers(playersArray));

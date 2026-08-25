@@ -29,23 +29,6 @@ The 5 Specialty Cards follow a playing card suit aesthetic:
 3. Generate `totalSpecCards` of SC based on the `rarity` property. The higher the number the more frequent it is generates it.
 4. Sort all the SC by `rarity` (eg.: 1 = rarest, 3 = least rarest)
 5. Rarest SC goes to the last player. The rest of the SC get randomized to the rest of the players.
-<!-- 5. Rank players into an object of 3 categories array (eg.:):
-    ```js
-    const rankedPlayerCat = {
-      top: [
-        player1,
-        player2,
-      ],
-      mid: [
-        player3,
-        player4,
-      ],
-      bot: [
-        player5,
-        player6
-      ],
-    };
-    ``` -->
 
 ---
 
@@ -75,14 +58,22 @@ Cards are divided into **2 distinct activation windows** during the game flow:
 
 #### Activation Window Details:
 
-1. 🎰 **Wheel Phase**:
-   - **RESPIN 🔄**: Activated while the wheel is spinning or right after a category is selected. Overrides the current category and forces a re-spin.
-   - **WILD CARD 🃏**: Activated before or during the wheel spin. Opens a selection modal allowing the card holder to pick the category and select participating players.
-   - **TURBO ⚡**: Activated during the 5-second countdown. Multiplies all progress/score earned in that minigame by **1.5x**.
-   - **DOUBLE POINTS 🌟**: Activated during countdown. If the player wins the round, their earned score points are doubled (**2x**).
+1. 🎰 **Wheel Phase** (Can active from the moment the wheel starts spinning until all players ready up. Once the count down starts, players can not access the SCs):
+   - **RESPIN 🔄**: Overrides the current category and forces a re-spin. When a player uses this SC, all players (except player who activated it) should see this SC with the same pop animation used on CardAwardPopup but just the card, no buttons and it should say which player who used it. With a timeout of 3 seconds to dismiss it and afterwards re-run the spin the wheel for a new game.
+   - **WILD CARD 🃏**: Opens a selection modal allowing the card holder to pick the type, category, and participating players. When a player uses this SC, all players (except player who activated it) should see this SC with the same pop animation used on CardAwardPopup but just the card, no buttons and it should say which player used it. With a setTimeout of 3 seconds to dismiss it. Player who activated this should be presented with a pop up with 3 accordions:
+     - Game Type (select component)
+     - Game Category (select component)
+     - Player (select players) like the "dev override" selection in chart.tsx
+   - **DOUBLE POINTS 🌟**: If the player wins the upcoming round, their earned score points are doubled (**2x**). When a player decided to activate this, on the count down screen, we should add a section for Double Points or Turbo and list all players who have activated it.
+   - **TURBO ⚡**: Multiplies all progress/score earned in that mini game by **1.5x**. When a player decides to activate this, on the count down screen, we should add a section for Double Points or Turbo and list all players who have activated it. This SC card does exclude some games (Hot Potato, RPS, Simon Says)
+     - Math Problem/Trivia: Gives you 1 extra point at the end
+     - Cyclone: Slows down the speed of moving light 0.5 of current speed
+     - Perfection: For every 4 pieces you match the game will match the next piece for you.
+     - Screen Paint: The Stroke width will be 1.5x than the rest of the players
+     - For the rest of the games: Multiplies all progress/score by 1.5x
 
-2. 🍻 **Resolution Phase**:
-   - **SHIELD 🛡️**: Activated when the Beer Modal pops up after losing a minigame. Negates the drink penalty and opens a target picker to redirect the drink to any player in the lobby!
+2. 🍻 **Resolution Phase** (Can active from beer pop modal. Inside of the modal player should see a suggested button to use SC Shield, if available ):
+   - **SHIELD 🛡️**: Negates the drink penalty and opens a target picker to redirect the drink to any player in the lobby! When a player uses this SC and confirms the player who should drink, all players (except player who activated it) should see this SC with the same pop animation used on CardAwardPopup but just the card, no buttons and it should say which player used it and the targeted player to drink.
 
 ---
 

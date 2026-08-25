@@ -1,5 +1,4 @@
 import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -11,17 +10,20 @@ import {
   View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
+import { CardAnnouncementPopup } from "../components/CardAnnouncementPopup";
+import { CardAwardPopup } from "../components/CardAwardPopup";
+import { CardDock } from "../components/CardDock";
 import { PracticeModal } from "../components/PracticeModal";
 import { RetroButton } from "../components/RetroButton";
 import { RetroPlayerCard } from "../components/RetroPlayerCard";
-import { colyseusService } from "../store/colyseusService";
 import { SettingsDropdown } from "../components/SettingsDropdown";
-import { RootState } from "../store/store";
 import {
   FINAL_SPECIALTY_CARDS,
   SpecialtyCard,
   SpecialtyCardModal,
 } from "../components/SpecialtyCardModal";
+import { colyseusService } from "../store/colyseusService";
+import { RootState } from "../store/store";
 import { isExpoGo } from "../utils/environment";
 import {
   playButtonClickSound,
@@ -805,7 +807,7 @@ export default function ChartScreen() {
       )}
 
       {/* Temp Floating Action Button to Draw Random Specialty Card */}
-      <View style={{ position: "absolute", bottom: 28, right: 20, zIndex: 9999 }}>
+      {/* <View style={{ position: "absolute", bottom: 28, right: 20, zIndex: 9999 }}>
         <TouchableOpacity
           onPress={drawRandomSpecialtyCard}
           style={{
@@ -830,7 +832,7 @@ export default function ChartScreen() {
             SPECIALTY CARD
           </Text>
         </TouchableOpacity>
-      </View>
+      </View> */}
 
       <SpecialtyCardModal
         visible={showSpecialtyModal}
@@ -838,6 +840,10 @@ export default function ChartScreen() {
         onClose={() => setShowSpecialtyModal(false)}
         onDrawNew={drawRandomSpecialtyCard}
       />
+
+      <CardDock />
+      <CardAwardPopup />
+      <CardAnnouncementPopup />
     </View>
   );
 }
