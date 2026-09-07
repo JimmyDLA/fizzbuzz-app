@@ -47,6 +47,14 @@ const CATS = [
   "Perfection",
 ];
 
+const DEV_SPECIALTY_CARDS = [
+  { id: "TURBO", name: "TURBO", color: "bg-cyan-400" },
+  { id: "SHIELD", name: "SHIELD", color: "bg-pink-400" },
+  { id: "DOUBLE POINTS", name: "DOUBLE POINTS", color: "bg-amber-400" },
+  { id: "RESPIN", name: "RESPIN", color: "bg-emerald-400" },
+  { id: "WILD CARD", name: "WILD CARD", color: "bg-purple-500" },
+];
+
 export default function ChartScreen() {
   const dispatch = useDispatch();
   const {
@@ -60,6 +68,7 @@ export default function ChartScreen() {
     selectedPlayers,
     theme,
     lastWinners,
+    spinCount,
   } = useSelector((state: RootState) => state.lobby);
 
   const players: any[] = reduxPlayers.length > 0 ? reduxPlayers : [];
@@ -88,6 +97,7 @@ export default function ChartScreen() {
     setShowSpecialtyModal(true);
   };
   const hasSpunRef = useRef(false);
+  const lastSpinCountRef = useRef(0);
   const isLeavingRef = useRef(false);
   const [animationKey, setAnimationKey] = useState(0);
   const celebratedWinnersRef = useRef<string>("");
@@ -116,28 +126,47 @@ export default function ChartScreen() {
   const [devType, setDevType] = useState(TYPES[0]);
   const [devCategory, setDevCategory] = useState(CATS[0]);
   const [devPlayers, setDevPlayers] = useState<string[]>([]);
+  const [devAwardTargetPlayer, setDevAwardTargetPlayer] = useState<string>("");
+  const [devAwardFeedback, setDevAwardFeedback] = useState<string>("");
+
+  const currentGameTypeRef = useRef(currentGameType);
+  const currentCategoryRef = useRef(currentCategory);
+  const selectedPlayersListRef = useRef(selectedPlayersList);
+  const playersRef = useRef(players);
+
+  useEffect(() => {
+    currentGameTypeRef.current = currentGameType;
+    currentCategoryRef.current = currentCategory;
+    selectedPlayersListRef.current = selectedPlayersList;
+    playersRef.current = players;
+  }, [currentGameType, currentCategory, selectedPlayersList, players]);
 
   useEffect(() => {
     let interval: any;
     let timeout: any;
-    let autoDismiss: any;
 
-    if (gamePhase === "wheel" && !hasSpunRef.current) {
+    const isNewSpin =
+      (gamePhase === "wheel" && !hasSpunRef.current) ||
+      (gamePhase === "wheel" && spinCount > lastSpinCountRef.current);
+
+    if (isNewSpin) {
       hasSpunRef.current = true;
+      lastSpinCountRef.current = spinCount;
       setIsSpinning(true);
       setShowWheelModal(true);
       playSpinSound();
 
       let requiredCount = 2;
-      if (currentGameType === "1v1") requiredCount = 2;
-      if (currentGameType === "2v2") requiredCount = 4;
-      if (currentGameType === "BR") requiredCount = players.length;
+      const type = currentGameTypeRef.current;
+      if (type === "1v1") requiredCount = 2;
+      if (type === "2v2") requiredCount = 4;
+      if (type === "BR") requiredCount = playersRef.current.length;
 
       interval = setInterval(() => {
         setDisplayedType(TYPES[Math.floor(Math.random() * TYPES.length)]);
         setDisplayedCategory(CATS[Math.floor(Math.random() * CATS.length)]);
 
-        const randomP = [...players]
+        const randomP = [...playersRef.current]
           .sort(() => 0.5 - Math.random())
           .slice(0, requiredCount)
           .map((p) => p.id);
@@ -146,46 +175,39 @@ export default function ChartScreen() {
 
       timeout = setTimeout(() => {
         clearInterval(interval);
-        setDisplayedType(currentGameType || "?");
-        setDisplayedCategory(currentCategory || "?");
-        setDisplayedPlayers(selectedPlayersList);
+        setDisplayedType(currentGameTypeRef.current || "?");
+        setDisplayedCategory(currentCategoryRef.current || "?");
+        setDisplayedPlayers(selectedPlayersListRef.current);
         setIsSpinning(false);
         stopSpinSound();
       }, 2000);
     } else if (gamePhase !== "wheel") {
       setShowWheelModal(false);
       hasSpunRef.current = false;
+      setIsSpinning(false);
       stopSpinSound();
     }
 
     return () => {
       clearInterval(interval);
       clearTimeout(timeout);
-      clearTimeout(autoDismiss);
-      stopSpinSound();
+      if (gamePhase !== "wheel") {
+        stopSpinSound();
+      }
     };
-  }, [
-    gamePhase,
-    currentGameType,
-    currentCategory,
-    selectedPlayers,
-    players.length,
-  ]);
+  }, [gamePhase, spinCount]);
 
   useEffect(() => {
-    if (isLeavingRef.current) return;
     if (gamePhase === "lobby") {
       router.replace("/lobby");
     } else if (
-      amISelected &&
-      !isReady &&
-      (gamePhase === "countdown" ||
-        gamePhase === "playing" ||
-        gamePhase === "resolution")
+      gamePhase === "countdown" ||
+      gamePhase === "playing" ||
+      gamePhase === "resolution"
     ) {
       router.replace("/game");
     }
-  }, [gamePhase, isReady, amISelected]);
+  }, [gamePhase]);
 
   const handleReadyToggle = () => {
     colyseusService.sendReady(!isReady);
@@ -214,7 +236,21 @@ export default function ChartScreen() {
     setDevType(TYPES[0]);
     setDevCategory(CATS[0]);
     setDevPlayers([]);
+    setDevAwardTargetPlayer(myPlayer?.id || players[0]?.id || "");
+    setDevAwardFeedback("");
     setShowDevModal(true);
+  };
+
+  const handleDevAwardCard = (cardId: string) => {
+    if (!devAwardTargetPlayer) return;
+    playButtonClickSound();
+    colyseusService.sendDevAwardCard(devAwardTargetPlayer, cardId);
+    const targetPlayerName =
+      players.find((p: any) => p.id === devAwardTargetPlayer)?.name || "Player";
+    setDevAwardFeedback(`Awarded ${cardId} to ${targetPlayerName}!`);
+    setTimeout(() => {
+      setDevAwardFeedback("");
+    }, 2500);
   };
 
   const toggleDevPlayer = (id: string) => {
@@ -647,6 +683,7 @@ export default function ChartScreen() {
                     <RetroButton
                       title="Try It"
                       variant="success"
+                      size="md"
                       onPress={() => setShowPracticeModal(true)}
                       style={{ flex: 1 }}
                     />
@@ -780,6 +817,81 @@ export default function ChartScreen() {
                     </Pressable>
                   );
                 })}
+              </View>
+
+              {/* Specialty Card Award Section */}
+              <View className="border-t-2 border-white/10 pt-6 mb-8">
+                <Text className="text-yellow-400 font-black text-xl tracking-widest mb-3 ml-2 uppercase">
+                  AWARD SPECIALTY CARD
+                </Text>
+
+                <Text className="text-white font-black opacity-80 text-xs tracking-wider mb-2 ml-2 uppercase">
+                  1. SELECT RECIPIENT:
+                </Text>
+                <View className="flex-row flex-wrap gap-2 mb-4">
+                  {players.map((p: any) => {
+                    const isTarget = devAwardTargetPlayer === p.id;
+                    return (
+                      <Pressable
+                        key={p.id}
+                        onPress={() => {
+                          playButtonClickSound();
+                          setDevAwardTargetPlayer(p.id);
+                        }}
+                        style={{
+                          borderWidth: 3,
+                          borderColor: "#000000",
+                          borderRadius: 16,
+                          paddingHorizontal: 14,
+                          paddingVertical: 6,
+                        }}
+                        className={isTarget ? "bg-amber-400" : "bg-zinc-700"}
+                      >
+                        <Text
+                          className={`font-black text-xs uppercase ${isTarget ? "text-black" : "text-white"}`}
+                        >
+                          {p.name} {p.id === myPlayer?.id ? "(YOU)" : ""}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                <Text className="text-white font-black opacity-80 text-xs tracking-wider mb-2 ml-2 uppercase">
+                  2. CHOOSE CARD TO AWARD:
+                </Text>
+                <View className="flex-row flex-wrap gap-2 mb-3">
+                  {DEV_SPECIALTY_CARDS.map((card) => (
+                    <Pressable
+                      key={card.id}
+                      onPress={() => handleDevAwardCard(card.id)}
+                      style={{
+                        borderWidth: 3,
+                        borderColor: "#000000",
+                        borderRadius: 14,
+                        paddingVertical: 10,
+                        paddingHorizontal: 12,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minWidth: "48%",
+                        flexGrow: 1,
+                      }}
+                      className={card.color}
+                    >
+                      <Text className="font-black text-black text-xs uppercase tracking-wider text-center">
+                        + {card.name}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+                {devAwardFeedback ? (
+                  <View className="bg-emerald-500/20 border-2 border-emerald-400 rounded-xl p-2.5 items-center mt-2">
+                    <Text className="text-emerald-300 font-black text-xs uppercase tracking-wider text-center">
+                      {devAwardFeedback}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
 
               <View className="pt-4 gap-4 pb-12 pl-1">

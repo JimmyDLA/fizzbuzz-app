@@ -15,6 +15,7 @@ interface RetroButtonProps {
   title: string;
   onPress: () => void;
   variant?: "primary" | "secondary" | "neutral" | "success" | "danger";
+  size?: "sm" | "md" | "lg";
   colorClass?: string;
   shadowColorClass?: string;
   disabled?: boolean;
@@ -25,6 +26,7 @@ export function RetroButton({
   title,
   onPress,
   variant = "primary",
+  size = "lg",
   colorClass,
   shadowColorClass = "bg-black",
   disabled = false,
@@ -75,6 +77,39 @@ export function RetroButton({
   const textShadowStyle =
     variant === "neutral" || isDark ? {} : styles.textShadow;
 
+  const sizeConfig = {
+    sm: {
+      height: 40,
+      borderRadius: 12,
+      borderWidth: 2.5,
+      offset: 3,
+      fontSize: 13,
+      textClass: "text-xs font-black tracking-wider",
+      marginBottom: 0,
+      paddingHorizontal: 8,
+    },
+    md: {
+      height: 52,
+      borderRadius: 16,
+      borderWidth: 3,
+      offset: 3.5,
+      fontSize: 17,
+      textClass: "text-base font-black tracking-widest",
+      marginBottom: 8,
+      paddingHorizontal: 12,
+    },
+    lg: {
+      height: 72,
+      borderRadius: 20,
+      borderWidth: 4,
+      offset: 4,
+      fontSize: 22,
+      textClass: "text-2xl font-black tracking-widest",
+      marginBottom: 16,
+      paddingHorizontal: 16,
+    },
+  }[size];
+
   return (
     <TouchableOpacity
       activeOpacity={1}
@@ -82,12 +117,12 @@ export function RetroButton({
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       onPress={disabled ? undefined : onPress}
-      style={[styles.container, style]}
+      style={[{ width: "100%", marginBottom: sizeConfig.marginBottom }, style]}
     >
-      <View style={styles.buttonWrapper}>
+      <View style={{ height: sizeConfig.height, position: "relative", width: "100%" }}>
         {/* Shadow block offset */}
         <View
-          style={[StyleSheet.absoluteFillObject, { borderRadius: 20 }]}
+          style={[StyleSheet.absoluteFillObject, { borderRadius: sizeConfig.borderRadius }]}
           className={activeShadowColorClass}
         />
         {/* Foreground button content */}
@@ -95,23 +130,24 @@ export function RetroButton({
           style={[
             StyleSheet.absoluteFillObject,
             {
-              borderRadius: 20,
-              borderWidth: 4,
+              borderRadius: sizeConfig.borderRadius,
+              borderWidth: sizeConfig.borderWidth,
               borderColor: isDark ? "#ffffff" : "#000000",
               alignItems: "center",
               justifyContent: "center",
-              paddingHorizontal: 16,
+              paddingHorizontal: sizeConfig.paddingHorizontal,
               transform: [
-                { translateY: !isPressed ? -4 : 0 },
-                { translateX: !isPressed ? -4 : 0 },
+                { translateY: !isPressed ? -sizeConfig.offset : 0 },
+                { translateX: !isPressed ? -sizeConfig.offset : 0 },
               ],
             },
           ]}
           className={selectedColorClass}
         >
           <Text
-            className={`${textColorClass} text-2xl font-black tracking-widest text-center`}
-            style={textShadowStyle}
+            className={`${textColorClass} ${sizeConfig.textClass} text-center`}
+            style={[{ fontSize: sizeConfig.fontSize, fontWeight: "900" }, textShadowStyle]}
+            numberOfLines={1}
           >
             {title}
           </Text>
@@ -122,14 +158,6 @@ export function RetroButton({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginBottom: 16,
-  },
-  buttonWrapper: {
-    height: 72,
-    position: "relative",
-    width: "100%",
-  },
   textShadow: {
     textShadowColor: "rgba(0,0,0,0.4)",
     textShadowOffset: { width: 2, height: 2 },

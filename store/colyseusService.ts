@@ -2,7 +2,7 @@ import type { Room } from '@colyseus/sdk';
 import * as Colyseus from '@colyseus/sdk';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer, setLastGameResult, setPracticeState, setPendingCardAward, setCardAnnouncement } from './lobbySlice';
+import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer, setLastGameResult, setPracticeState, setPendingCardAward, setCardAnnouncement, incrementSpinCount } from './lobbySlice';
 import { store } from './store';
 
 
@@ -91,20 +91,25 @@ export const colyseusService = {
     }
   },
 
+  sendDevAwardCard(targetPlayerId: string, cardId: string) {
+    if (currentRoom) {
+      currentRoom.send("dev_award_card", { targetPlayerId, cardId });
+    }
+  },
+
   setupRoomListeners(room: any) {
     store.dispatch(setRoomId(room.id || room.roomId));
 
     room.onMessage("CardUsedEvent", (event: any) => {
       console.log(`[SpecialtyCard] CardUsedEvent:`, event);
-      // If used by someone else, show 3-second card announcement
-      if (event.userId && event.userId !== room.sessionId) {
-        store.dispatch(setCardAnnouncement({
-          cardId: event.cardId,
-          playerName: event.playerName,
-          message: event.message || event.description,
-          targetName: event.targetName,
-        }));
-      }
+      store.dispatch(setCardAnnouncement({
+        cardId: event.cardId,
+        playerName: event.playerName,
+        message: event.message || event.description,
+        targetName: event.targetName,
+        drinkCount: event.drinkCount,
+        timestamp: Date.now(),
+      }));
     });
 
     room.onMessage("CardAwardedEvent", (event: any) => {
@@ -114,6 +119,14 @@ export const colyseusService = {
         reason: event.reason,
         message: event.message,
       }));
+    });
+
+    room.onMessage("SpinWheelEvent", (event: any) => {
+      console.log(`[SpecialtyCard] SpinWheelEvent:`, event);
+      if (event.type) store.dispatch(setGameType(event.type));
+      if (event.category) store.dispatch(setGameCategory(event.category));
+      if (event.selectedPlayers) store.dispatch(setSelectedPlayers(event.selectedPlayers));
+      store.dispatch(incrementSpinCount());
     });
 
     room.state.players?.onAdd?.((player: any, sessionId: string) => {

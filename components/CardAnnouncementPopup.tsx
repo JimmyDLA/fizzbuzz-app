@@ -6,6 +6,7 @@ import {
   Modal,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
@@ -35,6 +36,16 @@ export function CardAnnouncementPopup() {
     if (cardAnnouncement) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
 
+      // Stop any running animations
+      backdropOpacity.stopAnimation();
+      cardScale.stopAnimation();
+      cardRotate.stopAnimation();
+      cardOpacity.stopAnimation();
+      badgeSlide.stopAnimation();
+      badgeOpacity.stopAnimation();
+      glowPulse.stopAnimation();
+      shimmerX.stopAnimation();
+
       // Reset animation values
       backdropOpacity.setValue(0);
       cardScale.setValue(0.3);
@@ -42,6 +53,7 @@ export function CardAnnouncementPopup() {
       cardOpacity.setValue(0);
       badgeSlide.setValue(-60);
       badgeOpacity.setValue(0);
+      glowPulse.setValue(1);
       shimmerX.setValue(-200);
 
       // Phase 1: Backdrop fade in
@@ -125,7 +137,7 @@ export function CardAnnouncementPopup() {
         ),
       ]).start();
 
-      // Auto dismiss after 3000ms
+      // Auto dismiss after 3500ms
       const timer = setTimeout(() => {
         Animated.parallel([
           Animated.timing(backdropOpacity, {
@@ -152,9 +164,19 @@ export function CardAnnouncementPopup() {
           dispatch(clearCardAnnouncement());
           glowPulse.stopAnimation();
         });
-      }, 3000);
+      }, 3500);
 
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        backdropOpacity.stopAnimation();
+        cardScale.stopAnimation();
+        cardRotate.stopAnimation();
+        cardOpacity.stopAnimation();
+        badgeSlide.stopAnimation();
+        badgeOpacity.stopAnimation();
+        glowPulse.stopAnimation();
+        shimmerX.stopAnimation();
+      };
     }
   }, [cardAnnouncement, dispatch]);
 
@@ -167,15 +189,37 @@ export function CardAnnouncementPopup() {
   });
 
   const isShield = config.id === "shield";
-  const badgeTitle = isShield && cardAnnouncement.targetName
-    ? `${cardAnnouncement.playerName} PASSED DRINK TO ${cardAnnouncement.targetName}`
-    : `${cardAnnouncement.playerName} PLAYED ${config.name}`;
+  const drinkCount = cardAnnouncement.drinkCount || 1;
+  const drinkText = drinkCount > 1 ? `${drinkCount}X DRINKS` : "DRINK";
+  const badgeTitle =
+    isShield && cardAnnouncement.targetName
+      ? `${cardAnnouncement.playerName} PASSED ${drinkText} TO ${cardAnnouncement.targetName}`
+      : `${cardAnnouncement.playerName} PLAYED:`;
+
+  const handleDismiss = () => {
+    dispatch(clearCardAnnouncement());
+    glowPulse.stopAnimation();
+  };
 
   return (
-    <Modal visible transparent animationType="none" statusBarTranslucent>
-      <Animated.View style={[styles.backdrop, { opacity: backdropOpacity }]} />
+    <Modal
+      visible
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={handleDismiss}
+    >
+      <TouchableOpacity
+        activeOpacity={1}
+        style={StyleSheet.absoluteFillObject}
+        onPress={handleDismiss}
+      >
+        <Animated.View
+          style={[styles.backdrop, { opacity: backdropOpacity }]}
+        />
+      </TouchableOpacity>
 
-      <View style={styles.container} pointerEvents="none">
+      <View style={styles.container} pointerEvents="box-none">
         {/* Top Header Badge */}
         <Animated.View
           style={[
@@ -225,11 +269,6 @@ export function CardAnnouncementPopup() {
               { transform: [{ translateX: shimmerX }, { rotate: "30deg" }] },
             ]}
           />
-        </Animated.View>
-
-        {/* Action description text */}
-        <Animated.View style={[styles.messageWrapper, { opacity: badgeOpacity }]}>
-          <Text style={styles.messageText}>{cardAnnouncement.message}</Text>
         </Animated.View>
       </View>
     </Modal>

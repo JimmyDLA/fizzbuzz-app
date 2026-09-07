@@ -123,8 +123,15 @@ export default function GameScreen() {
 
   const losers = reduxPlayers.filter((p: any) => lastLosers?.includes(p.id));
 
+  const getPlayerDrinkCount = (playerId: string) => {
+    return (lastLosers || []).filter((id: string) => id === playerId).length;
+  };
+
+  const myDrinkCount = myPlayer ? getPlayerDrinkCount(myPlayer.id) : 0;
+
   const bounceAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const prevDrinkCountRef = useRef(0);
 
   useEffect(() => {
     let soundTimer: any;
@@ -173,13 +180,23 @@ export default function GameScreen() {
 
   useEffect(() => {
     let showTimer: any;
-    if (gamePhase === "resolution" && !hasDismissedModal && losers.length > 0) {
-      showTimer = setTimeout(() => {
-        setShowBeerModal(true);
-      }, 200);
+    if (gamePhase === "resolution" && losers.length > 0) {
+      if (myDrinkCount > prevDrinkCountRef.current) {
+        // Player received a new drink penalty (initial or passed via Shield)
+        setHasDismissedModal(false);
+        showTimer = setTimeout(() => {
+          setShowBeerModal(true);
+        }, 200);
+      } else if (!hasDismissedModal) {
+        showTimer = setTimeout(() => {
+          setShowBeerModal(true);
+        }, 200);
+      }
+      prevDrinkCountRef.current = myDrinkCount;
     } else if (gamePhase !== "resolution") {
       setShowBeerModal(false);
       setHasDismissedModal(false);
+      prevDrinkCountRef.current = 0;
     }
     if (gamePhase === "countdown" && timer === 3) {
       playCountDownSound();
@@ -187,7 +204,7 @@ export default function GameScreen() {
     return () => {
       if (showTimer) clearTimeout(showTimer);
     };
-  }, [gamePhase, hasDismissedModal, timer, losers.length]);
+  }, [gamePhase, hasDismissedModal, timer, losers.length, myDrinkCount]);
 
   const wasFinishedRef = useRef(false);
 
@@ -210,10 +227,8 @@ export default function GameScreen() {
   useEffect(() => {
     if (gamePhase === "chart") {
       router.replace("/chart");
-    } else if (isReady && gamePhase === "resolution") {
-      router.replace("/chart");
     }
-  }, [gamePhase, isReady, router]);
+  }, [gamePhase, router]);
 
   const [showBeerShieldPicker, setShowBeerShieldPicker] = useState(false);
 
@@ -229,7 +244,7 @@ export default function GameScreen() {
 
   const amILoser = losers.some((p: any) => p.id === myPlayer?.id);
   const hasShieldCard = myPlayer?.cards?.some(
-    (c: string) => c.toLowerCase().replace(/\s+/g, "_") === "shield"
+    (c: string) => c.toLowerCase().replace(/\s+/g, "_") === "shield",
   );
 
   const renderCountdown = () => {
@@ -546,177 +561,212 @@ export default function GameScreen() {
             </View>
           </View>
         )}
-        {/* Beer Can Animation Modal on Results Screen */}
-        {gamePhase === "resolution" && showBeerModal && losers.length > 0 && (
-          <Modal visible={true} transparent animationType="fade">
-            <View className="flex-1 bg-black/75 items-center justify-center px-6">
-              <View className="w-[88%] max-w-[340px] relative">
-                {/* Dynamic Offset Shadow */}
-                <View
+        {/* Beer Can Animation Overlay on Results Screen */}
+        {gamePhase === "resolution" && showBeerModal && losers.length > 0 && !hasDismissedModal && (
+          <View
+            style={[StyleSheet.absoluteFillObject, { zIndex: 50 }]}
+            className="bg-black/75 items-center justify-center px-6"
+          >
+            <View className="w-[88%] max-w-[340px] relative">
+              {/* Dynamic Offset Shadow */}
+              <View
+                style={{
+                  position: "absolute",
+                  top: 6,
+                  left: 6,
+                  right: -6,
+                  bottom: -6,
+                  borderRadius: 28,
+                }}
+                className={isDark ? "bg-white" : "bg-black"}
+              />
+              {/* Card Face - Content determines height dynamically */}
+              <View
+                style={{
+                  borderRadius: 28,
+                  borderWidth: 4,
+                  borderColor: isDark ? "#ffffff" : "#000000",
+                  alignItems: "center",
+                  paddingVertical: 20,
+                  paddingHorizontal: 16,
+                  position: "relative",
+                  width: "100%",
+                }}
+                className={isDark ? "bg-zinc-900" : "bg-orange-50"}
+              >
+                {/* Close 'X' Button on top-left inside the white box */}
+                <TouchableOpacity
+                  onPress={handleCloseBeerModal}
+                  hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
                   style={{
                     position: "absolute",
-                    top: 6,
-                    left: 6,
-                    right: -6,
-                    bottom: -6,
-                    borderRadius: 28,
-                  }}
-                  className={isDark ? "bg-white" : "bg-black"}
-                />
-                {/* Card Face - Content determines height dynamically */}
-                <View
-                  style={{
-                    borderRadius: 28,
-                    borderWidth: 4,
+                    top: 12,
+                    left: 12,
+                    zIndex: 999,
+                    elevation: 10,
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    borderWidth: 2.5,
                     borderColor: isDark ? "#ffffff" : "#000000",
                     alignItems: "center",
-                    paddingVertical: 20,
-                    paddingHorizontal: 16,
-                    position: "relative",
+                    justifyContent: "center",
                   }}
-                  className={isDark ? "bg-zinc-900" : "bg-orange-50"}
+                  className="bg-rose-400"
+                  activeOpacity={0.7}
                 >
-                  {/* Close 'X' Button on top-left inside the white box */}
-                  <TouchableOpacity
-                    onPress={handleCloseBeerModal}
-                    hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
-                    style={{
-                      position: "absolute",
-                      top: 12,
-                      left: 12,
-                      zIndex: 999,
-                      elevation: 10,
-                      width: 36,
-                      height: 36,
-                      borderRadius: 18,
-                      borderWidth: 2.5,
-                      borderColor: isDark ? "#ffffff" : "#000000",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                    className="bg-rose-400"
-                    activeOpacity={0.7}
-                  >
-                    <Text className="text-black font-black text-base">X</Text>
-                  </TouchableOpacity>
+                  <Text className="text-black font-black text-base">X</Text>
+                </TouchableOpacity>
 
-                  {/* Animated "DRINK UP!" Header */}
-                  <Animated.View
-                    pointerEvents="none"
-                    style={{
-                      transform: [{ translateY: bounceAnim }],
-                      marginTop: 8,
-                      marginBottom: 8,
-                    }}
-                  >
+                {showBeerShieldPicker ? (
+                  <View className="w-full items-center pt-2">
+                    <Ionicons
+                      name="shield-checkmark"
+                      size={44}
+                      color="#EC4899"
+                    />
                     <Text
-                      className={`font-black text-3xl uppercase tracking-widest text-center ${isDark ? "text-rose-400" : "text-black"}`}
+                      className={`font-black text-2xl uppercase tracking-widest text-center mt-2 mb-1 ${isDark ? "text-pink-400" : "text-black"}`}
                     >
-                      DRINK UP!
+                      SHIELD TARGET
                     </Text>
-                  </Animated.View>
+                    <Text className="text-zinc-500 font-bold text-xs uppercase text-center mb-4">
+                      Select a player to receive your drink penalty:
+                    </Text>
 
-                  {/* Losers List */}
-                  <View
-                    pointerEvents="none"
-                    style={{
-                      alignItems: "center",
-                      width: "100%",
-                    }}
-                  >
-                    <View className="flex-row flex-wrap justify-center gap-2 max-w-full">
-                      {losers.map((p: any) => (
-                        <View
-                          key={p.id}
-                          className="bg-red-500 border-2 border-black px-3.5 py-1 rounded-full shadow-[2px_2px_0px_0px_#000]"
-                        >
-                          <Text className="text-white font-black text-xs uppercase tracking-wider">
-                            {p.name}
-                          </Text>
-                        </View>
-                      ))}
-                      {losers.length === 0 && (
-                        <View className="bg-zinc-300 border-2 border-black px-3.5 py-1 rounded-full">
-                          <Text className="text-black font-black text-xs uppercase tracking-wider">
-                            NOBODY
+                    <View className="w-full gap-2 mb-4">
+                      {players
+                        .filter((p: any) => p.id !== myPlayer?.id)
+                        .map((p: any) => (
+                          <TouchableOpacity
+                            key={p.id}
+                            onPress={() => {
+                              playButtonClickSound();
+                              colyseusService.useCard("SHIELD", {
+                                targetPlayerId: p.id,
+                              });
+                              setShowBeerShieldPicker(false);
+                              setShowBeerModal(false);
+                              setHasDismissedModal(true);
+                            }}
+                            className="w-full bg-pink-500 border-2 border-black py-2.5 rounded-2xl items-center shadow-[2px_2px_0px_0px_#000]"
+                            activeOpacity={0.8}
+                          >
+                            <Text className="text-white font-black text-sm uppercase">
+                              PASS {myDrinkCount > 1 ? `${myDrinkCount}X DRINKS` : "DRINK"} TO {p.name}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    <RetroButton
+                      title="CANCEL"
+                      variant="secondary"
+                      size="md"
+                      onPress={() => {
+                        playButtonClickSound();
+                        setShowBeerShieldPicker(false);
+                      }}
+                      style={{ width: "100%" }}
+                    />
+                  </View>
+                ) : (
+                  <>
+                    {/* Animated "DRINK UP!" Header */}
+                    <Animated.View
+                      pointerEvents="none"
+                      style={{
+                        transform: [{ translateY: bounceAnim }],
+                        marginTop: 8,
+                        marginBottom: 4,
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text
+                        className={`font-black text-3xl uppercase tracking-widest text-center ${isDark ? "text-rose-400" : "text-black"}`}
+                      >
+                        DRINK UP!
+                      </Text>
+                      {myDrinkCount > 1 && (
+                        <View className="bg-amber-400 border-2 border-black px-3 py-0.5 rounded-full mt-1.5 shadow-[2px_2px_0px_0px_#000]">
+                          <Text className="text-black font-black text-xs uppercase tracking-wider text-center">
+                            {myDrinkCount}X DRINKS PENALTY
                           </Text>
                         </View>
                       )}
+                    </Animated.View>
+
+                    {/* Losers List */}
+                    <View
+                      pointerEvents="none"
+                      style={{
+                        alignItems: "center",
+                        width: "100%",
+                        marginTop: 4,
+                      }}
+                    >
+                      <View className="flex-row flex-wrap justify-center gap-2 max-w-full">
+                        {losers.map((p: any) => {
+                          const pDrinks = getPlayerDrinkCount(p.id);
+                          return (
+                            <View
+                              key={p.id}
+                              className="bg-red-500 border-2 border-black px-3.5 py-1 rounded-full shadow-[2px_2px_0px_0px_#000] flex-row items-center gap-1.5"
+                            >
+                              <Text className="text-white font-black text-xs uppercase tracking-wider">
+                                {p.name}
+                              </Text>
+                              {pDrinks > 1 && (
+                                <View className="bg-yellow-400 px-1.5 py-0.5 rounded-md border border-black">
+                                  <Text className="text-black font-black text-[10px]">
+                                    {pDrinks}X
+                                  </Text>
+                                </View>
+                              )}
+                            </View>
+                          );
+                        })}
+                        {losers.length === 0 && (
+                          <View className="bg-zinc-300 border-2 border-black px-3.5 py-1 rounded-full">
+                            <Text className="text-black font-black text-xs uppercase tracking-wider">
+                              NOBODY
+                            </Text>
+                          </View>
+                        )}
+                      </View>
                     </View>
-                  </View>
 
-                  {/* Lottie Beer Can Animation */}
-                  <View pointerEvents="none">
-                    <LottieView
-                      source={require("../assets/images/beer_can.json")}
-                      autoPlay
-                      loop
-                      style={{ width: 150, height: 150, marginBottom: 0 }}
-                    />
-                  </View>
+                    {/* Lottie Beer Can Animation */}
+                    <View pointerEvents="none">
+                      <LottieView
+                        source={require("../assets/images/beer_can.json")}
+                        autoPlay
+                        loop
+                        style={{ width: 150, height: 150, marginBottom: 0 }}
+                      />
+                    </View>
 
-                  {/* Shield Card Trigger inside Beer Modal */}
-                  {amILoser && hasShieldCard && (
-                    <TouchableOpacity
-                      onPress={() => {
-                        playButtonClickSound();
-                        setShowBeerShieldPicker(true);
-                      }}
-                      className="mt-2 bg-pink-500 border-3 border-black px-6 py-2.5 rounded-full shadow-[3px_3px_0px_0px_#000] items-center"
-                      activeOpacity={0.8}
-                    >
-                      <Text className="text-white font-black text-xs uppercase tracking-wider">
-                        USE SHIELD CARD
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
+                    {/* Shield Card Trigger inside Beer Modal */}
+                    {amILoser && hasShieldCard && (
+                      <TouchableOpacity
+                        onPress={() => {
+                          playButtonClickSound();
+                          setShowBeerShieldPicker(true);
+                        }}
+                        className="mt-2 bg-pink-500 border-3 border-black px-6 py-2.5 rounded-full shadow-[3px_3px_0px_0px_#000] items-center"
+                        activeOpacity={0.8}
+                      >
+                        <Text className="text-white font-black text-xs uppercase tracking-wider">
+                          USE SHIELD CARD
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </>
+                )}
               </View>
-            </View>
-          </Modal>
-        )}
-
-        {/* Shield Target Picker Modal from Beer Modal */}
-        <Modal visible={showBeerShieldPicker} transparent animationType="slide">
-          <View className="flex-1 bg-black/90 justify-center items-center p-6">
-            <View className="w-full max-w-sm bg-zinc-900 border-4 border-pink-500 rounded-3xl p-6 items-center">
-              <Ionicons name="shield-checkmark" size={48} color="#EC4899" />
-              <Text className="text-pink-400 font-black text-xl uppercase tracking-wider text-center mt-2 mb-1">
-                SHIELD TARGET
-              </Text>
-              <Text className="text-zinc-400 font-bold text-xs uppercase text-center mb-4">
-                Select a player to receive your drink penalty:
-              </Text>
-
-              <View className="w-full gap-2 mb-6">
-                {players
-                  .filter((p: any) => p.id !== myPlayer?.id)
-                  .map((p: any) => (
-                    <TouchableOpacity
-                      key={p.id}
-                      onPress={() => {
-                        playButtonClickSound();
-                        colyseusService.useCard("SHIELD", { targetPlayerId: p.id });
-                        setShowBeerShieldPicker(false);
-                        setShowBeerModal(false);
-                      }}
-                      className="w-full bg-pink-500/20 border-2 border-pink-500 py-3 rounded-2xl items-center"
-                    >
-                      <Text className="text-pink-300 font-black text-sm uppercase">
-                        PASS DRINK TO {p.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-              </View>
-
-              <RetroButton
-                title="CANCEL"
-                variant="secondary"
-                onPress={() => setShowBeerShieldPicker(false)}
-              />
             </View>
           </View>
-        </Modal>
+        )}
 
         <CardDock />
         <CardAnnouncementPopup />

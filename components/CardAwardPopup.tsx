@@ -244,14 +244,6 @@ export function CardAwardPopup() {
           />
         </Animated.View>
 
-        {/* Subtitle */}
-        {/* <Animated.View style={{ opacity: badgeOpacity }}>
-          <Text style={styles.subtitle}>{pendingCardAward.message}</Text>
-          <Text style={styles.phaseHint}>
-            Activates during: {config.phaseText}
-          </Text>
-        </Animated.View> */}
-
         {/* Claim button */}
         <Animated.View style={{ opacity: buttonOpacity, marginTop: 20 }}>
           <TouchableOpacity
@@ -318,7 +310,7 @@ const styles = StyleSheet.create({
   },
   shimmer: {
     position: "absolute",
-    top: 0,
+    top: 10,
     left: 0,
     width: 60,
     height: "100%",

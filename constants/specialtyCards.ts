@@ -20,6 +20,7 @@ export interface SpecialtyCardConfig {
   iconFamily: "MaterialCommunityIcons" | "Ionicons" | "FontAwesome5";
   description: string;
   phaseText: string;
+  activationHint: string;
 }
 
 export const SPECIALTY_CARDS: Record<SpecialtyCardType, SpecialtyCardConfig> = {
@@ -36,6 +37,7 @@ export const SPECIALTY_CARDS: Record<SpecialtyCardType, SpecialtyCardConfig> = {
     iconFamily: "MaterialCommunityIcons",
     description: "ALL INPUTS AND SCORES IN NEXT MINIGAME COUNT 1.5X",
     phaseText: "Next Minigame Phase",
+    activationHint: "Activate during Wheel Phase before minigame starts if you are playing.",
   },
   shield: {
     id: "shield",
@@ -50,6 +52,7 @@ export const SPECIALTY_CARDS: Record<SpecialtyCardType, SpecialtyCardConfig> = {
     iconFamily: "MaterialCommunityIcons",
     description: "NEGATE YOUR DRINK PENALTY AND PASS IT TO ANOTHER PLAYER",
     phaseText: "Resolution Phase",
+    activationHint: "Activate on the results screen from the Beer Modal when receiving a drink penalty.",
   },
   double_points: {
     id: "double_points",
@@ -64,6 +67,7 @@ export const SPECIALTY_CARDS: Record<SpecialtyCardType, SpecialtyCardConfig> = {
     iconFamily: "MaterialCommunityIcons",
     description: "DOUBLES YOUR EARNED SCORE POINTS (2X) IF YOU WIN NEXT GAME",
     phaseText: "Next Minigame Phase",
+    activationHint: "Activate during Wheel Phase before minigame starts if you are playing.",
   },
   respin: {
     id: "respin",
@@ -78,6 +82,7 @@ export const SPECIALTY_CARDS: Record<SpecialtyCardType, SpecialtyCardConfig> = {
     iconFamily: "MaterialCommunityIcons",
     description: "SKIP CURRENT WHEEL SELECTION AND FORCE A RESPIN",
     phaseText: "Wheel Selection Phase",
+    activationHint: "Activate during Wheel Phase to re-spin the wheel for a new minigame.",
   },
   wild_card: {
     id: "wild_card",
@@ -90,8 +95,9 @@ export const SPECIALTY_CARDS: Record<SpecialtyCardType, SpecialtyCardConfig> = {
     hexColor: "#FFC107",
     iconName: "cards-playing-outline",
     iconFamily: "MaterialCommunityIcons",
-    description: "HAND-PICK THE NEXT MINIGAME CATEGORY AND PLAYERS",
+    description: "HAND-PICK THE NEXT MINIGAME AND PLAYERS",
     phaseText: "Match Setup Phase",
+    activationHint: "Activate during Wheel Phase to hand-pick the minigame, game type, and players.",
   },
 };
 
@@ -100,8 +106,10 @@ export function getCardConfig(cardId: string): SpecialtyCardConfig {
   const norm = cardId.toLowerCase().replace(/\s+/g, "_");
   if (norm === "turbo") return SPECIALTY_CARDS.turbo;
   if (norm === "shield") return SPECIALTY_CARDS.shield;
-  if (norm === "double_points" || norm === "doublepoints") return SPECIALTY_CARDS.double_points;
+  if (norm === "double_points" || norm === "doublepoints")
+    return SPECIALTY_CARDS.double_points;
   if (norm === "respin") return SPECIALTY_CARDS.respin;
-  if (norm === "wild_card" || norm === "wildcard") return SPECIALTY_CARDS.wild_card;
+  if (norm === "wild_card" || norm === "wildcard")
+    return SPECIALTY_CARDS.wild_card;
   return SPECIALTY_CARDS.respin;
 }

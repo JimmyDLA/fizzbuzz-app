@@ -9,10 +9,7 @@ import {
   View,
 } from "react-native";
 import { useSelector } from "react-redux";
-import {
-  getCardConfig,
-  SpecialtyCardType,
-} from "../constants/specialtyCards";
+import { getCardConfig, SpecialtyCardType } from "../constants/specialtyCards";
 import { colyseusService } from "../store/colyseusService";
 import { RootState } from "../store/store";
 import { playButtonClickSound } from "../utils/sound";
@@ -50,9 +47,15 @@ const EXCLUDED_TURBO_GAMES = [
 const GAME_TYPES = ["1v1", "2v2", "BR"];
 
 export function CardDock() {
-  const { players, playerName, gamePhase, selectedPlayers, currentCategory, lastLosers } = useSelector(
-    (state: RootState) => state.lobby,
-  );
+  const {
+    players,
+    playerName,
+    gamePhase,
+    selectedPlayers,
+    currentCategory,
+    lastLosers,
+    pendingCardAward,
+  } = useSelector((state: RootState) => state.lobby);
   const theme = useSelector((state: RootState) => state.lobby.theme) || "light";
   const isDark = theme === "dark";
 
@@ -65,12 +68,17 @@ export function CardDock() {
   const [selectedCategory, setSelectedCategory] = useState(ALL_CATEGORIES[0]);
   const [selectedType, setSelectedType] = useState("1v1");
   const [selectedWildPlayers, setSelectedWildPlayers] = useState<string[]>([]);
-  const [activeAccordion, setActiveAccordion] = useState<"type" | "category" | "players">("type");
+  const [activeAccordion, setActiveAccordion] = useState<
+    "type" | "category" | "players"
+  >("type");
 
   if (!myPlayer) return null;
 
-  // Hand Overflow Prompt (Max 2 cards)
-  const isOverflow = myCards.length > 2;
+  // Hand Overflow Prompt (Max 2 cards) - only show when no pending card award popup is open
+  const isOverflow = myCards.length > 2 && !pendingCardAward;
+  const myDrinkCount = myPlayer
+    ? (lastLosers || []).filter((id: string) => id === myPlayer.id).length
+    : 0;
 
   const handleUseCard = (cardId: string) => {
     playButtonClickSound();
@@ -83,6 +91,7 @@ export function CardDock() {
       setSelectedType("1v1");
       setSelectedCategory(ALL_CATEGORIES[0]);
       setActiveAccordion("type");
+      setSelectedCardId(null);
       setShowWildModal(true);
       return;
     }
@@ -92,6 +101,7 @@ export function CardDock() {
       if (!amILoser && gamePhase === "resolution") {
         return;
       }
+      setSelectedCardId(null);
       setShowShieldModal(true);
       return;
     }
@@ -129,7 +139,9 @@ export function CardDock() {
     playButtonClickSound();
     if (selectedType === "1v1") {
       if (selectedWildPlayers.includes(playerId)) {
-        setSelectedWildPlayers(selectedWildPlayers.filter((id) => id !== playerId));
+        setSelectedWildPlayers(
+          selectedWildPlayers.filter((id) => id !== playerId),
+        );
       } else {
         if (selectedWildPlayers.length < 2) {
           setSelectedWildPlayers([...selectedWildPlayers, playerId]);
@@ -140,7 +152,9 @@ export function CardDock() {
       }
     } else if (selectedType === "2v2") {
       if (selectedWildPlayers.includes(playerId)) {
-        setSelectedWildPlayers(selectedWildPlayers.filter((id) => id !== playerId));
+        setSelectedWildPlayers(
+          selectedWildPlayers.filter((id) => id !== playerId),
+        );
       } else {
         if (selectedWildPlayers.length < 4) {
           setSelectedWildPlayers([...selectedWildPlayers, playerId]);
@@ -149,7 +163,9 @@ export function CardDock() {
     } else {
       // BR
       if (selectedWildPlayers.includes(playerId)) {
-        setSelectedWildPlayers(selectedWildPlayers.filter((id) => id !== playerId));
+        setSelectedWildPlayers(
+          selectedWildPlayers.filter((id) => id !== playerId),
+        );
       } else {
         setSelectedWildPlayers([...selectedWildPlayers, playerId]);
       }
@@ -187,10 +203,16 @@ export function CardDock() {
     setSelectedCardId(null);
   };
 
-  const checkCardStatus = (cardId: string): { playable: boolean; reason?: string } => {
+  const checkCardStatus = (
+    cardId: string,
+  ): { playable: boolean; reason?: string } => {
     const norm = cardId.toLowerCase().replace(/\s+/g, "_");
 
-    if (gamePhase !== "wheel" && gamePhase !== "chart" && gamePhase !== "resolution") {
+    if (
+      gamePhase !== "wheel" &&
+      gamePhase !== "chart" &&
+      gamePhase !== "resolution"
+    ) {
       return { playable: false, reason: "Cards cannot be used right now" };
     }
 
@@ -206,10 +228,16 @@ export function CardDock() {
         return { playable: false, reason: "Only playable during Wheel Phase" };
       }
       if (!selectedPlayers.includes(myPlayer.id)) {
-        return { playable: false, reason: "You are not participating in this minigame" };
+        return {
+          playable: false,
+          reason: "You are not participating in this minigame",
+        };
       }
       if (EXCLUDED_TURBO_GAMES.includes(currentCategory)) {
-        return { playable: false, reason: "Turbo cannot be used for this minigame" };
+        return {
+          playable: false,
+          reason: "Turbo cannot be used for this minigame",
+        };
       }
       return { playable: true };
     }
@@ -219,7 +247,10 @@ export function CardDock() {
         return { playable: false, reason: "Only playable during Wheel Phase" };
       }
       if (!selectedPlayers.includes(myPlayer.id)) {
-        return { playable: false, reason: "You are not participating in this minigame" };
+        return {
+          playable: false,
+          reason: "You are not participating in this minigame",
+        };
       }
       return { playable: true };
     }
@@ -228,62 +259,72 @@ export function CardDock() {
       if (gamePhase === "resolution" && lastLosers.includes(myPlayer.id)) {
         return { playable: true };
       }
-      return { playable: false, reason: "Only playable when receiving a drink penalty" };
+      return {
+        playable: false,
+        reason: "Only playable when receiving a drink penalty",
+      };
     }
 
     return { playable: false };
   };
 
-  const availableCategories = selectedType === "2v2"
-    ? ALL_CATEGORIES.filter((cat) => !EXCLUDED_2V2_CATEGORIES.includes(cat))
-    : ALL_CATEGORIES;
+  const availableCategories =
+    selectedType === "2v2"
+      ? ALL_CATEGORIES.filter((cat) => !EXCLUDED_2V2_CATEGORIES.includes(cat))
+      : ALL_CATEGORIES;
 
   return (
     <>
-      {/* Floating Bottom Card Dock */}
-      {myCards.length > 0 && gamePhase !== "countdown" && gamePhase !== "playing" && (
-        <View
-          style={styles.dockContainer}
-          className="flex-row items-center gap-2 px-3 py-2 rounded-full border-3 border-black bg-zinc-900/90 shadow-2xl z-[9000]"
-        >
-          <View className="flex-row items-center gap-1 pr-1 border-r border-zinc-700">
-            <Ionicons name="sparkles" size={16} color="#A855F7" />
-            <Text className="text-white font-black text-[10px] uppercase">
-              {myCards.length}/2
-            </Text>
+      {/* Floating Bottom Card Dock (Only visible in Chart & Wheel phases) */}
+      {myCards.length > 0 &&
+        (gamePhase === "chart" || gamePhase === "wheel") && (
+          <View
+            style={styles.dockContainer}
+            className="flex-row items-center gap-2 px-3 py-2 rounded-full border-3 border-black bg-zinc-900/90 shadow-2xl z-[9000]"
+          >
+            <View className="flex-row items-center gap-1 pr-1 border-r border-zinc-700">
+              <Ionicons name="sparkles" size={16} color="#A855F7" />
+              <Text className="text-white font-black text-[10px] uppercase">
+                {myCards.length}/2
+              </Text>
+            </View>
+
+            {myCards.slice(0, 2).map((cardId, index) => {
+              const config = getCardConfig(cardId);
+              const status = checkCardStatus(cardId);
+
+              return (
+                <TouchableOpacity
+                  key={`${cardId}-${index}`}
+                  onPress={() => {
+                    playButtonClickSound();
+                    setSelectedCardId(cardId);
+                  }}
+                  className={`flex-row items-center px-3 py-1.5 rounded-full border-2 border-black ${config.colorClass}`}
+                  style={{
+                    opacity: status.playable ? 1 : 0.6,
+                    transform: [{ scale: status.playable ? 1.05 : 1 }],
+                  }}
+                >
+                  <Text className="font-black text-black text-xs uppercase tracking-wider">
+                    {config.name}
+                  </Text>
+                  {status.playable && (
+                    <View className="w-2 h-2 rounded-full bg-white ml-1.5" />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
-
-          {myCards.slice(0, 2).map((cardId, index) => {
-            const config = getCardConfig(cardId);
-            const status = checkCardStatus(cardId);
-
-            return (
-              <TouchableOpacity
-                key={`${cardId}-${index}`}
-                onPress={() => {
-                  playButtonClickSound();
-                  setSelectedCardId(cardId);
-                }}
-                className={`flex-row items-center px-3 py-1.5 rounded-full border-2 border-black ${config.colorClass}`}
-                style={{
-                  opacity: status.playable ? 1 : 0.6,
-                  transform: [{ scale: status.playable ? 1.05 : 1 }],
-                }}
-              >
-                <Text className="font-black text-black text-xs uppercase tracking-wider">
-                  {config.name}
-                </Text>
-                {status.playable && (
-                  <View className="w-2 h-2 rounded-full bg-white ml-1.5" />
-                )}
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      )}
+        )}
 
       {/* Overflow Discard Modal (When > 2 cards) */}
-      <Modal visible={isOverflow} transparent animationType="fade">
+      <Modal
+        visible={isOverflow}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {}}
+      >
         <View className="flex-1 bg-black/80 justify-center items-center p-6">
           <View className="w-full max-w-sm bg-zinc-900 border-4 border-amber-400 rounded-3xl p-6 items-center shadow-2xl">
             <Ionicons name="alert-circle" size={48} color="#F59E0B" />
@@ -302,17 +343,22 @@ export function CardDock() {
                     key={idx}
                     className="flex-row justify-between items-center bg-zinc-800 p-3 rounded-2xl border-2 border-black"
                   >
-                    <View className="flex-row items-center gap-2">
+                    <View className="flex-row items-center gap-2 flex-1 mr-2">
                       <View
                         className={`w-3 h-3 rounded-full ${config.colorClass}`}
                       />
-                      <Text className="text-white font-black text-sm uppercase">
+                      <Text
+                        className="text-white font-black text-sm uppercase"
+                        numberOfLines={1}
+                      >
                         {config.name}
                       </Text>
                     </View>
                     <RetroButton
                       title="DISCARD"
                       variant="danger"
+                      size="sm"
+                      style={{ width: 110 }}
                       onPress={() => handleDiscard(idx)}
                     />
                   </View>
@@ -339,22 +385,34 @@ export function CardDock() {
             <View className="w-full max-w-sm items-center">
               <SpecialtyCard
                 type={getCardConfig(selectedCardId).id as SpecialtyCardType}
-                size="lg"
+                size="xl"
               />
 
-              {checkCardStatus(selectedCardId).reason && !checkCardStatus(selectedCardId).playable && (
-                <View className="mt-4 bg-black/80 px-4 py-2 rounded-xl border border-zinc-700">
-                  <Text className="text-amber-400 font-bold text-xs text-center uppercase">
-                    {checkCardStatus(selectedCardId).reason}
-                  </Text>
-                </View>
-              )}
+              {/* When to Use Hint Box */}
+              <View className="mt-3 bg-zinc-900 border-2 border-purple-500/60 px-4 py-2.5 rounded-2xl w-full">
+                <Text className="text-purple-400 font-black text-[10px] tracking-widest uppercase text-center mb-0.5">
+                  WHEN TO USE
+                </Text>
+                <Text className="text-zinc-300 font-bold text-xs text-center uppercase">
+                  {getCardConfig(selectedCardId).activationHint}
+                </Text>
+              </View>
 
-              <View className="w-full flex-row justify-center mt-6 gap-2">
+              {checkCardStatus(selectedCardId).reason &&
+                !checkCardStatus(selectedCardId).playable && (
+                  <View className="mt-3 bg-black/80 px-4 py-2 rounded-xl border border-zinc-700 w-full">
+                    <Text className="text-amber-400 font-bold text-xs text-center uppercase">
+                      {checkCardStatus(selectedCardId).reason}
+                    </Text>
+                  </View>
+                )}
+
+              <View className="w-full flex-row justify-center mt-4 gap-2">
                 {checkCardStatus(selectedCardId).playable && (
                   <RetroButton
                     title="ACTIVATE"
                     variant="success"
+                    size="md"
                     onPress={() => handleUseCard(selectedCardId)}
                     style={{ flex: 1 }}
                   />
@@ -362,6 +420,7 @@ export function CardDock() {
                 <RetroButton
                   title="CLOSE"
                   variant="secondary"
+                  size="md"
                   onPress={() => setSelectedCardId(null)}
                   style={{ flex: 1 }}
                 />
@@ -372,20 +431,33 @@ export function CardDock() {
       )}
 
       {/* Wild Card Selector Modal with 3 Accordions */}
-      <Modal visible={showWildModal} transparent animationType="slide">
+      <Modal
+        visible={showWildModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => {
+          setShowWildModal(false);
+          setSelectedCardId(null);
+        }}
+      >
         <View className="flex-1 bg-black/90 justify-center items-center p-4">
           <View className="w-full max-w-md bg-zinc-900 border-4 border-purple-500 rounded-3xl p-5 max-h-[90%]">
             <Text className="text-purple-400 font-black text-2xl uppercase tracking-widest text-center mb-4">
               WILD CARD SELECTION
             </Text>
 
-            <ScrollView showsVerticalScrollIndicator={false} className="gap-3 mb-4">
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              className="gap-3 mb-4"
+            >
               {/* Accordion 1: Game Type */}
               <View className="border-2 border-zinc-700 rounded-2xl overflow-hidden bg-zinc-800/80">
                 <TouchableOpacity
                   onPress={() => {
                     playButtonClickSound();
-                    setActiveAccordion(activeAccordion === "type" ? "type" : "type");
+                    setActiveAccordion(
+                      activeAccordion === "type" ? ("category" as any) : "type",
+                    );
                   }}
                   className="flex-row justify-between items-center px-4 py-3 bg-zinc-800"
                 >
@@ -393,7 +465,9 @@ export function CardDock() {
                     1. GAME TYPE ({selectedType})
                   </Text>
                   <Ionicons
-                    name={activeAccordion === "type" ? "chevron-up" : "chevron-down"}
+                    name={
+                      activeAccordion === "type" ? "chevron-up" : "chevron-down"
+                    }
                     size={18}
                     color="#ffffff"
                   />
@@ -421,7 +495,11 @@ export function CardDock() {
                 <TouchableOpacity
                   onPress={() => {
                     playButtonClickSound();
-                    setActiveAccordion(activeAccordion === "category" ? "type" : "category");
+                    setActiveAccordion(
+                      activeAccordion === "category"
+                        ? ("players" as any)
+                        : "category",
+                    );
                   }}
                   className="flex-row justify-between items-center px-4 py-3 bg-zinc-800"
                 >
@@ -429,7 +507,11 @@ export function CardDock() {
                     2. CATEGORY ({selectedCategory})
                   </Text>
                   <Ionicons
-                    name={activeAccordion === "category" ? "chevron-up" : "chevron-down"}
+                    name={
+                      activeAccordion === "category"
+                        ? "chevron-up"
+                        : "chevron-down"
+                    }
                     size={18}
                     color="#ffffff"
                   />
@@ -457,15 +539,29 @@ export function CardDock() {
                 <TouchableOpacity
                   onPress={() => {
                     playButtonClickSound();
-                    setActiveAccordion(activeAccordion === "players" ? "type" : "players");
+                    setActiveAccordion(
+                      activeAccordion === "players"
+                        ? ("type" as any)
+                        : "players",
+                    );
                   }}
                   className="flex-row justify-between items-center px-4 py-3 bg-zinc-800"
                 >
                   <Text className="text-white font-black text-xs uppercase tracking-wider">
-                    3. PLAYERS ({selectedWildPlayers.length}/{selectedType === "1v1" ? 2 : selectedType === "2v2" ? 4 : `min 2`})
+                    3. PLAYERS ({selectedWildPlayers.length}/
+                    {selectedType === "1v1"
+                      ? 2
+                      : selectedType === "2v2"
+                        ? 4
+                        : `min 2`}
+                    )
                   </Text>
                   <Ionicons
-                    name={activeAccordion === "players" ? "chevron-up" : "chevron-down"}
+                    name={
+                      activeAccordion === "players"
+                        ? "chevron-up"
+                        : "chevron-down"
+                    }
                     size={18}
                     color="#ffffff"
                   />
@@ -496,12 +592,17 @@ export function CardDock() {
               <RetroButton
                 title="CANCEL"
                 variant="danger"
-                onPress={() => setShowWildModal(false)}
+                size="md"
+                onPress={() => {
+                  setShowWildModal(false);
+                  setSelectedCardId(null);
+                }}
                 style={{ flex: 1 }}
               />
               <RetroButton
                 title="LOCK IN GAME"
                 variant="success"
+                size="md"
                 disabled={!isWildPlayerCountValid()}
                 onPress={handleConfirmWildCard}
                 style={{ flex: 1, opacity: isWildPlayerCountValid() ? 1 : 0.5 }}
@@ -512,7 +613,15 @@ export function CardDock() {
       </Modal>
 
       {/* Shield Target Picker Modal */}
-      <Modal visible={showShieldModal} transparent animationType="slide">
+      <Modal
+        visible={showShieldModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => {
+          setShowShieldModal(false);
+          setSelectedCardId(null);
+        }}
+      >
         <View className="flex-1 bg-black/90 justify-center items-center p-6">
           <View className="w-full max-w-sm bg-zinc-900 border-4 border-pink-500 rounded-3xl p-6 items-center">
             <Ionicons name="shield-checkmark" size={48} color="#EC4899" />
@@ -533,7 +642,7 @@ export function CardDock() {
                     className="w-full bg-pink-500/20 border-2 border-pink-500 py-3 rounded-2xl items-center"
                   >
                     <Text className="text-pink-300 font-black text-sm uppercase">
-                      PASS DRINK TO {p.name}
+                      PASS {myDrinkCount > 1 ? `${myDrinkCount}X DRINKS` : "DRINK"} TO {p.name}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -542,7 +651,12 @@ export function CardDock() {
             <RetroButton
               title="CANCEL"
               variant="secondary"
-              onPress={() => setShowShieldModal(false)}
+              size="md"
+              onPress={() => {
+                setShowShieldModal(false);
+                setSelectedCardId(null);
+              }}
+              style={{ width: "100%" }}
             />
           </View>
         </View>
@@ -556,5 +670,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 24,
     alignSelf: "center",
+    zIndex: 9999,
   },
 });

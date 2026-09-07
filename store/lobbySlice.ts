@@ -11,6 +11,8 @@ export interface CardAnnouncement {
   playerName: string;
   message: string;
   targetName?: string;
+  drinkCount?: number;
+  timestamp?: number;
 }
 
 const initialState = {
@@ -33,6 +35,7 @@ const initialState = {
   isMusicOn: false,
   pendingCardAward: null as PendingCardAward | null,
   cardAnnouncement: null as CardAnnouncement | null,
+  spinCount: 0,
 };
 
 export const lobbySlice = createSlice({
@@ -108,6 +111,9 @@ export const lobbySlice = createSlice({
     clearCardAnnouncement: (state) => {
       state.cardAnnouncement = null;
     },
+    incrementSpinCount: (state) => {
+      state.spinCount += 1;
+    },
   },
 });
 
@@ -135,5 +141,6 @@ export const {
   clearPendingCardAward,
   setCardAnnouncement,
   clearCardAnnouncement,
+  incrementSpinCount,
 } = lobbySlice.actions;
 export default lobbySlice.reducer;
