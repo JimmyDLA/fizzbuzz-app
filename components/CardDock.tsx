@@ -310,7 +310,7 @@ export function CardDock() {
                     {config.name}
                   </Text>
                   {status.playable && (
-                    <View className="w-2 h-2 rounded-full bg-white ml-1.5" />
+                    <View className="w-2 h-2 rounded-full bg-white ml-1.5 animate-pulse" />
                   )}
                 </TouchableOpacity>
               );
@@ -642,7 +642,9 @@ export function CardDock() {
                     className="w-full bg-pink-500/20 border-2 border-pink-500 py-3 rounded-2xl items-center"
                   >
                     <Text className="text-pink-300 font-black text-sm uppercase">
-                      PASS {myDrinkCount > 1 ? `${myDrinkCount}X DRINKS` : "DRINK"} TO {p.name}
+                      PASS{" "}
+                      {myDrinkCount > 1 ? `${myDrinkCount}X DRINKS` : "DRINK"}{" "}
+                      TO {p.name}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -668,7 +670,7 @@ export function CardDock() {
 const styles = StyleSheet.create({
   dockContainer: {
     position: "absolute",
-    bottom: 24,
+    bottom: 140,
     alignSelf: "center",
     zIndex: 9999,
   },

@@ -1,5 +1,9 @@
-import { playButtonClickSound } from "../../utils/sound";
-import React, { useState } from "react";
+import {
+  playButtonClickSound,
+  startTriviaMusic,
+  stopTriviaMusic,
+} from "../../utils/sound";
+import React, { useEffect, useState } from "react";
 import { Text, TouchableOpacity, View, StyleSheet, Modal } from "react-native";
 import { useSelector } from "react-redux";
 import * as Haptics from "expo-haptics";
@@ -7,7 +11,7 @@ import { useGameData } from "./useGameData";
 import { RootState } from "../../store/store";
 
 export function MathProblemUI() {
-  const { myPlayer, sendAction } = useGameData();
+  const { timer, myPlayer, sendAction } = useGameData();
   const theme = useSelector((state: RootState) => state.lobby.theme) || "light";
   const isDark = theme === "dark";
   const [pressedIdx, setPressedIdx] = useState<number | null>(null);
@@ -16,6 +20,20 @@ export function MathProblemUI() {
   try {
     gameData = JSON.parse(myPlayer?.gameData || "{}");
   } catch (e) {}
+
+  useEffect(() => {
+    return () => {
+      stopTriviaMusic();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!gameData.gameOver && (timer === undefined || timer > 0)) {
+      startTriviaMusic();
+    } else {
+      stopTriviaMusic();
+    }
+  }, [gameData.gameOver, timer]);
 
   const handleAnswer = (ans: number, idx: number) => {
     if (myPlayer?.gameScore === -1 || gameData.gameOver) return;

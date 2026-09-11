@@ -286,9 +286,7 @@ let spinPlayer: any = null;
 function getSpinPlayer() {
   if (!spinPlayer) {
     try {
-      spinPlayer = createAudioPlayer(
-        require("../assets/sounds/spin.m4a"),
-      );
+      spinPlayer = createAudioPlayer(require("../assets/sounds/spin.m4a"));
       if (spinPlayer) {
         spinPlayer.loop = true;
         spinPlayer.setPlaybackRate(1.5);
@@ -437,9 +435,7 @@ let papPlayer: any = null;
 function getPapPlayer() {
   if (!papPlayer) {
     try {
-      papPlayer = createAudioPlayer(
-        require("../assets/sounds/pap.m4a"),
-      );
+      papPlayer = createAudioPlayer(require("../assets/sounds/pap.m4a"));
     } catch (e) {
       console.log("[sound] Failed to initialize pap player:", e);
     }
@@ -513,5 +509,97 @@ export function playPaintSplat2Sound() {
     }
   } catch (e) {
     console.log("[sound] Paint splat 2 sound error:", e);
+  }
+}
+
+let sawingPlayer: any = null;
+
+function getSawingPlayer() {
+  if (!sawingPlayer) {
+    try {
+      sawingPlayer = createAudioPlayer(require("../assets/sounds/sawing.m4a"));
+      if (sawingPlayer) {
+        sawingPlayer.loop = true;
+      }
+    } catch (e) {
+      console.log("[sound] Failed to initialize sawing player:", e);
+    }
+  }
+  return sawingPlayer;
+}
+
+export function startSawingSound() {
+  try {
+    const p = getSawingPlayer();
+    if (p) {
+      p.loop = true;
+      p.play();
+    }
+  } catch (e) {
+    console.log("[sound] Sawing sound start error:", e);
+  }
+}
+
+export function stopSawingSound() {
+  try {
+    if (sawingPlayer) {
+      sawingPlayer.pause();
+      sawingPlayer.seekTo(0);
+    }
+  } catch (e) {
+    console.log("[sound] Sawing sound stop error:", e);
+  }
+}
+
+let triviaPlayer: any = null;
+let isTriviaPlaying: boolean = false;
+
+function getTriviaPlayer() {
+  if (!triviaPlayer) {
+    try {
+      triviaPlayer = createAudioPlayer(require("../assets/sounds/trivia.mp3"));
+      if (triviaPlayer) {
+        triviaPlayer.loop = true;
+        triviaPlayer.volume = 0.2;
+      }
+    } catch (e) {
+      console.log("[sound] Failed to initialize trivia player:", e);
+    }
+  }
+  return triviaPlayer;
+}
+
+export function startTriviaMusic() {
+  try {
+    stopBackgroundMusic();
+    stopSpinSound();
+    stopWhooshSound();
+    stopSawingSound();
+    if (isTriviaPlaying) return;
+    const p = getTriviaPlayer();
+    if (p) {
+      isTriviaPlaying = true;
+      p.loop = true;
+      p.volume = 0.2;
+      setTimeout(() => {
+        p.seekTo(0).finally(() => {
+          p.play();
+        });
+      }, 1000);
+    }
+  } catch (e) {
+    console.log("[sound] Trivia music start error:", e);
+  }
+}
+
+export function stopTriviaMusic() {
+  try {
+    isTriviaPlaying = false;
+    if (triviaPlayer) {
+      triviaPlayer.pause();
+      triviaPlayer.seekTo(0);
+    }
+  } catch (e) {
+    console.log("[sound] Trivia music stop error:", e);
   }
 }

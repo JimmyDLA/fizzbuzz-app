@@ -37,7 +37,7 @@ export const SPECIALTY_CARDS: Record<SpecialtyCardType, SpecialtyCardConfig> = {
     iconFamily: "MaterialCommunityIcons",
     description: "ALL INPUTS AND SCORES IN NEXT MINIGAME COUNT 1.5X",
     phaseText: "Next Minigame Phase",
-    activationHint: "Activate during Wheel Phase before minigame starts if you are playing.",
+    activationHint: "Activate before a minigame starts if you are playing.",
   },
   shield: {
     id: "shield",
@@ -52,7 +52,7 @@ export const SPECIALTY_CARDS: Record<SpecialtyCardType, SpecialtyCardConfig> = {
     iconFamily: "MaterialCommunityIcons",
     description: "NEGATE YOUR DRINK PENALTY AND PASS IT TO ANOTHER PLAYER",
     phaseText: "Resolution Phase",
-    activationHint: "Activate on the results screen from the Beer Modal when receiving a drink penalty.",
+    activationHint: "Activate when receiving a drink penalty.",
   },
   double_points: {
     id: "double_points",
@@ -67,7 +67,7 @@ export const SPECIALTY_CARDS: Record<SpecialtyCardType, SpecialtyCardConfig> = {
     iconFamily: "MaterialCommunityIcons",
     description: "DOUBLES YOUR EARNED SCORE POINTS (2X) IF YOU WIN NEXT GAME",
     phaseText: "Next Minigame Phase",
-    activationHint: "Activate during Wheel Phase before minigame starts if you are playing.",
+    activationHint: "Activate before a minigame starts if you are playing.",
   },
   respin: {
     id: "respin",
@@ -82,7 +82,8 @@ export const SPECIALTY_CARDS: Record<SpecialtyCardType, SpecialtyCardConfig> = {
     iconFamily: "MaterialCommunityIcons",
     description: "SKIP CURRENT WHEEL SELECTION AND FORCE A RESPIN",
     phaseText: "Wheel Selection Phase",
-    activationHint: "Activate during Wheel Phase to re-spin the wheel for a new minigame.",
+    activationHint:
+      "Activate during wheel spin to re-spin the wheel for a new minigame.",
   },
   wild_card: {
     id: "wild_card",
@@ -97,7 +98,8 @@ export const SPECIALTY_CARDS: Record<SpecialtyCardType, SpecialtyCardConfig> = {
     iconFamily: "MaterialCommunityIcons",
     description: "HAND-PICK THE NEXT MINIGAME AND PLAYERS",
     phaseText: "Match Setup Phase",
-    activationHint: "Activate during Wheel Phase to hand-pick the minigame, game type, and players.",
+    activationHint:
+      "Activate during Wheel Phase to hand-pick the minigame, game type, and players.",
   },
 };
 

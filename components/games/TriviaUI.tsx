@@ -1,5 +1,5 @@
 import * as Haptics from "expo-haptics";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -10,11 +10,15 @@ import {
 } from "react-native";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store/store";
-import { playButtonClickSound } from "../../utils/sound";
+import {
+  playButtonClickSound,
+  startTriviaMusic,
+  stopTriviaMusic,
+} from "../../utils/sound";
 import { useGameData } from "./useGameData";
 
 export function TriviaUI() {
-  const { myPlayer, sendAction } = useGameData();
+  const { timer, myPlayer, sendAction } = useGameData();
   const theme = useSelector((state: RootState) => state.lobby.theme) || "light";
   const isDark = theme === "dark";
   const [pressedIdx, setPressedIdx] = useState<number | null>(null);
@@ -23,6 +27,20 @@ export function TriviaUI() {
   try {
     gameData = JSON.parse(myPlayer?.gameData || "{}");
   } catch (e) {}
+
+  useEffect(() => {
+    return () => {
+      stopTriviaMusic();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!gameData.gameOver && (timer === undefined || timer > 0)) {
+      startTriviaMusic();
+    } else {
+      stopTriviaMusic();
+    }
+  }, [gameData.gameOver, timer]);
 
   const handleAnswer = (opt: string, idx: number) => {
     playButtonClickSound();

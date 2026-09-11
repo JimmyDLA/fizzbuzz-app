@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store/store";
+import { startSawingSound, stopSawingSound } from "../../utils/sound";
 import { useGameData } from "./useGameData";
 
 export function LumberCutUI() {
@@ -28,6 +29,7 @@ export function LumberCutUI() {
       if (sawTimeoutRef.current) {
         clearTimeout(sawTimeoutRef.current);
       }
+      stopSawingSound();
     };
   }, []);
 
@@ -40,6 +42,14 @@ export function LumberCutUI() {
       gameData = JSON.parse(myPlayer.gameData);
     } catch (e) {}
   }
+
+  useEffect(() => {
+    if (isSawing && !gameData.gameOver && timer > 0) {
+      startSawingSound();
+    } else {
+      stopSawingSound();
+    }
+  }, [isSawing, gameData.gameOver, timer]);
 
   const teams = gameData.teams || [];
   const myTeam = teams.find((t: any) => t.members.includes(myPlayer?.id));
@@ -80,7 +90,7 @@ export function LumberCutUI() {
     }
     sawTimeoutRef.current = setTimeout(() => {
       setIsSawing(false);
-    }, 2000);
+    }, 1200);
   };
 
   const isSolo = myTeam?.members.length === 1;
