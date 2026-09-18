@@ -1,13 +1,14 @@
 import * as Crypto from 'expo-crypto';
 import 'react-native-url-polyfill/auto';
 import { Buffer } from 'buffer';
-import process from 'process';
 
-if (typeof global.crypto === 'undefined') {
-  (global as any).crypto = {};
+const g: any = typeof globalThis !== 'undefined' ? globalThis : {};
+
+if (typeof g.crypto === 'undefined') {
+  g.crypto = {};
 }
-if (!global.crypto.getRandomValues) {
-  global.crypto.getRandomValues = (arr: any) => {
+if (!g.crypto.getRandomValues) {
+  g.crypto.getRandomValues = (arr: any) => {
     const bytes = Crypto.getRandomBytes(arr.length);
     for (let i = 0; i < arr.length; i++) {
       arr[i] = bytes[i];
@@ -16,12 +17,13 @@ if (!global.crypto.getRandomValues) {
   };
 }
 
-if (typeof global.Buffer === 'undefined') {
-  global.Buffer = Buffer;
+if (typeof g.Buffer === 'undefined') {
+  g.Buffer = Buffer;
 }
-if (typeof global.process === 'undefined') {
-  global.process = process;
+if (typeof g.process === 'undefined') {
+  g.process = { env: {} };
 }
-if (!(global.process as any).version) {
-  (global.process as any).version = 'v20.10.0';
+if (!g.process.version) {
+  g.process.version = 'v20.10.0';
 }
+

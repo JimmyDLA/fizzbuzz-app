@@ -1,10 +1,15 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import { Provider } from "react-redux";
 import "../global.css";
 import { store } from "../store/store";
+
+if (!(StyleSheet as any).absoluteFillObject) {
+  (StyleSheet as any).absoluteFillObject = StyleSheet.absoluteFill;
+}
 
 export default function RootLayout() {
   return (
