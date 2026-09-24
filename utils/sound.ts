@@ -244,7 +244,7 @@ function getBgMusicPlayer() {
   if (!bgMusicPlayer) {
     try {
       bgMusicPlayer = createAudioPlayer(
-        require("../assets/sounds/80s_theme_song.mp3"),
+        require("../assets/sounds/background_music.m4a"),
       );
       if (bgMusicPlayer) {
         bgMusicPlayer.loop = true;

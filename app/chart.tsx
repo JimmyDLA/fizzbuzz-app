@@ -201,13 +201,14 @@ export default function ChartScreen() {
     if (gamePhase === "lobby") {
       router.replace("/lobby");
     } else if (
-      gamePhase === "countdown" ||
-      gamePhase === "playing" ||
-      gamePhase === "resolution"
+      (gamePhase === "countdown" ||
+        gamePhase === "playing" ||
+        gamePhase === "resolution") &&
+      amISelected
     ) {
       router.replace("/game");
     }
-  }, [gamePhase]);
+  }, [gamePhase, amISelected]);
 
   const handleReadyToggle = () => {
     colyseusService.sendReady(!isReady);
@@ -550,6 +551,48 @@ export default function ChartScreen() {
         </View>
       )}
 
+      {gamePhase !== "chart" && !amISelected && (
+        <View className="pb-10 pt-4 w-full px-6">
+          <View className="relative w-full mb-4">
+            <View
+              style={[
+                StyleSheet.absoluteFillObject,
+                { borderRadius: 24, top: 4, left: 4 },
+              ]}
+              className={isDark ? "bg-white" : "bg-black"}
+            />
+            <View
+              style={{
+                borderRadius: 24,
+                borderWidth: 4,
+                borderColor: isDark ? "#ffffff" : "#000000",
+                padding: 20,
+                alignItems: "center",
+              }}
+              className={isDark ? "bg-zinc-800" : "bg-yellow-300"}
+            >
+              <Text
+                className={`text-xs font-black uppercase tracking-widest mb-1 ${isDark ? "text-yellow-400" : "text-black/60"}`}
+              >
+                {currentGameType} MATCH IN PROGRESS
+              </Text>
+              <Text
+                className={`text-2xl font-black uppercase text-center tracking-wider ${isDark ? "text-white" : "text-black"}`}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {currentCategory}
+              </Text>
+              <Text
+                className={`text-xs font-bold uppercase tracking-wide text-center mt-2 ${isDark ? "text-zinc-400" : "text-black/70"}`}
+              >
+                WAITING IN CHART LOBBY...
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
+
       {showWheelModal && (
         <View
           style={StyleSheet.absoluteFillObject}
@@ -819,6 +862,19 @@ export default function ChartScreen() {
                 })}
               </View>
 
+              <View className="pt-4 gap-4 pb-12 pl-1">
+                <RetroButton
+                  title="FORCE START"
+                  variant="success"
+                  onPress={handleDevStart}
+                />
+                <RetroButton
+                  title="CANCEL"
+                  variant="danger"
+                  onPress={() => setShowDevModal(false)}
+                />
+              </View>
+
               {/* Specialty Card Award Section */}
               <View className="border-t-2 border-white/10 pt-6 mb-8">
                 <Text className="text-yellow-400 font-black text-xl tracking-widest mb-3 ml-2 uppercase">
@@ -892,19 +948,6 @@ export default function ChartScreen() {
                     </Text>
                   </View>
                 ) : null}
-              </View>
-
-              <View className="pt-4 gap-4 pb-12 pl-1">
-                <RetroButton
-                  title="FORCE START"
-                  variant="success"
-                  onPress={handleDevStart}
-                />
-                <RetroButton
-                  title="CANCEL"
-                  variant="danger"
-                  onPress={() => setShowDevModal(false)}
-                />
               </View>
             </ScrollView>
           </View>

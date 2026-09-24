@@ -22,6 +22,7 @@ export function TriviaUI() {
   const theme = useSelector((state: RootState) => state.lobby.theme) || "light";
   const isDark = theme === "dark";
   const [pressedIdx, setPressedIdx] = useState<number | null>(null);
+  const [localTransitioning, setLocalTransitioning] = useState(false);
 
   let gameData: any = {};
   try {
@@ -42,7 +43,20 @@ export function TriviaUI() {
     }
   }, [gameData.gameOver, timer]);
 
+  useEffect(() => {
+    if (gameData.isTransitioning && !gameData.gameOver) {
+      setLocalTransitioning(true);
+      const timerId = setTimeout(() => {
+        setLocalTransitioning(false);
+      }, 3500);
+      return () => clearTimeout(timerId);
+    } else {
+      setLocalTransitioning(false);
+    }
+  }, [gameData.isTransitioning, gameData.gameOver, gameData.index]);
+
   const handleAnswer = (opt: string, idx: number) => {
+    if (gameData.gameOver || localTransitioning || gameData.isTransitioning || gameData.isLockedOut) return;
     playButtonClickSound();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     sendAction({ action: "answer", answer: opt });
@@ -65,7 +79,9 @@ export function TriviaUI() {
           textShadowRadius: 0,
         }}
       >
-        TRIVIA RACE! ({gameData.index + 1 || 0}/{gameData.total || 10})
+        {gameData.gameOver || (gameData.total && (gameData.index ?? 0) >= gameData.total)
+          ? "Done!"
+          : `TRIVIA RACE! (${(gameData.index ?? 0) + 1}/${gameData.total || 5})`}
       </Text>
 
       {/* Question Card */}
@@ -109,11 +125,21 @@ export function TriviaUI() {
         <View className="w-full  gap-2 p-1">
           {gameData.options?.map((opt: string, idx: number) => {
             const isLocked = gameData.isLockedOut;
-            const isTransitioning = gameData.isTransitioning;
-            const isDisabled = isLocked || isTransitioning;
+            const isTransitioning = localTransitioning || gameData.isTransitioning;
+            const isGameOver = gameData.gameOver;
+            const isDisabled = isLocked || isTransitioning || isGameOver;
+            const isCorrect = isGameOver && opt === gameData.correctAnswer;
             const color = colors[idx % colors.length];
             const isThisPressed = pressedIdx === idx;
             const translateOffset = !isDisabled && !isThisPressed ? -4 : 0;
+
+            const btnClass = isDisabled
+              ? isCorrect
+                ? "bg-emerald-400"
+                : isDark
+                ? "bg-zinc-700 opacity-50"
+                : "bg-zinc-300 opacity-50"
+              : color.bg;
 
             return (
               <View key={idx} style={styles.optionWrapper}>
@@ -148,13 +174,7 @@ export function TriviaUI() {
                       { translateX: translateOffset },
                     ],
                   }}
-                  className={
-                    isDisabled
-                      ? isDark
-                        ? "bg-zinc-700 opacity-50"
-                        : "bg-zinc-300 opacity-50"
-                      : color.bg
-                  }
+                  className={btnClass}
                 >
                   <Text
                     className="text-black text-xl font-black text-center tracking-tight"
@@ -168,7 +188,7 @@ export function TriviaUI() {
           })}
         </View>
 
-        {gameData.isLockedOut && !gameData.isTransitioning && (
+        {gameData.isLockedOut && !localTransitioning && !gameData.isTransitioning && !gameData.gameOver && (
           <Text className="text-red-500 font-black text-lg mt-6 tracking-widest text-center uppercase">
             Waiting for someone to get it right...
           </Text>
@@ -176,15 +196,28 @@ export function TriviaUI() {
       </ScrollView>
 
       {/* Transition Modal overlay */}
-      <Modal visible={!!gameData.isTransitioning} transparent={true} animationType="fade">
-        <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.75)", justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }}>
+      <Modal
+        visible={localTransitioning && !gameData.gameOver}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setLocalTransitioning(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setLocalTransitioning(false)}
+          style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.75)", justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }}
+        >
           {(() => {
             const hasWinner =
               !!gameData.roundWinner &&
               gameData.roundWinner !== "Nobody" &&
               gameData.roundWinner !== "";
             return (
-              <View className="w-full max-w-sm relative">
+              <TouchableOpacity
+                activeOpacity={1}
+                onPress={(e) => e.stopPropagation()}
+                className="w-full max-w-sm relative"
+              >
                 {/* Modal Shadow */}
                 <View
                   style={[StyleSheet.absoluteFillObject, { borderRadius: 28 }]}
@@ -228,10 +261,10 @@ export function TriviaUI() {
                     {hasWinner ? "ANSWERED CORRECTLY!" : "ANSWERED CORRECTLY"}
                   </Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           })()}
-        </View>
+        </TouchableOpacity>
       </Modal>
     </View>
   );

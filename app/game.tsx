@@ -48,6 +48,7 @@ export default function GameScreen() {
   const {
     playerName,
     players: reduxPlayers,
+    selectedPlayers,
     gamePhase,
     timer,
     currentGameType,
@@ -60,6 +61,8 @@ export default function GameScreen() {
   const players: any[] = reduxPlayers || [];
   const myPlayer = players.find((p: any) => p.name === playerName);
   const isReady = myPlayer?.isReady || false;
+  const selectedPlayersList: any[] = selectedPlayers || [];
+  const amISelected = selectedPlayersList.includes(myPlayer?.id) || false;
 
   let gameData: any = {};
   try {
@@ -227,8 +230,15 @@ export default function GameScreen() {
   useEffect(() => {
     if (gamePhase === "chart") {
       router.replace("/chart");
+    } else if (
+      (gamePhase === "countdown" ||
+        gamePhase === "playing" ||
+        gamePhase === "resolution") &&
+      !amISelected
+    ) {
+      router.replace("/chart");
     }
-  }, [gamePhase, router]);
+  }, [gamePhase, amISelected, router]);
 
   const [showBeerShieldPicker, setShowBeerShieldPicker] = useState(false);
 

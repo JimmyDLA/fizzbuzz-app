@@ -20,6 +20,7 @@
   "dependencies": {
     "@colyseus/sdk": "^0.17.35",
     "@expo/vector-icons": "^15.0.3",
+    "@lottiefiles/dotlottie-react": "^0.13.5",
     "@react-native-community/slider": "5.2.0",
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/elements": "^2.6.3",
