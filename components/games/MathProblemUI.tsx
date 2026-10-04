@@ -1,13 +1,17 @@
-import { playButtonClickSound } from "../../utils/sound";
-import React, { useState } from "react";
-import { Text, TouchableOpacity, View, StyleSheet, Modal } from "react-native";
-import { useSelector } from "react-redux";
 import * as Haptics from "expo-haptics";
-import { useGameData } from "./useGameData";
+import { useEffect, useState } from "react";
+import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useSelector } from "react-redux";
 import { RootState } from "../../store/store";
+import {
+  playButtonClickSound,
+  startTriviaMusic,
+  stopTriviaMusic,
+} from "../../utils/sound";
+import { useGameData } from "./useGameData";
 
 export function MathProblemUI() {
-  const { myPlayer, sendAction } = useGameData();
+  const { timer, myPlayer, sendAction } = useGameData();
   const theme = useSelector((state: RootState) => state.lobby.theme) || "light";
   const isDark = theme === "dark";
   const [pressedIdx, setPressedIdx] = useState<number | null>(null);
@@ -17,8 +21,27 @@ export function MathProblemUI() {
     gameData = JSON.parse(myPlayer?.gameData || "{}");
   } catch (e) {}
 
+  useEffect(() => {
+    return () => {
+      stopTriviaMusic();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!gameData.gameOver && (timer === undefined || timer > 0)) {
+      startTriviaMusic();
+    } else {
+      stopTriviaMusic();
+    }
+  }, [gameData.gameOver, timer]);
+
   const handleAnswer = (ans: number, idx: number) => {
-    if (myPlayer?.gameScore === -1 || gameData.gameOver) return;
+    if (
+      (timer !== undefined && timer <= 0) ||
+      myPlayer?.gameScore === -1 ||
+      gameData.gameOver
+    )
+      return;
     playButtonClickSound();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     sendAction({ action: "answer", answer: ans });
@@ -36,9 +59,11 @@ export function MathProblemUI() {
           textShadowRadius: 0,
         }}
       >
-        {gameData.index < gameData.totalQuestions
-          ? `SOLVE QUICKLY! (${(gameData.index ?? 0) + 1}/${gameData.totalQuestions ?? 0})`
-          : "Done!"}
+        {gameData.index >= gameData.totalQuestions
+          ? "Done!"
+          : timer !== undefined && timer <= 0
+          ? "Time's Up!"
+          : `SOLVE QUICKLY! (${(gameData.index ?? 0) + 1}/${gameData.totalQuestions ?? 0})`}
       </Text>
 
       {/* Question Card */}
@@ -77,15 +102,19 @@ export function MathProblemUI() {
           const isLocked = gameData.isLockedOut;
           const isGameOver = gameData.gameOver;
           const isTransitioning = gameData.isTransitioning;
-          const isDisabled = isLocked || isGameOver || isTransitioning;
+          const isTimeUp = timer !== undefined && timer <= 0;
+          const isDisabled =
+            isLocked || isGameOver || isTransitioning || isTimeUp;
           const isCorrect = isGameOver && opt === gameData.correct;
           const isThisPressed = pressedIdx === idx;
 
           let btnBg = isDark ? "bg-cyan-400" : "bg-cyan-300";
-          if (isLocked) {
-            btnBg = "bg-zinc-600 opacity-50";
-          } else if (isCorrect) {
-            btnBg = "bg-emerald-400";
+          if (isDisabled) {
+            btnBg = isCorrect
+              ? "bg-emerald-400"
+              : isDark
+              ? "bg-zinc-600 opacity-50"
+              : "bg-zinc-300 opacity-50";
           }
 
           return (
@@ -115,8 +144,8 @@ export function MathProblemUI() {
                   alignItems: "center",
                   justifyContent: "center",
                   transform: [
-                    { translateY: !isThisPressed ? -4 : 0 },
-                    { translateX: !isThisPressed ? -4 : 0 },
+                    { translateY: !isDisabled && !isThisPressed ? -4 : 0 },
+                    { translateX: !isDisabled && !isThisPressed ? -4 : 0 },
                   ],
                 }}
                 className={btnBg}
@@ -131,8 +160,20 @@ export function MathProblemUI() {
       </View>
 
       {/* Transition Modal overlay */}
-      <Modal visible={!!gameData.isTransitioning} transparent={true} animationType="fade">
-        <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.75)", justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }}>
+      <Modal
+        visible={!!gameData.isTransitioning}
+        transparent={true}
+        animationType="fade"
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0, 0, 0, 0.75)",
+            justifyContent: "center",
+            alignItems: "center",
+            paddingHorizontal: 24,
+          }}
+        >
           <View className="w-full max-w-sm relative">
             {/* Modal Shadow */}
             <View
@@ -142,7 +183,8 @@ export function MathProblemUI() {
 
             {/* Modal Body */}
             {(() => {
-              const hasWinner = !!gameData.roundWinner && gameData.roundWinner !== "Nobody";
+              const hasWinner =
+                !!gameData.roundWinner && gameData.roundWinner !== "Nobody";
               return (
                 <View
                   style={{

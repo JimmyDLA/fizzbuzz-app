@@ -1,10 +1,7 @@
-# Tasks - Settings Dropdown & Audio Consolidations
+# Tasks - Specialty Cards System
 
-- [x] Fix screen painting background color variables
-- [x] Convert Trivia, Math Problem, and RPS overlays to native Modals
-- [x] Replace all emojis across the application with standard vector icons using `@expo/vector-icons`
-- [x] Create consolidated `SettingsDropdown` component for top-right header placement
-- [x] Add Dark Mode toggle option to Settings dropdown
-- [x] Add Background Music toggle (ON/OFF) option to Settings dropdown
-- [x] Add Game Mode (Party / Drinking) toggle option to Settings dropdown
+- [x] Create design mockup for the 5 official Specialty Cards matching approved neo-brutalist style
+- [x] Create `constants/specialtyCards.ts` configuration metadata for Turbo, Shield, Double Points, Respin, and Wild Card
+- [x] Build unified `SpecialtyCard.tsx` component with support for sizes (`sm`, `md`, `lg`), selection states, and haptic feedback
+- [x] Export card alias components (`ShieldCard`, `TurboCard`, `DoublePointsCard`, `RespinCard`, `WildCard`)
 - [x] Verify typescript & compile correctness of files

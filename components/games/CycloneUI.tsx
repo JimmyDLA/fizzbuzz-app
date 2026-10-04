@@ -95,6 +95,14 @@ export function CycloneUI() {
   const theme = useSelector((state: RootState) => state.lobby.theme) || "light";
   const isDark = theme === "dark";
 
+  let isTurbo = false;
+  try {
+    const fx = JSON.parse(myPlayer?.activeEffects || "{}");
+    isTurbo = !!fx.turbo;
+  } catch (e) {}
+
+  const currentSpeed = isTurbo ? SPEED_MS * 2 : SPEED_MS; // 0.5x speed for Turbo
+
   const activeIndex = useSharedValue(0);
   const [localStop, setLocalStop] = useState<number | null>(null);
   const [isPressed, setIsPressed] = useState(false);
@@ -108,7 +116,7 @@ export function CycloneUI() {
     // Start spinning
     activeIndex.value = 0;
     activeIndex.value = withRepeat(
-      withTiming(NUM_LIGHTS, { duration: SPEED_MS, easing: Easing.linear }),
+      withTiming(NUM_LIGHTS, { duration: currentSpeed, easing: Easing.linear }),
       -1,
       false,
     );
@@ -118,7 +126,7 @@ export function CycloneUI() {
       cancelAnimation(activeIndex);
       stopWhooshSound();
     };
-  }, []);
+  }, [currentSpeed]);
 
   // When game finishes (server timeout or all stopped), hardcode to stoppedIndex if it wasn't captured locally
   useEffect(() => {

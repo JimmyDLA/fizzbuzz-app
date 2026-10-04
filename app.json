@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "fizzbuzz",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.jimmydla.fizzbuzz",
@@ -22,7 +21,6 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.jimmydla.fizzbuzz"
     },
@@ -52,14 +50,12 @@
           "android": {
             "defaultLaunchURL": "http://10.0.0.2:8081"
           },
-          "toolsButton": "true",
-          "skipOnboarding": "false",
-          "showMenuAtLaunch": "true"
+          "toolsButton": false,
+          "skipOnboarding": true,
+          "showMenuAtLaunch": false
         }
       ],
-      [
-        "./plugins/withDeferGestures"
-      ],
+      ["./plugins/withDeferGestures"],
       "expo-build-properties",
       "expo-audio"
     ],

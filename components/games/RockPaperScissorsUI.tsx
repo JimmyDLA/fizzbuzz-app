@@ -133,14 +133,16 @@ export function RockPaperScissorsUI() {
 
           if (isMatchOver) {
             const playerWon = nextScores.player >= 2;
-            nextWord = playerWon ? "YOU WINS MATCH!" : "COMPUTER WINS MATCH!";
+            nextWord = playerWon ? "YOU WIN MATCH!" : "COMPUTER WINS MATCH!";
             
             setTimeout(() => {
               setLocalGameData((f) => ({
                 ...f,
                 phase: "gameOver",
                 isWinner: playerWon,
-                isEliminated: !playerWon
+                isEliminated: !playerWon,
+                animationWord: "",
+                reveal: false
               }));
             }, 2000);
           } else {
@@ -183,6 +185,8 @@ export function RockPaperScissorsUI() {
   const displayIsAnimationPlaying = isPractice ? !!localGameData.animationWord : !!gameData.animationWord;
   const displayHasPicked = isPractice ? !!localGameData.picks.player : !!gameData.picks?.[myPlayer?.id];
   const displayMyPick = isPractice ? localGameData.results.player : gameData.results?.[myPlayer?.id];
+  const isGameOver = isPractice ? localGameData.phase === "gameOver" : !!gameData.gameOver;
+  const isWinner = isPractice ? localGameData.isWinner : myScore >= 2;
 
   // Helper to determine the overlay card background dynamically
   const getOverlayBgColor = () => {
@@ -248,7 +252,7 @@ export function RockPaperScissorsUI() {
           textShadowRadius: 0
         }}
       >
-        CHOOSE YOUR WEAPON!
+        {isGameOver ? (isWinner ? "YOU WON!" : "DEFEAT!") : "CHOOSE YOUR WEAPON!"}
       </Text>
 
       {/* Choice Buttons Row */}
@@ -256,14 +260,14 @@ export function RockPaperScissorsUI() {
         {["rock", "paper", "scissors"].map((choice) => {
           const color = CHOICE_COLORS[choice];
           const isSelected = displayMyPick === choice;
-          const isDisabled = displayHasPicked || displayIsAnimationPlaying;
+          const isDisabled = displayHasPicked || displayIsAnimationPlaying || isGameOver;
           const isThisPressed = pressedChoice === choice;
 
           // If selected, keep it pressed down (translateY: 0), else float up (-6)
           const translateOffset = isSelected ? 0 : (!isDisabled && !isThisPressed ? -6 : 0);
 
           return (
-            <View key={choice} style={styles.choiceWrapper} className={displayHasPicked && !isSelected ? 'opacity-40' : ''}>
+            <View key={choice} style={styles.choiceWrapper} className={(displayHasPicked && !isSelected) || isGameOver ? 'opacity-40' : ''}>
               {/* Button Shadow */}
               <View
                 style={[StyleSheet.absoluteFillObject, { borderRadius: 24 }]}
@@ -307,12 +311,17 @@ export function RockPaperScissorsUI() {
       </View>
 
       <View className="mt-12 w-full items-center">
-        {!displayIsAnimationPlaying && !displayHasPicked && (
+        {isGameOver && (
+          <Text className={`font-black text-lg uppercase tracking-widest ${isWinner ? "text-emerald-400" : "text-red-400"}`}>
+            {isWinner ? "VICTORY! TAP RESTART OR X TO EXIT" : "GAME OVER! TAP RESTART OR X TO EXIT"}
+          </Text>
+        )}
+        {!isGameOver && !displayIsAnimationPlaying && !displayHasPicked && (
           <Text className={`font-black text-sm uppercase tracking-widest ${isDark ? "text-zinc-500" : "text-zinc-600"}`}>
             Waiting for your move...
           </Text>
         )}
-        {!displayIsAnimationPlaying && displayHasPicked && (
+        {!isGameOver && !displayIsAnimationPlaying && displayHasPicked && (
           <Text className="text-yellow-500 font-black text-2xl uppercase tracking-widest">
             READY!
           </Text>
@@ -320,9 +329,30 @@ export function RockPaperScissorsUI() {
       </View>
 
       {/* Animation / Reveal Overlay */}
-      <Modal visible={!!displayIsAnimationPlaying} transparent={true} animationType="fade">
-        <View style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.8)", justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }}>
-          <View className="w-full max-w-sm relative">
+      <Modal
+        visible={!!displayIsAnimationPlaying && !isGameOver}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          if (isPractice) {
+            setLocalGameData((f) => ({ ...f, animationWord: "", reveal: false }));
+          }
+        }}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => {
+            if (isPractice) {
+              setLocalGameData((f) => ({ ...f, animationWord: "", reveal: false }));
+            }
+          }}
+          style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.8)", justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+            className="w-full max-w-sm relative"
+          >
             {/* Overlay Card Shadow */}
             <View
               style={[StyleSheet.absoluteFillObject, { borderRadius: 28 }]}
@@ -436,8 +466,8 @@ export function RockPaperScissorsUI() {
                 </View>
               )}
             </View>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </View>
   );

@@ -1,4 +1,5 @@
 import React from "react";
+import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
@@ -38,7 +39,7 @@ export function AgeGateDenied({
             alignItems: "center",
           }}
         >
-          <Text className="text-6xl mb-4 font-black">🛑</Text>
+          <Ionicons name="ban" size={64} color={isDark ? "#f87171" : "#dc2626"} style={{ marginBottom: 16 }} />
 
           <Text className={`text-3xl font-black ${isDark ? "text-red-400" : "text-red-600"} text-center mb-2 uppercase tracking-tight`}>
             ACCESS DENIED

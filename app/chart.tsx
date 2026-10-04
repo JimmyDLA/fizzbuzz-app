@@ -1,5 +1,4 @@
 import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -11,14 +10,26 @@ import {
   View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
+import { CardAnnouncementPopup } from "../components/CardAnnouncementPopup";
+import { CardAwardPopup } from "../components/CardAwardPopup";
+import { CardDock } from "../components/CardDock";
 import { PracticeModal } from "../components/PracticeModal";
 import { RetroButton } from "../components/RetroButton";
 import { RetroPlayerCard } from "../components/RetroPlayerCard";
-import { colyseusService } from "../store/colyseusService";
 import { SettingsDropdown } from "../components/SettingsDropdown";
+import {
+  FINAL_SPECIALTY_CARDS,
+  SpecialtyCard,
+  SpecialtyCardModal,
+} from "../components/SpecialtyCardModal";
+import { colyseusService } from "../store/colyseusService";
 import { RootState } from "../store/store";
 import { isExpoGo } from "../utils/environment";
-import { playSpinSound, stopSpinSound } from "../utils/sound";
+import {
+  playButtonClickSound,
+  playSpinSound,
+  stopSpinSound,
+} from "../utils/sound";
 
 const TYPES = ["1v1", "2v2", "BR"];
 const CATS = [
@@ -36,6 +47,14 @@ const CATS = [
   "Perfection",
 ];
 
+const DEV_SPECIALTY_CARDS = [
+  { id: "TURBO", name: "TURBO", color: "bg-cyan-400" },
+  { id: "SHIELD", name: "SHIELD", color: "bg-pink-400" },
+  { id: "DOUBLE POINTS", name: "DOUBLE POINTS", color: "bg-amber-400" },
+  { id: "RESPIN", name: "RESPIN", color: "bg-emerald-400" },
+  { id: "WILD CARD", name: "WILD CARD", color: "bg-purple-500" },
+];
+
 export default function ChartScreen() {
   const dispatch = useDispatch();
   const {
@@ -49,6 +68,8 @@ export default function ChartScreen() {
     selectedPlayers,
     theme,
     lastWinners,
+    spinCount,
+    cardAnnouncement,
   } = useSelector((state: RootState) => state.lobby);
 
   const players: any[] = reduxPlayers.length > 0 ? reduxPlayers : [];
@@ -64,8 +85,22 @@ export default function ChartScreen() {
   const [isSpinning, setIsSpinning] = useState(false);
   const [showWheelModal, setShowWheelModal] = useState(false);
   const [showPracticeModal, setShowPracticeModal] = useState(false);
+  const [showSpecialtyModal, setShowSpecialtyModal] = useState(false);
+  const [drawnSpecialtyCard, setDrawnSpecialtyCard] =
+    useState<SpecialtyCard | null>(null);
+
+  const drawRandomSpecialtyCard = () => {
+    playButtonClickSound();
+    const randomIndex = Math.floor(
+      Math.random() * FINAL_SPECIALTY_CARDS.length,
+    );
+    setDrawnSpecialtyCard(FINAL_SPECIALTY_CARDS[randomIndex]);
+    setShowSpecialtyModal(true);
+  };
   const hasSpunRef = useRef(false);
+  const lastSpinCountRef = useRef(0);
   const isLeavingRef = useRef(false);
+  const practiceOpenedAtRef = useRef<number>(0);
   const [animationKey, setAnimationKey] = useState(0);
   const celebratedWinnersRef = useRef<string>("");
 
@@ -93,28 +128,47 @@ export default function ChartScreen() {
   const [devType, setDevType] = useState(TYPES[0]);
   const [devCategory, setDevCategory] = useState(CATS[0]);
   const [devPlayers, setDevPlayers] = useState<string[]>([]);
+  const [devAwardTargetPlayer, setDevAwardTargetPlayer] = useState<string>("");
+  const [devAwardFeedback, setDevAwardFeedback] = useState<string>("");
+
+  const currentGameTypeRef = useRef(currentGameType);
+  const currentCategoryRef = useRef(currentCategory);
+  const selectedPlayersListRef = useRef(selectedPlayersList);
+  const playersRef = useRef(players);
+
+  useEffect(() => {
+    currentGameTypeRef.current = currentGameType;
+    currentCategoryRef.current = currentCategory;
+    selectedPlayersListRef.current = selectedPlayersList;
+    playersRef.current = players;
+  }, [currentGameType, currentCategory, selectedPlayersList, players]);
 
   useEffect(() => {
     let interval: any;
     let timeout: any;
-    let autoDismiss: any;
 
-    if (gamePhase === "wheel" && !hasSpunRef.current) {
+    const isNewSpin =
+      (gamePhase === "wheel" && !hasSpunRef.current) ||
+      (gamePhase === "wheel" && spinCount > lastSpinCountRef.current);
+
+    if (isNewSpin) {
       hasSpunRef.current = true;
+      lastSpinCountRef.current = spinCount;
       setIsSpinning(true);
       setShowWheelModal(true);
       playSpinSound();
 
       let requiredCount = 2;
-      if (currentGameType === "1v1") requiredCount = 2;
-      if (currentGameType === "2v2") requiredCount = 4;
-      if (currentGameType === "BR") requiredCount = players.length;
+      const type = currentGameTypeRef.current;
+      if (type === "1v1") requiredCount = 2;
+      if (type === "2v2") requiredCount = 4;
+      if (type === "BR") requiredCount = playersRef.current.length;
 
       interval = setInterval(() => {
         setDisplayedType(TYPES[Math.floor(Math.random() * TYPES.length)]);
         setDisplayedCategory(CATS[Math.floor(Math.random() * CATS.length)]);
 
-        const randomP = [...players]
+        const randomP = [...playersRef.current]
           .sort(() => 0.5 - Math.random())
           .slice(0, requiredCount)
           .map((p) => p.id);
@@ -123,46 +177,62 @@ export default function ChartScreen() {
 
       timeout = setTimeout(() => {
         clearInterval(interval);
-        setDisplayedType(currentGameType || "?");
-        setDisplayedCategory(currentCategory || "?");
-        setDisplayedPlayers(selectedPlayersList);
+        setDisplayedType(currentGameTypeRef.current || "?");
+        setDisplayedCategory(currentCategoryRef.current || "?");
+        setDisplayedPlayers(selectedPlayersListRef.current);
         setIsSpinning(false);
         stopSpinSound();
       }, 2000);
     } else if (gamePhase !== "wheel") {
       setShowWheelModal(false);
       hasSpunRef.current = false;
+      setIsSpinning(false);
       stopSpinSound();
     }
 
     return () => {
       clearInterval(interval);
       clearTimeout(timeout);
-      clearTimeout(autoDismiss);
-      stopSpinSound();
+      if (gamePhase !== "wheel") {
+        stopSpinSound();
+      }
     };
-  }, [
-    gamePhase,
-    currentGameType,
-    currentCategory,
-    selectedPlayers,
-    players.length,
-  ]);
+  }, [gamePhase, spinCount]);
 
   useEffect(() => {
-    if (isLeavingRef.current) return;
     if (gamePhase === "lobby") {
       router.replace("/lobby");
     } else if (
-      amISelected &&
-      !isReady &&
       (gamePhase === "countdown" ||
         gamePhase === "playing" ||
-        gamePhase === "resolution")
+        gamePhase === "resolution") &&
+      amISelected
     ) {
       router.replace("/game");
     }
-  }, [gamePhase, isReady, amISelected]);
+  }, [gamePhase, amISelected]);
+
+  // Guardrail: Exit practice mode immediately when a NEW RESPIN or WILD CARD is played
+  useEffect(() => {
+    if (
+      showPracticeModal &&
+      cardAnnouncement &&
+      (cardAnnouncement.timestamp || 0) > practiceOpenedAtRef.current &&
+      (cardAnnouncement.cardId === "RESPIN" || cardAnnouncement.cardId === "WILD CARD")
+    ) {
+      setShowPracticeModal(false);
+    }
+  }, [cardAnnouncement, showPracticeModal]);
+
+  // Guardrail: Exit practice mode if wheel starts spinning or lobby transitions to match phase
+  useEffect(() => {
+    if (
+      showPracticeModal &&
+      (isSpinning || gamePhase === "countdown" || gamePhase === "playing")
+    ) {
+      setShowPracticeModal(false);
+    }
+  }, [isSpinning, gamePhase, showPracticeModal]);
 
   const handleReadyToggle = () => {
     colyseusService.sendReady(!isReady);
@@ -191,7 +261,21 @@ export default function ChartScreen() {
     setDevType(TYPES[0]);
     setDevCategory(CATS[0]);
     setDevPlayers([]);
+    setDevAwardTargetPlayer(myPlayer?.id || players[0]?.id || "");
+    setDevAwardFeedback("");
     setShowDevModal(true);
+  };
+
+  const handleDevAwardCard = (cardId: string) => {
+    if (!devAwardTargetPlayer) return;
+    playButtonClickSound();
+    colyseusService.sendDevAwardCard(devAwardTargetPlayer, cardId);
+    const targetPlayerName =
+      players.find((p: any) => p.id === devAwardTargetPlayer)?.name || "Player";
+    setDevAwardFeedback(`Awarded ${cardId} to ${targetPlayerName}!`);
+    setTimeout(() => {
+      setDevAwardFeedback("");
+    }, 2500);
   };
 
   const toggleDevPlayer = (id: string) => {
@@ -491,6 +575,48 @@ export default function ChartScreen() {
         </View>
       )}
 
+      {gamePhase !== "chart" && !amISelected && (
+        <View className="pb-10 pt-4 w-full px-6">
+          <View className="relative w-full mb-4">
+            <View
+              style={[
+                StyleSheet.absoluteFillObject,
+                { borderRadius: 24, top: 4, left: 4 },
+              ]}
+              className={isDark ? "bg-white" : "bg-black"}
+            />
+            <View
+              style={{
+                borderRadius: 24,
+                borderWidth: 4,
+                borderColor: isDark ? "#ffffff" : "#000000",
+                padding: 20,
+                alignItems: "center",
+              }}
+              className={isDark ? "bg-zinc-800" : "bg-yellow-300"}
+            >
+              <Text
+                className={`text-xs font-black uppercase tracking-widest mb-1 ${isDark ? "text-yellow-400" : "text-black/60"}`}
+              >
+                {currentGameType} MATCH IN PROGRESS
+              </Text>
+              <Text
+                className={`text-2xl font-black uppercase text-center tracking-wider ${isDark ? "text-white" : "text-black"}`}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {currentCategory}
+              </Text>
+              <Text
+                className={`text-xs font-bold uppercase tracking-wide text-center mt-2 ${isDark ? "text-zinc-400" : "text-black/70"}`}
+              >
+                WAITING IN CHART LOBBY...
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
+
       {showWheelModal && (
         <View
           style={StyleSheet.absoluteFillObject}
@@ -624,7 +750,11 @@ export default function ChartScreen() {
                     <RetroButton
                       title="Try It"
                       variant="success"
-                      onPress={() => setShowPracticeModal(true)}
+                      size="md"
+                      onPress={() => {
+                        practiceOpenedAtRef.current = Date.now();
+                        setShowPracticeModal(true);
+                      }}
                       style={{ flex: 1 }}
                     />
                     <RetroButton
@@ -771,6 +901,81 @@ export default function ChartScreen() {
                   onPress={() => setShowDevModal(false)}
                 />
               </View>
+
+              {/* Specialty Card Award Section */}
+              <View className="border-t-2 border-white/10 pt-6 mb-8">
+                <Text className="text-yellow-400 font-black text-xl tracking-widest mb-3 ml-2 uppercase">
+                  AWARD SPECIALTY CARD
+                </Text>
+
+                <Text className="text-white font-black opacity-80 text-xs tracking-wider mb-2 ml-2 uppercase">
+                  1. SELECT RECIPIENT:
+                </Text>
+                <View className="flex-row flex-wrap gap-2 mb-4">
+                  {players.map((p: any) => {
+                    const isTarget = devAwardTargetPlayer === p.id;
+                    return (
+                      <Pressable
+                        key={p.id}
+                        onPress={() => {
+                          playButtonClickSound();
+                          setDevAwardTargetPlayer(p.id);
+                        }}
+                        style={{
+                          borderWidth: 3,
+                          borderColor: "#000000",
+                          borderRadius: 16,
+                          paddingHorizontal: 14,
+                          paddingVertical: 6,
+                        }}
+                        className={isTarget ? "bg-amber-400" : "bg-zinc-700"}
+                      >
+                        <Text
+                          className={`font-black text-xs uppercase ${isTarget ? "text-black" : "text-white"}`}
+                        >
+                          {p.name} {p.id === myPlayer?.id ? "(YOU)" : ""}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                <Text className="text-white font-black opacity-80 text-xs tracking-wider mb-2 ml-2 uppercase">
+                  2. CHOOSE CARD TO AWARD:
+                </Text>
+                <View className="flex-row flex-wrap gap-2 mb-3">
+                  {DEV_SPECIALTY_CARDS.map((card) => (
+                    <Pressable
+                      key={card.id}
+                      onPress={() => handleDevAwardCard(card.id)}
+                      style={{
+                        borderWidth: 3,
+                        borderColor: "#000000",
+                        borderRadius: 14,
+                        paddingVertical: 10,
+                        paddingHorizontal: 12,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minWidth: "48%",
+                        flexGrow: 1,
+                      }}
+                      className={card.color}
+                    >
+                      <Text className="font-black text-black text-xs uppercase tracking-wider text-center">
+                        + {card.name}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+                {devAwardFeedback ? (
+                  <View className="bg-emerald-500/20 border-2 border-emerald-400 rounded-xl p-2.5 items-center mt-2">
+                    <Text className="text-emerald-300 font-black text-xs uppercase tracking-wider text-center">
+                      {devAwardFeedback}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
             </ScrollView>
           </View>
         </View>
@@ -778,10 +983,49 @@ export default function ChartScreen() {
 
       {showPracticeModal && (
         <PracticeModal
-          category={displayedCategory}
+          category={currentCategory || displayedCategory}
           onClose={() => setShowPracticeModal(false)}
         />
       )}
+
+      {/* Temp Floating Action Button to Draw Random Specialty Card */}
+      {/* <View style={{ position: "absolute", bottom: 28, right: 20, zIndex: 9999 }}>
+        <TouchableOpacity
+          onPress={drawRandomSpecialtyCard}
+          style={{
+            backgroundColor: "#f59e0b",
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            borderRadius: 30,
+            borderWidth: 3,
+            borderColor: "#000000",
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 4,
+            elevation: 8,
+          }}
+        >
+          <Ionicons name="card" size={20} color="#000000" />
+          <Text className="font-black text-black text-xs uppercase tracking-wider">
+            SPECIALTY CARD
+          </Text>
+        </TouchableOpacity>
+      </View> */}
+
+      <SpecialtyCardModal
+        visible={showSpecialtyModal}
+        card={drawnSpecialtyCard}
+        onClose={() => setShowSpecialtyModal(false)}
+        onDrawNew={drawRandomSpecialtyCard}
+      />
+
+      <CardDock />
+      <CardAwardPopup />
+      <CardAnnouncementPopup />
     </View>
   );
 }

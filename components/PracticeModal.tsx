@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
@@ -24,11 +24,12 @@ export function PracticeModal({
   category: string;
   onClose: () => void;
 }) {
+  const activeCategory = useRef(category).current;
   const practiceState = useSelector((state: any) => state.lobby.practiceState);
   const playerName = useSelector((state: any) => state.lobby.playerName);
 
   useEffect(() => {
-    colyseusService.joinPractice(category, playerName);
+    colyseusService.joinPractice(activeCategory, playerName);
     return () => {
       colyseusService.leavePractice();
     };
@@ -37,14 +38,14 @@ export function PracticeModal({
   const handleRestart = async () => {
     colyseusService.leavePractice();
     try {
-      await colyseusService.joinPractice(category, playerName);
+      await colyseusService.joinPractice(activeCategory, playerName);
     } catch (e) {
       console.error("Failed to restart practice:", e);
     }
   };
 
   const renderMiniGame = () => {
-    switch (category) {
+    switch (activeCategory) {
       case "Tapping Race":
         return <TappingRaceUI />;
       case "Math Problem":
@@ -84,7 +85,7 @@ export function PracticeModal({
           <Text className="text-white text-3xl font-black italic tracking-widest text-emerald-400">
             PRACTICE
           </Text>
-          <Text className="text-white/60 font-bold uppercase">{category}</Text>
+          <Text className="text-white/60 font-bold uppercase">{activeCategory}</Text>
         </View>
         <View className="flex-row items-center gap-3">
           <TouchableOpacity
