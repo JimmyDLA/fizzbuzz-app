@@ -69,6 +69,7 @@ export default function ChartScreen() {
     theme,
     lastWinners,
     spinCount,
+    cardAnnouncement,
   } = useSelector((state: RootState) => state.lobby);
 
   const players: any[] = reduxPlayers.length > 0 ? reduxPlayers : [];
@@ -99,6 +100,7 @@ export default function ChartScreen() {
   const hasSpunRef = useRef(false);
   const lastSpinCountRef = useRef(0);
   const isLeavingRef = useRef(false);
+  const practiceOpenedAtRef = useRef<number>(0);
   const [animationKey, setAnimationKey] = useState(0);
   const celebratedWinnersRef = useRef<string>("");
 
@@ -209,6 +211,28 @@ export default function ChartScreen() {
       router.replace("/game");
     }
   }, [gamePhase, amISelected]);
+
+  // Guardrail: Exit practice mode immediately when a NEW RESPIN or WILD CARD is played
+  useEffect(() => {
+    if (
+      showPracticeModal &&
+      cardAnnouncement &&
+      (cardAnnouncement.timestamp || 0) > practiceOpenedAtRef.current &&
+      (cardAnnouncement.cardId === "RESPIN" || cardAnnouncement.cardId === "WILD CARD")
+    ) {
+      setShowPracticeModal(false);
+    }
+  }, [cardAnnouncement, showPracticeModal]);
+
+  // Guardrail: Exit practice mode if wheel starts spinning or lobby transitions to match phase
+  useEffect(() => {
+    if (
+      showPracticeModal &&
+      (isSpinning || gamePhase === "countdown" || gamePhase === "playing")
+    ) {
+      setShowPracticeModal(false);
+    }
+  }, [isSpinning, gamePhase, showPracticeModal]);
 
   const handleReadyToggle = () => {
     colyseusService.sendReady(!isReady);
@@ -727,7 +751,10 @@ export default function ChartScreen() {
                       title="Try It"
                       variant="success"
                       size="md"
-                      onPress={() => setShowPracticeModal(true)}
+                      onPress={() => {
+                        practiceOpenedAtRef.current = Date.now();
+                        setShowPracticeModal(true);
+                      }}
                       style={{ flex: 1 }}
                     />
                     <RetroButton
@@ -956,7 +983,7 @@ export default function ChartScreen() {
 
       {showPracticeModal && (
         <PracticeModal
-          category={displayedCategory}
+          category={currentCategory || displayedCategory}
           onClose={() => setShowPracticeModal(false)}
         />
       )}

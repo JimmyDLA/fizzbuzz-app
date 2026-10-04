@@ -1,12 +1,12 @@
 import * as Haptics from "expo-haptics";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Modal,
 } from "react-native";
 import { useSelector } from "react-redux";
 import { RootState } from "../../store/store";
@@ -56,7 +56,14 @@ export function TriviaUI() {
   }, [gameData.isTransitioning, gameData.gameOver, gameData.index]);
 
   const handleAnswer = (opt: string, idx: number) => {
-    if (gameData.gameOver || localTransitioning || gameData.isTransitioning || gameData.isLockedOut) return;
+    if (
+      (timer !== undefined && timer <= 0) ||
+      gameData.gameOver ||
+      localTransitioning ||
+      gameData.isTransitioning ||
+      gameData.isLockedOut
+    )
+      return;
     playButtonClickSound();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     sendAction({ action: "answer", answer: opt });
@@ -79,9 +86,12 @@ export function TriviaUI() {
           textShadowRadius: 0,
         }}
       >
-        {gameData.gameOver || (gameData.total && (gameData.index ?? 0) >= gameData.total)
+        {gameData.gameOver ||
+        (gameData.total && (gameData.index ?? 0) >= gameData.total)
           ? "Done!"
-          : `TRIVIA RACE! (${(gameData.index ?? 0) + 1}/${gameData.total || 5})`}
+          : timer !== undefined && timer <= 0
+            ? "Time's Up!"
+            : `TRIVIA RACE! (${(gameData.index ?? 0) + 1}/${gameData.total || 5})`}
       </Text>
 
       {/* Question Card */}
@@ -125,9 +135,12 @@ export function TriviaUI() {
         <View className="w-full  gap-2 p-1">
           {gameData.options?.map((opt: string, idx: number) => {
             const isLocked = gameData.isLockedOut;
-            const isTransitioning = localTransitioning || gameData.isTransitioning;
+            const isTransitioning =
+              localTransitioning || gameData.isTransitioning;
             const isGameOver = gameData.gameOver;
-            const isDisabled = isLocked || isTransitioning || isGameOver;
+            const isTimeUp = timer !== undefined && timer <= 0;
+            const isDisabled =
+              isLocked || isTransitioning || isGameOver || isTimeUp;
             const isCorrect = isGameOver && opt === gameData.correctAnswer;
             const color = colors[idx % colors.length];
             const isThisPressed = pressedIdx === idx;
@@ -137,8 +150,8 @@ export function TriviaUI() {
               ? isCorrect
                 ? "bg-emerald-400"
                 : isDark
-                ? "bg-zinc-700 opacity-50"
-                : "bg-zinc-300 opacity-50"
+                  ? "bg-zinc-700 opacity-50"
+                  : "bg-zinc-300 opacity-50"
               : color.bg;
 
             return (
@@ -188,11 +201,14 @@ export function TriviaUI() {
           })}
         </View>
 
-        {gameData.isLockedOut && !localTransitioning && !gameData.isTransitioning && !gameData.gameOver && (
-          <Text className="text-red-500 font-black text-lg mt-6 tracking-widest text-center uppercase">
-            Waiting for someone to get it right...
-          </Text>
-        )}
+        {gameData.isLockedOut &&
+          !localTransitioning &&
+          !gameData.isTransitioning &&
+          !gameData.gameOver && (
+            <Text className="text-red-500 font-black text-lg mt-6 tracking-widest text-center uppercase">
+              Waiting for someone to get it right...
+            </Text>
+          )}
       </ScrollView>
 
       {/* Transition Modal overlay */}
@@ -205,7 +221,13 @@ export function TriviaUI() {
         <TouchableOpacity
           activeOpacity={1}
           onPress={() => setLocalTransitioning(false)}
-          style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.75)", justifyContent: "center", alignItems: "center", paddingHorizontal: 24 }}
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0, 0, 0, 0.75)",
+            justifyContent: "center",
+            alignItems: "center",
+            paddingHorizontal: 24,
+          }}
         >
           {(() => {
             const hasWinner =

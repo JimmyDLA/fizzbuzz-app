@@ -436,7 +436,7 @@ export default function GameScreen() {
                 className="bg-rose-400"
               >
                 <Text className="text-black font-black text-base font-mono">
-                  {timer}
+                  {Math.max(0, timer)}
                 </Text>
               </View>
             </View>

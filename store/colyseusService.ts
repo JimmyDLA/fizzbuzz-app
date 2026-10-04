@@ -102,6 +102,9 @@ export const colyseusService = {
 
     room.onMessage("CardUsedEvent", (event: any) => {
       console.log(`[SpecialtyCard] CardUsedEvent:`, event);
+      if (event.cardId === "RESPIN" || event.cardId === "WILD CARD") {
+        this.leavePractice();
+      }
       store.dispatch(setCardAnnouncement({
         cardId: event.cardId,
         playerName: event.playerName,
@@ -123,6 +126,7 @@ export const colyseusService = {
 
     room.onMessage("SpinWheelEvent", (event: any) => {
       console.log(`[SpecialtyCard] SpinWheelEvent:`, event);
+      this.leavePractice();
       if (event.type) store.dispatch(setGameType(event.type));
       if (event.category) store.dispatch(setGameCategory(event.category));
       if (event.selectedPlayers) store.dispatch(setSelectedPlayers(event.selectedPlayers));
