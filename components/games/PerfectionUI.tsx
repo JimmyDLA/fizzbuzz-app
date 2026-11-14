@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View, type ViewInstance } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { playNegativeSound, playPapSound } from "../../utils/sound";
 import { useGameData } from "./useGameData";
@@ -250,8 +250,8 @@ export function PerfectionUI() {
   const [draggingShape, setDraggingShape] = useState<number | null>(null);
   const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
 
-  const boardRef = useRef<View>(null);
-  const containerRef = useRef<View>(null);
+  const boardRef = useRef<ViewInstance>(null);
+  const containerRef = useRef<ViewInstance>(null);
   const [containerPagePos, setContainerPagePos] = useState({ x: 0, y: 0 });
   const dragPosRef = useRef({ x: 0, y: 0 });
 

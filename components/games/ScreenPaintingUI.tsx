@@ -4,6 +4,7 @@ import {
   Path,
   Skia,
   SkPath,
+  type SkPathBuilder,
   StrokeCap,
   StrokeJoin,
 } from "@shopify/react-native-skia";
@@ -43,7 +44,7 @@ export function ScreenPaintingUI() {
 
   const [paths, setPaths] = useState<SkPath[]>([]);
   const pathsRef = useRef<SkPath[]>([]);
-  const currentPath = useRef<SkPath | null>(null);
+  const currentBuilder = useRef<SkPathBuilder | null>(null);
   const lastCheckTime = useRef<number>(0);
   const lastDrawTime = useRef<number>(0);
   const isFinished = useRef(false);
@@ -155,11 +156,6 @@ export function ScreenPaintingUI() {
           }
         });
 
-        // If there's an active path being drawn, include it (if not already in pathsToDraw)
-        if (currentPath.current && !pathsToDraw.includes(currentPath.current)) {
-          smallCanvas.drawPath(currentPath.current, paint);
-        }
-
         smallCanvas.restore();
 
         // 4. Analyze pixels
@@ -216,21 +212,28 @@ export function ScreenPaintingUI() {
     .minDistance(0)
     .onStart((e) => {
       if (isFinished.current || gameData.finished) return;
-      const path = Skia.Path.Make();
-      path.moveTo(e.x, e.y);
-      currentPath.current = path;
-      updatePaths((prev) => [...prev, path]);
+      const builder = Skia.PathBuilder.Make();
+      builder.moveTo(e.x, e.y);
+      currentBuilder.current = builder;
+      const initialPath = builder.build();
+      updatePaths((prev) => [...prev, initialPath]);
     })
     .onUpdate((e) => {
-      if (isFinished.current || gameData.finished || !currentPath.current)
+      if (isFinished.current || gameData.finished || !currentBuilder.current)
         return;
-      currentPath.current.lineTo(e.x, e.y);
+      currentBuilder.current.lineTo(e.x, e.y);
+      const updatedPath = currentBuilder.current.build();
 
       const now = Date.now();
       // Draw smoothly at ~60fps (16ms throttle)
       if (now - lastDrawTime.current > 16) {
         lastDrawTime.current = now;
-        updatePaths((prev) => [...prev]);
+        updatePaths((prev) => {
+          if (prev.length === 0) return [updatedPath];
+          const next = [...prev];
+          next[next.length - 1] = updatedPath;
+          return next;
+        });
       }
 
       // Periodically check coverage during drawing (every 500ms)
@@ -241,9 +244,15 @@ export function ScreenPaintingUI() {
     })
     .onEnd(() => {
       if (isFinished.current || gameData.finished) return;
-      if (currentPath.current) {
-        currentPath.current = null;
-        updatePaths((prev) => [...prev]);
+      if (currentBuilder.current) {
+        const finalPath = currentBuilder.current.detach();
+        currentBuilder.current = null;
+        updatePaths((prev) => {
+          if (prev.length === 0) return [finalPath];
+          const next = [...prev];
+          next[next.length - 1] = finalPath;
+          return next;
+        });
         checkCoverage(pathsRef.current);
       }
     });
