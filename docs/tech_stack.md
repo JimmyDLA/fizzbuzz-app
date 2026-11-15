@@ -32,7 +32,7 @@ FizzBuzz is architected around a client-server model optimized for low-latency, 
 |                                                                         |
 |  +-------------------------------------------------------------------+  |
 |  |                    Colyseus 0.17 Game Server                      |  |
-|  |   - WebSocketTransport (5s Ping, 90s Disconnect Grace Window)     |  |
+|  |   - WebSocketTransport (5s Ping, 120s Disconnect Grace Window)    |  |
 |  |   - Express 5.2 HTTP Interface + CORS Protection                  |  |
 |  +-------------------------------------------------------------------+  |
 |  +-----------------------------------+  +----------------------------+  |
@@ -138,7 +138,7 @@ The backend server is an authoritative, real-time WebSocket cluster responsible 
   - Manages player connections, readiness states, and host assignments.
   - Controls phases: `lobby` -> `chart` -> `wheel` -> `countdown` -> `playing` -> `resolution`.
   - Disconnect handling: preserves player statistics in cache during temporary disconnects (120-second grace window), allowing players to rejoin seamlessly without losing scores, drink counts, or specialty cards.
-  - Dynamic host handoff: automatically transfers host status if the active host disconnects.
+  - Dynamic host handoff: immediately transfers host status to the next player by join order when the active host drops.
   - Match survival logic: in Battle Royale mode with 2 or more active connected players, matches continue uninterrupted when a participant leaves; in 1v1, 2v2, or when fewer than 2 players remain, rooms safely abort to the chart lobby.
 - **`src/rooms/PracticeRoom.ts`**: Isolated sandbox for players to practice any mini-game together without affecting leaderboard scores or drinking penalties.
 - **`src/rooms/schema/LobbyState.ts`**: Colyseus state schema syncing:
@@ -166,9 +166,9 @@ Active mini-games include:
 3. **Math Problem**: Dynamic arithmetic equation solver with answer elimination.
 4. **Hot Potato**: Random potato assignment with pass mechanics and explosive end timers.
 5. **Lumber Cut**: Cooperative 2-player saw rhythm mechanics for 2v2 and solo cutting for BR.
-6. **Rock Paper Scissors**: Simultaneous reveal match with animated shoot countdown and tiebreaker rounds.
+6. **Rock Paper Scissors**: Simultaneous reveal match with animated shoot countdown and sudden-death tiebreaker rounds (tied rounds give no score and no drink).
 7. **Cyclone**: Arcade timing challenge measuring distance from the bullseye.
-8. **Balloon Inflate**: Risk-reward pumping mechanics with air leak decay and explosion thresholds.
+8. **Balloon Inflate**: Reach 100% to win, with air leak decay.
 9. **Simon Says**: Sequence memorization with progressive speed curves and elimination rules.
 10. **Scrabble**: Anagram and word assembly validated against `an-array-of-english-words` (`^2.0.0`).
 11. **Screen Painting**: Canvas coverage competition with real-time percentage thresholds.
@@ -176,12 +176,12 @@ Active mini-games include:
 
 ### 3.4 Specialty Card Engine
 
-The server implements game theory card mechanics awarded every 3 rounds or via underdog boosts:
+The server implements game theory card mechanics awarded every 3 rounds, with the rarest card going to the player in last place (hand limit: 2 cards per player):
 - **Respin**: Forces the wheel to redraw category and mode.
 - **Shield**: Protects the player from drinking penalties on loss.
-- **Turbo**: Grants a 1.5x efficiency boost or bonus points in applicable games.
+- **Turbo**: Grants a 1.5x efficiency boost or tap multiplier in applicable games. In Math and Trivia, Turbo gives +1 point instead of 1.5x.
 - **Double Points**: Multiplies round victory score from +3 to +6.
-- **Wild Card**: Allows manual selection of the next mini-game and game mode.
+- **Wild Card**: Allows manual selection of the next mini-game, game mode, and participating players.
 
 ---
 

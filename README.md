@@ -1,6 +1,9 @@
-# Welcome to your Expo app 👋
+# FizzBuzz Mobile Client
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A real-time multiplayer party game that everyone can join from their smartphone to compete in random mini-game drinking games. Inspired by a mix of Mario Party's mini-games and classic house party drinking games.
+
+For full gameplay rules, game modes, and mini-game guides, see [HOW_TO_PLAY.md](file:///Users/jimmydla/Code/fizzbuzz/HOW_TO_PLAY.md).
+For architecture, dependencies, and framework specifications, see [TECH_STACK.md](file:///Users/jimmydla/Code/fizzbuzz/TECH_STACK.md).
 
 ## Get started
 
@@ -10,18 +13,15 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npm install
    ```
 
-2. Start the app
+2. Create a development build. Because the app uses custom native config plugins (e.g. `plugins/withDeferGestures.js`) and react-native-gesture-handler, **Expo Go cannot be used**. You must use a **Development Build**:
 
    ```bash
-   npx expo start
+   # Start iOS Simulator build
+   npx expo run:ios
+
+   # Start Android Emulator build
+   npx expo run:android
    ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 

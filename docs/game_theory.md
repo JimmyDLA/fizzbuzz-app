@@ -35,7 +35,7 @@ graph TD
 - **The Theory:** Two or more players head toward a disastrous event. The first to pull away or yield loses prestige, but if no one yields, everyone suffers a major crash.
 - **The FizzBuzz Application (Balloon Inflate):**
   - This is currently implemented in our [BalloonInflateUI.tsx](file:///Users/jimmydla/Code/fizzbuzz/components/games/BalloonInflateUI.tsx) mini-game!
-  - Players must continuously pump their balloon. The closer they get to 100% capacity without bursting, the higher their score. The player who bursts their balloon takes a massive drink.
+  - Players must continuously pump their balloon. Reaching 100% wins. If time expires first, the biggest balloon wins.
 - **How to Maximize this Engagement:**
   - **Tactile Escalation:** Utilize accelerating haptic vibrations via `expo-haptics` as the balloon exceeds 80%.
   - **High Visual Stakes:** Introduce a random "Turbo Mode" where a single pump might inflate the balloon by double its size, rapidly escalating the risk profile.
