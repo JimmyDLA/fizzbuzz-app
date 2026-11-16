@@ -4,6 +4,7 @@ import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import { Provider } from "react-redux";
+import { CardErrorToast } from "../components/CardErrorToast";
 import "../global.css";
 import { store } from "../store/store";
 
@@ -27,6 +28,7 @@ export default function RootLayout() {
           <Stack.Screen name="chart" />
           <Stack.Screen name="game" />
         </Stack>
+        <CardErrorToast />
         <StatusBar style="auto" />
       </Provider>
     </GestureHandlerRootView>

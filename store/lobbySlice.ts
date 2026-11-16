@@ -4,6 +4,16 @@ export interface PendingCardAward {
   cardId: string;
   reason: string;
   message: string;
+  /** Round stamped on the award. Absent on older servers. */
+  earnedRound?: number;
+}
+
+export interface CardErrorNotice {
+  cardId: string;
+  code: string;
+  message: string;
+  earnedRound?: number;
+  id: number;
 }
 
 export interface CardAnnouncement {
@@ -35,6 +45,9 @@ const initialState = {
   isMusicOn: false,
   pendingCardAward: null as PendingCardAward | null,
   cardAnnouncement: null as CardAnnouncement | null,
+  cardError: null as CardErrorNotice | null,
+  /** LobbyState.roundCount. 0 until the server sends it. */
+  roundCount: 0,
   spinCount: 0,
 };
 
@@ -111,6 +124,21 @@ export const lobbySlice = createSlice({
     clearCardAnnouncement: (state) => {
       state.cardAnnouncement = null;
     },
+    setCardError: (
+      state,
+      action: { payload: Omit<CardErrorNotice, "id"> },
+    ) => {
+      state.cardError = {
+        ...action.payload,
+        id: (state.cardError?.id ?? 0) + 1,
+      };
+    },
+    clearCardError: (state) => {
+      state.cardError = null;
+    },
+    setRoundCount: (state, action) => {
+      state.roundCount = action.payload;
+    },
     incrementSpinCount: (state) => {
       state.spinCount += 1;
     },
@@ -141,6 +169,9 @@ export const {
   clearPendingCardAward,
   setCardAnnouncement,
   clearCardAnnouncement,
+  setCardError,
+  clearCardError,
+  setRoundCount,
   incrementSpinCount,
 } = lobbySlice.actions;
 export default lobbySlice.reducer;

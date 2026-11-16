@@ -14,6 +14,7 @@ import type { SpecialtyCardType } from "../constants/specialtyCards";
 import { getCardConfig } from "../constants/specialtyCards";
 import { clearPendingCardAward } from "../store/lobbySlice";
 import { RootState } from "../store/store";
+import { currentRound, USABLE_NEXT_ROUND_HINT } from "../utils/cardRound";
 import { playButtonClickSound } from "../utils/sound";
 import { SpecialtyCard } from "./SpecialtyCard";
 
@@ -22,6 +23,11 @@ export function CardAwardPopup() {
   const pendingCardAward = useSelector(
     (state: RootState) => state.lobby.pendingCardAward,
   );
+  const gamePhase = useSelector((state: RootState) => state.lobby.gamePhase);
+  const roundCount = useSelector((state: RootState) => state.lobby.roundCount);
+  const showLockedHint =
+    typeof pendingCardAward?.earnedRound === "number" &&
+    pendingCardAward.earnedRound >= currentRound(gamePhase, roundCount);
 
   // Animation values
   const backdropOpacity = useRef(new Animated.Value(0)).current;
@@ -246,6 +252,11 @@ export function CardAwardPopup() {
 
         {/* Claim button */}
         <Animated.View style={{ opacity: buttonOpacity, marginTop: 20 }}>
+          {showLockedHint && (
+            <View style={styles.lockedHint}>
+              <Text style={styles.lockedHintText}>{USABLE_NEXT_ROUND_HINT}</Text>
+            </View>
+          )}
           <TouchableOpacity
             onPress={handleClaim}
             style={[styles.claimButton, { backgroundColor: config.hexColor }]}
@@ -333,6 +344,24 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textAlign: "center",
     marginTop: 4,
+  },
+  lockedHint: {
+    alignSelf: "center",
+    marginBottom: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 3,
+    borderColor: "#000000",
+    backgroundColor: "#FBBF24",
+  },
+  lockedHintText: {
+    color: "#000000",
+    fontWeight: "900",
+    fontSize: 12,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+    textAlign: "center",
   },
   claimButton: {
     paddingHorizontal: 40,

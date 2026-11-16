@@ -8,10 +8,18 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { getCardConfig, SpecialtyCardType } from "../constants/specialtyCards";
 import { colyseusService } from "../store/colyseusService";
+import { setCardError } from "../store/lobbySlice";
 import { RootState } from "../store/store";
+import {
+  EARNED_THIS_ROUND_MESSAGE,
+  hasUsableCopy,
+  isCardLockedThisRound,
+  readEarnedRounds,
+  USABLE_NEXT_ROUND_HINT,
+} from "../utils/cardRound";
 import { playButtonClickSound } from "../utils/sound";
 import { RetroButton } from "./RetroButton";
 import { SpecialtyCard } from "./SpecialtyCard";
@@ -55,14 +63,24 @@ export function CardDock() {
     currentCategory,
     lastLosers,
     pendingCardAward,
+    roundCount,
   } = useSelector((state: RootState) => state.lobby);
-  const theme = useSelector((state: RootState) => state.lobby.theme) || "light";
-  const isDark = theme === "dark";
+  const dispatch = useDispatch();
 
   const myPlayer = players.find((p: any) => p.name === playerName);
   const myCards: string[] = myPlayer?.cards || [];
+  const earnedRounds = readEarnedRounds(myPlayer?.earnedRounds);
 
-  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(
+    null,
+  );
+  const [trackedHandLength, setTrackedHandLength] = useState(myCards.length);
+  if (trackedHandLength !== myCards.length) {
+    setTrackedHandLength(myCards.length);
+    if (selectedCardIndex != null && selectedCardIndex >= myCards.length) {
+      setSelectedCardIndex(null);
+    }
+  }
   const [showWildModal, setShowWildModal] = useState(false);
   const [showShieldModal, setShowShieldModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(ALL_CATEGORIES[0]);
@@ -74,14 +92,35 @@ export function CardDock() {
 
   if (!myPlayer) return null;
 
+  const selectedCardId =
+    selectedCardIndex != null ? myCards[selectedCardIndex] : undefined;
+
+  const notifyEarnedThisRound = (cardId: string) => {
+    dispatch(
+      setCardError({
+        cardId,
+        code: "earned_this_round",
+        message: EARNED_THIS_ROUND_MESSAGE,
+      }),
+    );
+  };
+
+  const cardIsLocked = (index: number) =>
+    isCardLockedThisRound(earnedRounds, index, gamePhase, roundCount);
+
   // Hand Overflow Prompt (Max 2 cards) - only show when no pending card award popup is open
   const isOverflow = myCards.length > 2 && !pendingCardAward;
   const myDrinkCount = myPlayer
     ? (lastLosers || []).filter((id: string) => id === myPlayer.id).length
     : 0;
 
-  const handleUseCard = (cardId: string) => {
+  const handleUseCard = (cardId: string, index: number) => {
     playButtonClickSound();
+    if (cardIsLocked(index)) {
+      notifyEarnedThisRound(cardId);
+      setSelectedCardIndex(null);
+      return;
+    }
     const cardKey = cardId.toLowerCase().replace(/\s+/g, "_");
 
     if (cardKey === "wild_card" || cardKey === "wildcard") {
@@ -91,7 +130,7 @@ export function CardDock() {
       setSelectedType("1v1");
       setSelectedCategory(ALL_CATEGORIES[0]);
       setActiveAccordion("type");
-      setSelectedCardId(null);
+      setSelectedCardIndex(null);
       setShowWildModal(true);
       return;
     }
@@ -101,14 +140,14 @@ export function CardDock() {
       if (!amILoser && gamePhase === "resolution") {
         return;
       }
-      setSelectedCardId(null);
+      setSelectedCardIndex(null);
       setShowShieldModal(true);
       return;
     }
 
     // Direct activation for TURBO, DOUBLE POINTS, RESPIN
     colyseusService.useCard(cardId);
-    setSelectedCardId(null);
+    setSelectedCardIndex(null);
   };
 
   const handleSelectType = (type: string) => {
@@ -181,31 +220,48 @@ export function CardDock() {
   const handleConfirmWildCard = () => {
     if (!isWildPlayerCountValid()) return;
     playButtonClickSound();
+    if (
+      !hasUsableCopy(myCards, earnedRounds, "wild_card", gamePhase, roundCount)
+    ) {
+      notifyEarnedThisRound("WILD CARD");
+      setShowWildModal(false);
+      return;
+    }
     colyseusService.useCard("WILD CARD", {
       category: selectedCategory,
       type: selectedType,
       selectedPlayers: selectedWildPlayers,
     });
     setShowWildModal(false);
-    setSelectedCardId(null);
+    setSelectedCardIndex(null);
   };
 
   const handleConfirmShield = (targetPlayerId: string) => {
     playButtonClickSound();
+    if (!hasUsableCopy(myCards, earnedRounds, "shield", gamePhase, roundCount)) {
+      notifyEarnedThisRound("SHIELD");
+      setShowShieldModal(false);
+      return;
+    }
     colyseusService.useCard("SHIELD", { targetPlayerId });
     setShowShieldModal(false);
-    setSelectedCardId(null);
+    setSelectedCardIndex(null);
   };
 
   const handleDiscard = (cardIndex: number) => {
     playButtonClickSound();
     colyseusService.discardCard(cardIndex);
-    setSelectedCardId(null);
+    setSelectedCardIndex(null);
   };
 
   const checkCardStatus = (
     cardId: string,
-  ): { playable: boolean; reason?: string } => {
+    index: number,
+  ): { playable: boolean; locked: boolean; reason?: string } => {
+    if (cardIsLocked(index)) {
+      return { playable: false, locked: true, reason: USABLE_NEXT_ROUND_HINT };
+    }
+
     const norm = cardId.toLowerCase().replace(/\s+/g, "_");
 
     if (
@@ -213,60 +269,85 @@ export function CardDock() {
       gamePhase !== "chart" &&
       gamePhase !== "resolution"
     ) {
-      return { playable: false, reason: "Cards cannot be used right now" };
+      return {
+        playable: false,
+        locked: false,
+        reason: "Cards cannot be used right now",
+      };
     }
 
     if (norm === "respin" || norm === "wild_card") {
       if (gamePhase === "wheel" || gamePhase === "chart") {
-        return { playable: true };
+        return { playable: true, locked: false };
       }
-      return { playable: false, reason: "Only playable during Wheel Phase" };
+      return {
+        playable: false,
+        locked: false,
+        reason: "Only playable during Wheel Phase",
+      };
     }
 
     if (norm === "turbo") {
       if (gamePhase !== "wheel" && gamePhase !== "chart") {
-        return { playable: false, reason: "Only playable during Wheel Phase" };
+        return {
+          playable: false,
+          locked: false,
+          reason: "Only playable during Wheel Phase",
+        };
       }
       if (!selectedPlayers.includes(myPlayer.id)) {
         return {
           playable: false,
+          locked: false,
           reason: "You are not participating in this minigame",
         };
       }
       if (EXCLUDED_TURBO_GAMES.includes(currentCategory)) {
         return {
           playable: false,
+          locked: false,
           reason: "Turbo cannot be used for this minigame",
         };
       }
-      return { playable: true };
+      return { playable: true, locked: false };
     }
 
     if (norm === "double_points") {
       if (gamePhase !== "wheel" && gamePhase !== "chart") {
-        return { playable: false, reason: "Only playable during Wheel Phase" };
+        return {
+          playable: false,
+          locked: false,
+          reason: "Only playable during Wheel Phase",
+        };
       }
       if (!selectedPlayers.includes(myPlayer.id)) {
         return {
           playable: false,
+          locked: false,
           reason: "You are not participating in this minigame",
         };
       }
-      return { playable: true };
+      return { playable: true, locked: false };
     }
 
     if (norm === "shield") {
       if (gamePhase === "resolution" && lastLosers.includes(myPlayer.id)) {
-        return { playable: true };
+        return { playable: true, locked: false };
       }
       return {
         playable: false,
+        locked: false,
         reason: "Only playable when receiving a drink penalty",
       };
     }
 
-    return { playable: false };
+    return { playable: false, locked: false };
   };
+
+  const selectedStatus =
+    selectedCardId != null && selectedCardIndex != null
+      ? checkCardStatus(selectedCardId, selectedCardIndex)
+      : null;
 
   const availableCategories =
     selectedType === "2v2"
@@ -275,9 +356,11 @@ export function CardDock() {
 
   return (
     <>
-      {/* Floating Bottom Card Dock (Only visible in Chart & Wheel phases) */}
+      {/* Hand dock. Resolution is included so a card dealt this round is visible while locked. */}
       {myCards.length > 0 &&
-        (gamePhase === "chart" || gamePhase === "wheel") && (
+        (gamePhase === "chart" ||
+          gamePhase === "wheel" ||
+          gamePhase === "resolution") && (
           <View
             style={styles.dockContainer}
             className="flex-row items-center gap-2 px-3 py-2 rounded-full border-3 border-black bg-zinc-900/90 shadow-2xl z-[9000]"
@@ -291,16 +374,35 @@ export function CardDock() {
 
             {myCards.slice(0, 2).map((cardId, index) => {
               const config = getCardConfig(cardId);
-              const status = checkCardStatus(cardId);
+              const status = checkCardStatus(cardId, index);
+              const chipColor = `border-2 border-black ${config.colorClass}`;
+
+              if (status.locked) {
+                return (
+                  <View
+                    key={`${cardId}-${index}`}
+                    accessibilityState={{ disabled: true }}
+                    className={`items-center px-3 py-1 rounded-2xl ${chipColor}`}
+                    style={{ opacity: 0.45 }}
+                  >
+                    <Text className="font-black text-black text-xs uppercase tracking-wider">
+                      {config.name}
+                    </Text>
+                    <Text className="font-black text-black text-[8px] uppercase tracking-wide">
+                      {USABLE_NEXT_ROUND_HINT}
+                    </Text>
+                  </View>
+                );
+              }
 
               return (
                 <TouchableOpacity
                   key={`${cardId}-${index}`}
                   onPress={() => {
                     playButtonClickSound();
-                    setSelectedCardId(cardId);
+                    setSelectedCardIndex(index);
                   }}
-                  className={`flex-row items-center px-3 py-1.5 rounded-full border-2 border-black ${config.colorClass}`}
+                  className={`flex-row items-center px-3 py-1.5 rounded-full ${chipColor}`}
                   style={{
                     opacity: status.playable ? 1 : 0.6,
                     transform: [{ scale: status.playable ? 1.05 : 1 }],
@@ -338,21 +440,31 @@ export function CardDock() {
             <View className="w-full gap-3">
               {myCards.map((cardId, idx) => {
                 const config = getCardConfig(cardId);
+                const locked = cardIsLocked(idx);
                 return (
                   <View
                     key={idx}
                     className="flex-row justify-between items-center bg-zinc-800 p-3 rounded-2xl border-2 border-black"
                   >
-                    <View className="flex-row items-center gap-2 flex-1 mr-2">
-                      <View
-                        className={`w-3 h-3 rounded-full ${config.colorClass}`}
-                      />
-                      <Text
-                        className="text-white font-black text-sm uppercase"
-                        numberOfLines={1}
-                      >
-                        {config.name}
-                      </Text>
+                    <View className="flex-1 mr-2">
+                      <View className="flex-row items-center gap-2">
+                        <View
+                          className={`w-3 h-3 rounded-full ${config.colorClass}`}
+                          style={{ opacity: locked ? 0.45 : 1 }}
+                        />
+                        <Text
+                          className="text-white font-black text-sm uppercase"
+                          style={{ opacity: locked ? 0.45 : 1 }}
+                          numberOfLines={1}
+                        >
+                          {config.name}
+                        </Text>
+                      </View>
+                      {locked && (
+                        <Text className="text-amber-400 font-black text-[10px] uppercase mt-1 ml-5">
+                          {USABLE_NEXT_ROUND_HINT}
+                        </Text>
+                      )}
                     </View>
                     <RetroButton
                       title="DISCARD"
@@ -370,22 +482,23 @@ export function CardDock() {
       </Modal>
 
       {/* Selected Card Action Modal */}
-      {selectedCardId && (
+      {selectedCardId && selectedCardIndex != null && selectedStatus && (
         <Modal
-          visible={!!selectedCardId}
+          visible
           transparent
           animationType="fade"
-          onRequestClose={() => setSelectedCardId(null)}
+          onRequestClose={() => setSelectedCardIndex(null)}
         >
           <View className="flex-1 bg-black/80 justify-center items-center p-6 z-[9999]">
             <TouchableOpacity
               style={StyleSheet.absoluteFillObject}
-              onPress={() => setSelectedCardId(null)}
+              onPress={() => setSelectedCardIndex(null)}
             />
             <View className="w-full max-w-sm items-center">
               <SpecialtyCard
                 type={getCardConfig(selectedCardId).id as SpecialtyCardType}
                 size="xl"
+                isDisabled={selectedStatus.locked}
               />
 
               {/* When to Use Hint Box */}
@@ -398,22 +511,23 @@ export function CardDock() {
                 </Text>
               </View>
 
-              {checkCardStatus(selectedCardId).reason &&
-                !checkCardStatus(selectedCardId).playable && (
-                  <View className="mt-3 bg-black/80 px-4 py-2 rounded-xl border border-zinc-700 w-full">
-                    <Text className="text-amber-400 font-bold text-xs text-center uppercase">
-                      {checkCardStatus(selectedCardId).reason}
-                    </Text>
-                  </View>
-                )}
+              {selectedStatus.reason && !selectedStatus.playable && (
+                <View className="mt-3 bg-black/80 px-4 py-2 rounded-xl border border-zinc-700 w-full">
+                  <Text className="text-amber-400 font-bold text-xs text-center uppercase">
+                    {selectedStatus.reason}
+                  </Text>
+                </View>
+              )}
 
               <View className="w-full flex-row justify-center mt-4 gap-2">
-                {checkCardStatus(selectedCardId).playable && (
+                {selectedStatus.playable && (
                   <RetroButton
                     title="ACTIVATE"
                     variant="success"
                     size="md"
-                    onPress={() => handleUseCard(selectedCardId)}
+                    onPress={() =>
+                      handleUseCard(selectedCardId, selectedCardIndex)
+                    }
                     style={{ flex: 1 }}
                   />
                 )}
@@ -421,7 +535,7 @@ export function CardDock() {
                   title="CLOSE"
                   variant="secondary"
                   size="md"
-                  onPress={() => setSelectedCardId(null)}
+                  onPress={() => setSelectedCardIndex(null)}
                   style={{ flex: 1 }}
                 />
               </View>
@@ -437,7 +551,7 @@ export function CardDock() {
         animationType="slide"
         onRequestClose={() => {
           setShowWildModal(false);
-          setSelectedCardId(null);
+          setSelectedCardIndex(null);
         }}
       >
         <View className="flex-1 bg-black/90 justify-center items-center p-4">
@@ -595,7 +709,7 @@ export function CardDock() {
                 size="md"
                 onPress={() => {
                   setShowWildModal(false);
-                  setSelectedCardId(null);
+                  setSelectedCardIndex(null);
                 }}
                 style={{ flex: 1 }}
               />
@@ -619,7 +733,7 @@ export function CardDock() {
         animationType="slide"
         onRequestClose={() => {
           setShowShieldModal(false);
-          setSelectedCardId(null);
+          setSelectedCardIndex(null);
         }}
       >
         <View className="flex-1 bg-black/90 justify-center items-center p-6">
@@ -656,7 +770,7 @@ export function CardDock() {
               size="md"
               onPress={() => {
                 setShowShieldModal(false);
-                setSelectedCardId(null);
+                setSelectedCardIndex(null);
               }}
               style={{ width: "100%" }}
             />

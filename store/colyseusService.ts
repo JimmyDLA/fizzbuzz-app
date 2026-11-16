@@ -2,8 +2,9 @@ import type { Room } from '@colyseus/sdk';
 import * as Colyseus from '@colyseus/sdk';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer, setLastGameResult, setPracticeState, setPendingCardAward, setCardAnnouncement, incrementSpinCount } from './lobbySlice';
+import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer, setLastGameResult, setPracticeState, setPendingCardAward, setCardAnnouncement, setCardError, setRoundCount, incrementSpinCount } from './lobbySlice';
 import { store } from './store';
+import { EARNED_THIS_ROUND_MESSAGE, readEarnedRounds } from '../utils/cardRound';
 
 
 
@@ -64,6 +65,7 @@ export const colyseusService = {
       store.dispatch(setPlayers([]));
       store.dispatch(setSelectedPlayers([]));
       store.dispatch(setRoomId(''));
+      store.dispatch(setRoundCount(0));
     }
   },
 
@@ -117,10 +119,33 @@ export const colyseusService = {
 
     room.onMessage("CardAwardedEvent", (event: any) => {
       console.log(`[SpecialtyCard] CardAwardedEvent:`, event);
+      const earnedRound =
+        typeof event.earnedRound === "number" && Number.isFinite(event.earnedRound)
+          ? event.earnedRound
+          : undefined;
       store.dispatch(setPendingCardAward({
         cardId: event.cardId,
         reason: event.reason,
         message: event.message,
+        earnedRound,
+      }));
+    });
+
+    room.onMessage("CardErrorEvent", (event: any) => {
+      console.log(`[SpecialtyCard] CardErrorEvent:`, event);
+      if (!event || event.code !== "earned_this_round") return;
+      const message =
+        typeof event.message === "string" && event.message.trim()
+          ? event.message
+          : EARNED_THIS_ROUND_MESSAGE;
+      store.dispatch(setCardError({
+        cardId: typeof event.cardId === "string" ? event.cardId : "",
+        code: "earned_this_round",
+        message,
+        earnedRound:
+          typeof event.earnedRound === "number" && Number.isFinite(event.earnedRound)
+            ? event.earnedRound
+            : undefined,
       }));
     });
 
@@ -159,6 +184,9 @@ export const colyseusService = {
           if (state.lastGameResult !== undefined) {
             store.dispatch(setLastGameResult(state.lastGameResult));
           }
+          if (typeof state.roundCount === "number" && Number.isFinite(state.roundCount)) {
+            store.dispatch(setRoundCount(state.roundCount));
+          }
 
           this.syncPlayersState(room);
         });
@@ -172,6 +200,7 @@ export const colyseusService = {
       store.dispatch(setPlayers([]));
       store.dispatch(setSelectedPlayers([]));
       store.dispatch(setRoomId(''));
+      store.dispatch(setRoundCount(0));
       
       // Imperative routing to home screen when connection dies
       import('expo-router').then(({ router }) => {
@@ -216,6 +245,7 @@ export const colyseusService = {
             ? player.cards.toArray()
             : Array.from(player.cards)
           : [],
+        earnedRounds: readEarnedRounds(player.earnedRounds),
         activeEffects: player.activeEffects || "",
       });
     });
