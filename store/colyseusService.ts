@@ -1,10 +1,12 @@
 import type { Room } from '@colyseus/sdk';
 import * as Colyseus from '@colyseus/sdk';
 import Constants from 'expo-constants';
-import { Alert, Platform } from 'react-native';
-import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer, setLastGameResult, setPracticeState, setPendingCardAward, setCardAnnouncement, incrementSpinCount, setPodium, setGameOver, resetMatch, applyRoomProgress, setMatchLengthSupported } from './lobbySlice';
+import { Platform } from 'react-native';
+import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer, setLastGameResult, setPracticeState, setPendingCardAward, setCardAnnouncement, incrementSpinCount, setPodium, setGameOver, resetMatch, applyRoomProgress, setMatchLengthSupported, setDrinkChains, setReadyCount, setConnectedCount, setLobbyError, clearLobbyError, setWheelHold, clearWheelHold } from './lobbySlice';
+import type { CardUsedEvent } from './lobbySlice';
 import { store } from './store';
 import { DEFAULT_TOTAL_ROUNDS, GameOverPayload, isRoundsErrorCode, mergeGameOver, normalizePodium, roundsErrorMessage } from '../utils/rounds';
+import { readDrinkChains } from '../utils/shieldPass';
 
 
 
@@ -36,6 +38,33 @@ let gameOverPayload: GameOverPayload | null = null;
 let podiumRouted = false;
 /** Colyseus 0.17 drops the socket if the client sends a message the room did not register. */
 let matchLengthSupported = false;
+let wheelHoldTimer: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * Wild Card and Respin lock the wheel for 3s, then clear every isReady as the
+ * spin lands. If that spin is refused, the private lock lifts 3s later and no
+ * SpinWheelEvent is sent. Hold Ready until the spin event, or this fallback.
+ */
+const WHEEL_HOLD_FALLBACK_MS = 6500;
+
+function beginWheelHold(cardId: string) {
+  if (wheelHoldTimer) clearTimeout(wheelHoldTimer);
+  store.dispatch(setWheelHold({ cardId, startedAt: Date.now() }));
+  wheelHoldTimer = setTimeout(() => {
+    wheelHoldTimer = null;
+    store.dispatch(clearWheelHold());
+  }, WHEEL_HOLD_FALLBACK_MS);
+}
+
+function endWheelHold() {
+  if (wheelHoldTimer) {
+    clearTimeout(wheelHoldTimer);
+    wheelHoldTimer = null;
+  }
+  if (store.getState().lobby.wheelHold) {
+    store.dispatch(clearWheelHold());
+  }
+}
 
 function clearGameOverHandoff() {
   gameOverActive = false;
@@ -114,6 +143,7 @@ export const colyseusService = {
   },
 
   disconnect() {
+    endWheelHold();
     clearGameOverHandoff();
     if (currentRoom) {
       currentRoom.reconnection.enabled = false;
@@ -128,6 +158,7 @@ export const colyseusService = {
    * snapshot and returns the player to the start screen.
    */
   leaveAfterGameOver() {
+    endWheelHold();
     clearGameOverHandoff();
     const room = currentRoom;
     currentRoom = null;
@@ -148,6 +179,7 @@ export const colyseusService = {
   },
 
   sendReady(isReady: boolean) {
+    if (store.getState().lobby.wheelHold) return;
     if (currentRoom) {
       currentRoom.send("ready", { isReady });
     }
@@ -156,12 +188,6 @@ export const colyseusService = {
   sendGameAction(message: any) {
     if (currentRoom) {
       currentRoom.send("game_action", message);
-    }
-  },
-
-  startWheel() {
-    if (currentRoom) {
-      currentRoom.send("start_wheel");
     }
   },
 
@@ -180,17 +206,21 @@ export const colyseusService = {
   setupRoomListeners(room: any) {
     store.dispatch(setRoomId(room.id || room.roomId));
 
-    room.onMessage("CardUsedEvent", (event: any) => {
+    room.onMessage("CardUsedEvent", (event: CardUsedEvent) => {
       console.log(`[SpecialtyCard] CardUsedEvent:`, event);
       if (event.cardId === "RESPIN" || event.cardId === "WILD CARD") {
         this.leavePractice();
+        beginWheelHold(event.cardId);
       }
       store.dispatch(setCardAnnouncement({
-        cardId: event.cardId,
-        playerName: event.playerName,
-        message: event.message || event.description,
+        cardId: event.cardId ?? "",
+        playerName: event.playerName ?? "",
+        message: event.message || event.description || "",
         targetName: event.targetName,
+        targetPlayerId: event.targetPlayerId,
         drinkCount: event.drinkCount,
+        drinksToPass: event.drinksToPass,
+        deflections: event.deflections,
         timestamp: Date.now(),
       }));
     });
@@ -213,11 +243,6 @@ export const colyseusService = {
       });
     });
 
-    room.onMessage("LobbyError", (event: any) => {
-      if (!isRoundsErrorCode(event?.code)) return;
-      Alert.alert("Match length", roundsErrorMessage(event.code, event?.message));
-    });
-
     room.onMessage("SpinWheelEvent", (event: any) => {
       console.log(`[SpecialtyCard] SpinWheelEvent:`, event);
       this.leavePractice();
@@ -225,6 +250,21 @@ export const colyseusService = {
       if (event.category) store.dispatch(setGameCategory(event.category));
       if (event.selectedPlayers) store.dispatch(setSelectedPlayers(event.selectedPlayers));
       store.dispatch(incrementSpinCount());
+      endWheelHold();
+    });
+
+    room.onMessage("LobbyError", (event: { code?: string; message?: string }) => {
+      const code = typeof event?.code === "string" ? event.code : "";
+      if (!code) return;
+      const rawMessage = typeof event.message === "string" ? event.message : undefined;
+      const message = isRoundsErrorCode(code)
+        ? roundsErrorMessage(code, rawMessage)
+        : rawMessage?.trim()
+          ? rawMessage
+          : code === "NOT_ENOUGH_PLAYERS"
+            ? "At least 2 players are required to start."
+            : "The room could not continue.";
+      store.dispatch(setLobbyError({ code, message }));
     });
 
     room.state.players?.onAdd?.((player: any, sessionId: string) => {
@@ -264,8 +304,25 @@ export const colyseusService = {
           if (state.lastLosers) {
             store.dispatch(setLastLosers(state.lastLosers.toArray()));
           }
+          store.dispatch(setDrinkChains(readDrinkChains(state.drinkChains)));
           if (state.lastGameResult !== undefined) {
             store.dispatch(setLastGameResult(state.lastGameResult));
+          }
+          if (typeof state.readyCount === "number") {
+            store.dispatch(setReadyCount(state.readyCount));
+          }
+          if (typeof state.connectedCount === "number") {
+            store.dispatch(setConnectedCount(state.connectedCount));
+          }
+
+          const notice = store.getState().lobby.lobbyError;
+          if (notice?.code === "NOT_ENOUGH_PLAYERS") {
+            const enough =
+              typeof state.connectedCount === "number" && state.connectedCount >= 2;
+            const leftReadyGate = state.phase !== "lobby" && state.phase !== "chart";
+            if (enough || leftReadyGate) {
+              store.dispatch(clearLobbyError());
+            }
           }
 
           this.syncPlayersState(room);
@@ -291,6 +348,7 @@ export const colyseusService = {
     room.onLeave((code: number) => {
       console.log(`[Colyseus] Disconnected with code: ${code}`);
       currentRoom = null;
+      endWheelHold();
       if (gameOverActive) {
         // openPodium already opened the podium. Replacing it again remounts the screen.
         if (gameOverPayload) {
@@ -337,6 +395,7 @@ export const colyseusService = {
         name: player.name,
         isReady: !!player.isReady,
         isHost: !!player.isHost,
+        isConnected: player.isConnected !== false,
         score: player.score || 0,
         drinks: player.drinks || 0,
         gameScore: player.gameScore || 0,

@@ -3,9 +3,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useEffect } from 'react';
 import { ScrollView, Text, View, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
+import { LobbyErrorBanner } from '../components/LobbyErrorBanner';
 import { RetroButton } from '../components/RetroButton';
 import { RoundsPicker } from '../components/RoundsPicker';
 import { colyseusService } from '../store/colyseusService';
+import { clearLobbyError } from '../store/lobbySlice';
 import { RootState } from '../store/store';
 import { memphisShapes } from '../constants/theme';
 import { RetroPlayerCard } from '../components/RetroPlayerCard';
@@ -14,7 +16,7 @@ import { SettingsDropdown } from '../components/SettingsDropdown';
 export default function LobbyScreen() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { playerName, players: reduxPlayers, roomId, gamePhase, theme } = useSelector((state: RootState) => state.lobby);
+  const { playerName, players: reduxPlayers, roomId, gamePhase, theme, lobbyError } = useSelector((state: RootState) => state.lobby);
   const isDark = theme === 'dark';
 
   const players: any[] = reduxPlayers.length > 0 ? reduxPlayers : [];
@@ -102,11 +104,18 @@ export default function LobbyScreen() {
             isMe={p.id === myPlayer?.id}
             isHost={p.isHost}
             isReady={p.isReady}
+            isConnected={p.isConnected !== false}
           />
         ))}
       </ScrollView>
 
       <View className="pb-10 pt-4 px-6">
+        {lobbyError && (
+          <LobbyErrorBanner
+            message={lobbyError.message}
+            onDismiss={() => dispatch(clearLobbyError())}
+          />
+        )}
         <RetroButton
           title={isReady ? "CANCEL READY" : "READY UP!"}
           variant={isReady ? "secondary" : "success"}
