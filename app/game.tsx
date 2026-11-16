@@ -22,6 +22,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
 import { BettingPayoutBoard, BettingRoundMark, BettingStakePanel } from "../components/BettingRound";
 import { CardAnnouncementPopup } from "../components/CardAnnouncementPopup";
+import { CardAwardPopup } from "../components/CardAwardPopup";
 import { CardDock } from "../components/CardDock";
 import { DynamicGameResults } from "../components/DynamicGameResults";
 import { BalloonInflateUI } from "../components/games/BalloonInflateUI";
@@ -42,6 +43,7 @@ import { RoundBadge } from "../components/RoundBadge";
 import { memphisShapes } from "../constants/theme";
 import { colyseusService } from "../store/colyseusService";
 import { displayMode } from "../utils/betting";
+import { hasUsableCopy, readEarnedRounds } from "../utils/cardRound";
 import { holderDrinksToPass, passDrinkPhrase } from "../utils/shieldPass";
 
 export default function GameScreen() {
@@ -262,8 +264,12 @@ export default function GameScreen() {
   });
 
   const amILoser = losers.some((p: any) => p.id === myPlayer?.id);
-  const hasShieldCard = myPlayer?.cards?.some(
-    (c: string) => c.toLowerCase().replace(/\s+/g, "_") === "shield",
+  const hasUsableShield = hasUsableCopy(
+    myPlayer?.cards,
+    readEarnedRounds(myPlayer?.earnedRounds),
+    "shield",
+    gamePhase,
+    roundCount,
   );
 
   const renderCountdown = () => {
@@ -642,7 +648,7 @@ export default function GameScreen() {
         {/* Beer Can Animation Overlay on Results Screen */}
         {gamePhase === "resolution" && showBeerModal && losers.length > 0 && !hasDismissedModal && (
           <View
-            style={[StyleSheet.absoluteFillObject, { zIndex: 50 }]}
+            style={[StyleSheet.absoluteFillObject, { zIndex: 10050 }]}
             className="bg-black/75 items-center justify-center px-6"
           >
             <View className="w-[88%] max-w-[340px] relative">
@@ -825,7 +831,7 @@ export default function GameScreen() {
                     </View>
 
                     {/* Shield Card Trigger inside Beer Modal */}
-                    {amILoser && hasShieldCard && (
+                    {amILoser && hasUsableShield && (
                       <TouchableOpacity
                         onPress={() => {
                           playButtonClickSound();
@@ -847,6 +853,7 @@ export default function GameScreen() {
         )}
 
         <CardDock />
+        <CardAwardPopup />
         <CardAnnouncementPopup />
       </SafeAreaView>
     </GameProvider>

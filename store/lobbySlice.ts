@@ -10,6 +10,16 @@ export interface PendingCardAward {
   cardId: string;
   reason: string;
   message: string;
+  /** Round stamped on the award. Absent on older servers. */
+  earnedRound?: number;
+}
+
+export interface CardErrorNotice {
+  cardId: string;
+  code: string;
+  message: string;
+  earnedRound?: number;
+  id: number;
 }
 
 /**
@@ -77,6 +87,8 @@ export interface LobbyPlayer {
   gameScore: number;
   gameData: string;
   cards: string[];
+  /** Same index as `cards`. Null or a missing entry means the card is usable. */
+  earnedRounds: (number | null)[];
   activeEffects: string;
   /** Points already removed from score. 0 outside a locked betting round. */
   betWager: number;
@@ -168,8 +180,10 @@ const initialState = {
   isMusicOn: false,
   pendingCardAward: null as PendingCardAward | null,
   cardAnnouncement: null as CardAnnouncement | null,
+  cardError: null as CardErrorNotice | null,
   spinCount: 0,
   totalRounds: DEFAULT_TOTAL_ROUNDS as number,
+  /** LobbyState.roundCount. 0 until the server sends it. */
   roundCount: 0,
   podium: [] as PodiumEntry[],
   /** True only after this room's state includes totalRounds. Older servers omit it. */
@@ -286,6 +300,18 @@ export const lobbySlice = createSlice({
     clearCardAnnouncement: (state) => {
       state.cardAnnouncement = null;
     },
+    setCardError: (
+      state,
+      action: { payload: Omit<CardErrorNotice, "id"> },
+    ) => {
+      state.cardError = {
+        ...action.payload,
+        id: (state.cardError?.id ?? 0) + 1,
+      };
+    },
+    clearCardError: (state) => {
+      state.cardError = null;
+    },
     incrementSpinCount: (state) => {
       state.spinCount += 1;
     },
@@ -393,6 +419,7 @@ export const lobbySlice = createSlice({
       state.practiceState = null;
       state.pendingCardAward = null;
       state.cardAnnouncement = null;
+      state.cardError = null;
       state.spinCount = 0;
       state.totalRounds = DEFAULT_TOTAL_ROUNDS;
       state.roundCount = 0;
@@ -438,6 +465,8 @@ export const {
   clearPendingCardAward,
   setCardAnnouncement,
   clearCardAnnouncement,
+  setCardError,
+  clearCardError,
   incrementSpinCount,
   setBettingState,
   setBettingRound,

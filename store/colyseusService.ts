@@ -2,9 +2,10 @@ import type { Room } from '@colyseus/sdk';
 import * as Colyseus from '@colyseus/sdk';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer, setLastGameResult, setPracticeState, setPendingCardAward, setCardAnnouncement, incrementSpinCount, setPodium, setGameOver, resetMatch, applyRoomProgress, setMatchLengthSupported, setDrinkChains, setReadyCount, setConnectedCount, setLobbyError, clearLobbyError, setWheelHold, clearWheelHold, setBettingState, setBettingRound, setBettingPayout } from './lobbySlice';
+import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer, setLastGameResult, setPracticeState, setPendingCardAward, setCardAnnouncement, setCardError, incrementSpinCount, setPodium, setGameOver, resetMatch, applyRoomProgress, setMatchLengthSupported, setDrinkChains, setReadyCount, setConnectedCount, setLobbyError, clearLobbyError, setWheelHold, clearWheelHold, setBettingState, setBettingRound, setBettingPayout } from './lobbySlice';
 import type { BettingPayoutEvent, BettingPayoutReason, BettingRoundEvent, CardUsedEvent, LobbyPlayer } from './lobbySlice';
 import { store } from './store';
+import { EARNED_THIS_ROUND_MESSAGE, readEarnedRounds } from '../utils/cardRound';
 import { DEFAULT_TOTAL_ROUNDS, GameOverPayload, isRoundsErrorCode, mergeGameOver, normalizePodium, roundsErrorMessage } from '../utils/rounds';
 import { readDrinkChains } from '../utils/shieldPass';
 
@@ -278,10 +279,33 @@ export const colyseusService = {
 
     room.onMessage("CardAwardedEvent", (event: any) => {
       console.log(`[SpecialtyCard] CardAwardedEvent:`, event);
+      const earnedRound =
+        typeof event.earnedRound === "number" && Number.isFinite(event.earnedRound)
+          ? event.earnedRound
+          : undefined;
       store.dispatch(setPendingCardAward({
         cardId: event.cardId,
         reason: event.reason,
         message: event.message,
+        earnedRound,
+      }));
+    });
+
+    room.onMessage("CardErrorEvent", (event: any) => {
+      console.log(`[SpecialtyCard] CardErrorEvent:`, event);
+      if (!event || event.code !== "earned_this_round") return;
+      const message =
+        typeof event.message === "string" && event.message.trim()
+          ? event.message
+          : EARNED_THIS_ROUND_MESSAGE;
+      store.dispatch(setCardError({
+        cardId: typeof event.cardId === "string" ? event.cardId : "",
+        code: "earned_this_round",
+        message,
+        earnedRound:
+          typeof event.earnedRound === "number" && Number.isFinite(event.earnedRound)
+            ? event.earnedRound
+            : undefined,
       }));
     });
 
@@ -462,6 +486,7 @@ export const colyseusService = {
             ? player.cards.toArray()
             : Array.from(player.cards)
           : [],
+        earnedRounds: readEarnedRounds(player.earnedRounds),
         activeEffects: player.activeEffects || "",
         betWager: readNumber(player.betWager),
         betPayout: readNumber(player.betPayout),
