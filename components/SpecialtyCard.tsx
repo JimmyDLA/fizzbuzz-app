@@ -8,6 +8,7 @@ import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSelector } from "react-redux";
 import {
+  RARITY_TAGS,
   SPECIALTY_CARDS,
   SpecialtyCardType,
 } from "../constants/specialtyCards";
@@ -36,6 +37,7 @@ export function SpecialtyCard({
   const theme = useSelector((state: RootState) => state.lobby.theme) || "light";
 
   const config = SPECIALTY_CARDS[type] || SPECIALTY_CARDS.turbo;
+  const rarityTag = RARITY_TAGS[config.rarity];
 
   // Exact sizing specs matching playing card aspect ratio 1 : 1.636
   const sizeStyles = {
@@ -203,10 +205,16 @@ export function SpecialtyCard({
           />
         )}
         {/* Header Row: Suit Top-Left + Bold Block Title */}
-        <View className="absolute top-4 left-4 items-center justify-center bg-black px-1.5 py-0.5 rounded-md">
+        <View
+          className="absolute top-4 left-4 items-center justify-center px-1.5 py-0.5 rounded-md border-2 border-black"
+          style={{ backgroundColor: rarityTag.hex }}
+        >
           <Text
-            style={{ fontSize: sizeStyles.raritySize }}
-            className="font-black text-white uppercase"
+            style={{
+              fontSize: sizeStyles.raritySize,
+              color: rarityTag.textHex,
+            }}
+            className="font-black uppercase"
           >
             {config.rarityLabel}
           </Text>
