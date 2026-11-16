@@ -2,7 +2,7 @@ import type { Room } from '@colyseus/sdk';
 import * as Colyseus from '@colyseus/sdk';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer, setLastGameResult, setPracticeState, setPendingCardAward, setCardAnnouncement, incrementSpinCount, setDrinkChains } from './lobbySlice';
+import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer, setLastGameResult, setPracticeState, setPendingCardAward, setCardAnnouncement, incrementSpinCount, setDrinkChains, setReadyCount, setConnectedCount, setLobbyError, clearLobbyError, setWheelHold, clearWheelHold } from './lobbySlice';
 import type { CardUsedEvent } from './lobbySlice';
 import { store } from './store';
 import { readDrinkChains } from '../utils/shieldPass';
@@ -27,6 +27,33 @@ console.log(`[Colyseus] Detection Info: manifest=${Constants.expoConfig?.hostUri
 const client = new Colyseus.Client(ENDPOINT);
 let currentRoom: Room | null = null;
 let practiceRoom: Room | null = null;
+let wheelHoldTimer: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * Wild Card and Respin lock the wheel for 3s, then clear every isReady as the
+ * spin lands. If that spin is refused, the private lock lifts 3s later and no
+ * SpinWheelEvent is sent. Hold Ready until the spin event, or this fallback.
+ */
+const WHEEL_HOLD_FALLBACK_MS = 6500;
+
+function beginWheelHold(cardId: string) {
+  if (wheelHoldTimer) clearTimeout(wheelHoldTimer);
+  store.dispatch(setWheelHold({ cardId, startedAt: Date.now() }));
+  wheelHoldTimer = setTimeout(() => {
+    wheelHoldTimer = null;
+    store.dispatch(clearWheelHold());
+  }, WHEEL_HOLD_FALLBACK_MS);
+}
+
+function endWheelHold() {
+  if (wheelHoldTimer) {
+    clearTimeout(wheelHoldTimer);
+    wheelHoldTimer = null;
+  }
+  if (store.getState().lobby.wheelHold) {
+    store.dispatch(clearWheelHold());
+  }
+}
 
 export const colyseusService = {
   get room() {
@@ -66,10 +93,15 @@ export const colyseusService = {
       store.dispatch(setPlayers([]));
       store.dispatch(setSelectedPlayers([]));
       store.dispatch(setRoomId(''));
+      store.dispatch(setReadyCount(null));
+      store.dispatch(setConnectedCount(null));
+      store.dispatch(clearLobbyError());
+      endWheelHold();
     }
   },
 
   sendReady(isReady: boolean) {
+    if (store.getState().lobby.wheelHold) return;
     if (currentRoom) {
       currentRoom.send("ready", { isReady });
     }
@@ -78,12 +110,6 @@ export const colyseusService = {
   sendGameAction(message: any) {
     if (currentRoom) {
       currentRoom.send("game_action", message);
-    }
-  },
-
-  startWheel() {
-    if (currentRoom) {
-      currentRoom.send("start_wheel");
     }
   },
 
@@ -106,6 +132,7 @@ export const colyseusService = {
       console.log(`[SpecialtyCard] CardUsedEvent:`, event);
       if (event.cardId === "RESPIN" || event.cardId === "WILD CARD") {
         this.leavePractice();
+        beginWheelHold(event.cardId);
       }
       store.dispatch(setCardAnnouncement({
         cardId: event.cardId ?? "",
@@ -136,6 +163,21 @@ export const colyseusService = {
       if (event.category) store.dispatch(setGameCategory(event.category));
       if (event.selectedPlayers) store.dispatch(setSelectedPlayers(event.selectedPlayers));
       store.dispatch(incrementSpinCount());
+      endWheelHold();
+    });
+
+    room.onMessage("LobbyError", (event: { code?: string; message?: string }) => {
+      const code = typeof event?.code === "string" ? event.code : "";
+      if (!code) return;
+      const fallback =
+        code === "NOT_ENOUGH_PLAYERS"
+          ? "At least 2 players are required to start."
+          : "The room could not continue.";
+      const message =
+        typeof event.message === "string" && event.message.trim()
+          ? event.message
+          : fallback;
+      store.dispatch(setLobbyError({ code, message }));
     });
 
     room.state.players?.onAdd?.((player: any, sessionId: string) => {
@@ -165,6 +207,22 @@ export const colyseusService = {
           if (state.lastGameResult !== undefined) {
             store.dispatch(setLastGameResult(state.lastGameResult));
           }
+          if (typeof state.readyCount === "number") {
+            store.dispatch(setReadyCount(state.readyCount));
+          }
+          if (typeof state.connectedCount === "number") {
+            store.dispatch(setConnectedCount(state.connectedCount));
+          }
+
+          const notice = store.getState().lobby.lobbyError;
+          if (notice?.code === "NOT_ENOUGH_PLAYERS") {
+            const enough =
+              typeof state.connectedCount === "number" && state.connectedCount >= 2;
+            const leftReadyGate = state.phase !== "lobby" && state.phase !== "chart";
+            if (enough || leftReadyGate) {
+              store.dispatch(clearLobbyError());
+            }
+          }
 
           this.syncPlayersState(room);
         });
@@ -178,7 +236,11 @@ export const colyseusService = {
       store.dispatch(setPlayers([]));
       store.dispatch(setSelectedPlayers([]));
       store.dispatch(setRoomId(''));
-      
+      store.dispatch(setReadyCount(null));
+      store.dispatch(setConnectedCount(null));
+      store.dispatch(clearLobbyError());
+      endWheelHold();
+
       // Imperative routing to home screen when connection dies
       import('expo-router').then(({ router }) => {
         if (router.canGoBack() || true) {
@@ -213,6 +275,7 @@ export const colyseusService = {
         name: player.name,
         isReady: !!player.isReady,
         isHost: !!player.isHost,
+        isConnected: player.isConnected !== false,
         score: player.score || 0,
         drinks: player.drinks || 0,
         gameScore: player.gameScore || 0,

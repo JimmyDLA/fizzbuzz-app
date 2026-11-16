@@ -220,7 +220,10 @@ export function CardDock() {
       if (gamePhase === "wheel" || gamePhase === "chart") {
         return { playable: true };
       }
-      return { playable: false, reason: "Only playable during Wheel Phase" };
+      return {
+        playable: false,
+        reason: "Play it on the chart or after the wheel lands, before the countdown",
+      };
     }
 
     if (norm === "turbo") {

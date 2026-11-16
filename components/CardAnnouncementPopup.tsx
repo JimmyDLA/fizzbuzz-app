@@ -273,6 +273,18 @@ export function CardAnnouncementPopup() {
             ]}
           />
         </Animated.View>
+
+        {(cardAnnouncement.cardId === "WILD CARD" ||
+          cardAnnouncement.cardId === "RESPIN") && (
+          <View style={styles.messageWrapper}>
+            <Text style={styles.holdTitle}>
+              {cardAnnouncement.cardId === "WILD CARD"
+                ? "Waiting for Wild Card"
+                : "Waiting for Respin"}
+            </Text>
+            <Text style={styles.holdHint}>Hold on, the wheel is locked</Text>
+          </View>
+        )}
       </View>
     </Modal>
   );
@@ -349,5 +361,18 @@ const styles = StyleSheet.create({
     textAlign: "center",
     textTransform: "uppercase",
     letterSpacing: 0.5,
+  },
+  holdTitle: {
+    color: "#ffffff",
+    fontWeight: "900",
+    fontSize: 16,
+    textAlign: "center",
+  },
+  holdHint: {
+    color: "#fde68a",
+    fontWeight: "800",
+    fontSize: 13,
+    textAlign: "center",
+    marginTop: 4,
   },
 });
