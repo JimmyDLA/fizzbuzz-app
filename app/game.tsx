@@ -37,6 +37,7 @@ import { TappingRaceUI } from "../components/games/TappingRaceUI";
 import { TriviaUI } from "../components/games/TriviaUI";
 import { GameProvider } from "../components/games/useGameData";
 import { RetroButton } from "../components/RetroButton";
+import { RoundBadge } from "../components/RoundBadge";
 import { memphisShapes } from "../constants/theme";
 import { colyseusService } from "../store/colyseusService";
 
@@ -56,6 +57,8 @@ export default function GameScreen() {
     lastWinners,
     lastLosers,
     lastGameResult,
+    roundCount,
+    totalRounds,
   } = useSelector((state: any) => state.lobby);
 
   const players: any[] = reduxPlayers || [];
@@ -227,7 +230,9 @@ export default function GameScreen() {
   }, [gamePhase, gameData.finished, timer]);
 
   useEffect(() => {
-    if (gamePhase === "chart") {
+    if (gamePhase === "gameover") {
+      router.replace("/podium");
+    } else if (gamePhase === "chart") {
       router.replace("/chart");
     } else if (
       (gamePhase === "countdown" ||
@@ -259,6 +264,12 @@ export default function GameScreen() {
   const renderCountdown = () => {
     return (
       <View className="flex-1 bg-transparent justify-center items-center px-6">
+        <RoundBadge
+          roundCount={roundCount}
+          totalRounds={totalRounds}
+          isDark={isDark}
+          className="mb-4"
+        />
         <Text className="text-white font-black text-2xl uppercase tracking-widest text-center mb-6">
           PREPARE TO PLAY!
         </Text>
@@ -377,6 +388,12 @@ export default function GameScreen() {
   const renderPlaying = () => {
     return (
       <View className="flex-1 bg-transparent pt-12">
+        <RoundBadge
+          roundCount={roundCount}
+          totalRounds={totalRounds}
+          isDark={isDark}
+          className="mb-2"
+        />
         {/* Header HUD Title Card */}
         <View style={styles.headerTitleCard} className="z-10">
           {/* Shadow */}
@@ -480,6 +497,12 @@ export default function GameScreen() {
             </Text>
           </View>
         </View>
+        <RoundBadge
+          roundCount={roundCount}
+          totalRounds={totalRounds}
+          isDark={isDark}
+          className="mb-3"
+        />
 
         {/* Scroll board */}
         <View style={styles.resultsScrollWrapper}>
@@ -524,6 +547,10 @@ export default function GameScreen() {
       </SafeAreaView>
     );
   };
+
+  if (gamePhase === "gameover") {
+    return null;
+  }
 
   const isDarkGame = currentCategory === "Simon Says" || isDark;
   let screenBgClass = isDarkGame ? "bg-zinc-950" : "bg-green-500";

@@ -1,4 +1,9 @@
 import { createSlice } from "@reduxjs/toolkit";
+import {
+  DEFAULT_TOTAL_ROUNDS,
+  GameOverPayload,
+  PodiumEntry,
+} from "../utils/rounds";
 
 export interface PendingCardAward {
   cardId: string;
@@ -20,7 +25,7 @@ const initialState = {
   roomId: "",
   players: [] as any[],
   selectedPlayers: [] as string[],
-  gamePhase: "lobby", // lobby, chart, wheel, countdown, playing, resolution
+  gamePhase: "lobby", // lobby, chart, wheel, countdown, playing, resolution, gameover
   timer: 0,
   currentGameType: "",
   currentCategory: "",
@@ -36,6 +41,9 @@ const initialState = {
   pendingCardAward: null as PendingCardAward | null,
   cardAnnouncement: null as CardAnnouncement | null,
   spinCount: 0,
+  totalRounds: DEFAULT_TOTAL_ROUNDS as number,
+  roundCount: 0,
+  podium: [] as PodiumEntry[],
 };
 
 export const lobbySlice = createSlice({
@@ -114,6 +122,41 @@ export const lobbySlice = createSlice({
     incrementSpinCount: (state) => {
       state.spinCount += 1;
     },
+    setTotalRounds: (state, action) => {
+      state.totalRounds = action.payload;
+    },
+    setRoundCount: (state, action) => {
+      state.roundCount = action.payload;
+    },
+    setPodium: (state, action) => {
+      state.podium = action.payload;
+    },
+    setGameOver: (state, action: { payload: GameOverPayload }) => {
+      const payload = action.payload;
+      state.gamePhase = "gameover";
+      if (payload.roundCount > 0) state.roundCount = payload.roundCount;
+      if (payload.totalRounds > 0) state.totalRounds = payload.totalRounds;
+      if (payload.podium.length > 0) state.podium = payload.podium;
+    },
+    resetMatch: (state) => {
+      state.roomId = "";
+      state.players = [];
+      state.selectedPlayers = [];
+      state.gamePhase = "lobby";
+      state.timer = 0;
+      state.currentGameType = "";
+      state.currentCategory = "";
+      state.lastWinners = [];
+      state.lastLosers = [];
+      state.lastGameResult = "";
+      state.practiceState = null;
+      state.pendingCardAward = null;
+      state.cardAnnouncement = null;
+      state.spinCount = 0;
+      state.totalRounds = DEFAULT_TOTAL_ROUNDS;
+      state.roundCount = 0;
+      state.podium = [];
+    },
   },
 });
 
@@ -142,5 +185,10 @@ export const {
   setCardAnnouncement,
   clearCardAnnouncement,
   incrementSpinCount,
+  setTotalRounds,
+  setRoundCount,
+  setPodium,
+  setGameOver,
+  resetMatch,
 } = lobbySlice.actions;
 export default lobbySlice.reducer;

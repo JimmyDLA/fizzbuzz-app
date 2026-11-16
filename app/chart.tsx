@@ -16,6 +16,7 @@ import { CardDock } from "../components/CardDock";
 import { PracticeModal } from "../components/PracticeModal";
 import { RetroButton } from "../components/RetroButton";
 import { RetroPlayerCard } from "../components/RetroPlayerCard";
+import { RoundBadge } from "../components/RoundBadge";
 import { SettingsDropdown } from "../components/SettingsDropdown";
 import {
   FINAL_SPECIALTY_CARDS,
@@ -70,6 +71,8 @@ export default function ChartScreen() {
     lastWinners,
     spinCount,
     cardAnnouncement,
+    roundCount,
+    totalRounds,
   } = useSelector((state: RootState) => state.lobby);
 
   const players: any[] = reduxPlayers.length > 0 ? reduxPlayers : [];
@@ -200,7 +203,9 @@ export default function ChartScreen() {
   }, [gamePhase, spinCount]);
 
   useEffect(() => {
-    if (gamePhase === "lobby") {
+    if (gamePhase === "gameover") {
+      router.replace("/podium");
+    } else if (gamePhase === "lobby") {
       router.replace("/lobby");
     } else if (
       (gamePhase === "countdown" ||
@@ -467,6 +472,12 @@ export default function ChartScreen() {
               ROOM: {roomId}
             </Text>
           </View>
+          <RoundBadge
+            roundCount={roundCount}
+            totalRounds={totalRounds}
+            isDark={isDark}
+            className="mt-2"
+          />
         </View>
 
         {/* Settings Dropdown Button */}
@@ -645,6 +656,12 @@ export default function ChartScreen() {
               }}
               className="bg-pink-400"
             >
+              <RoundBadge
+                roundCount={roundCount}
+                totalRounds={totalRounds}
+                isDark={isDark}
+                className="mb-4"
+              />
               <View
                 style={{ borderColor: isDark ? "#ffffff" : "#000000" }}
                 className={`bg-yellow-400 border-4 py-2 px-6 rounded-2xl rotate-[-2deg] mb-6 ${isDark ? "shadow-[4px_4px_0px_0px_#fff]" : "shadow-[4px_4px_0px_0px_#000]"}`}

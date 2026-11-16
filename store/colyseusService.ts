@@ -1,9 +1,10 @@
 import type { Room } from '@colyseus/sdk';
 import * as Colyseus from '@colyseus/sdk';
 import Constants from 'expo-constants';
-import { Platform } from 'react-native';
-import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer, setLastGameResult, setPracticeState, setPendingCardAward, setCardAnnouncement, incrementSpinCount } from './lobbySlice';
+import { Alert, Platform } from 'react-native';
+import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer, setLastGameResult, setPracticeState, setPendingCardAward, setCardAnnouncement, incrementSpinCount, setTotalRounds, setRoundCount, setPodium, setGameOver, resetMatch } from './lobbySlice';
 import { store } from './store';
+import { DEFAULT_TOTAL_ROUNDS, GameOverPayload, isRoundsErrorCode, mergeGameOver, normalizePodium, roundsErrorMessage } from '../utils/rounds';
 
 
 
@@ -25,6 +26,41 @@ console.log(`[Colyseus] Detection Info: manifest=${Constants.expoConfig?.hostUri
 const client = new Colyseus.Client(ENDPOINT);
 let currentRoom: Room | null = null;
 let practiceRoom: Room | null = null;
+/**
+ * Set when GameOverEvent (or a gameover state patch) is captured.
+ * The server closes the socket immediately after that broadcast. The close
+ * must keep the podium on screen and must not start a reconnect.
+ */
+let gameOverActive = false;
+let gameOverPayload: GameOverPayload | null = null;
+
+function clearGameOverHandoff() {
+  gameOverActive = false;
+  gameOverPayload = null;
+}
+
+function holdGameOver(room: { reconnection?: { enabled: boolean } } | null, payload: GameOverPayload) {
+  const first = !gameOverActive;
+  gameOverActive = true;
+  gameOverPayload = mergeGameOver(gameOverPayload, payload);
+  if (room?.reconnection) {
+    room.reconnection.enabled = false;
+  }
+  store.dispatch(setGameOver(gameOverPayload));
+  if (first) {
+    import('expo-router').then(({ router }) => {
+      router.replace('/podium');
+    });
+  }
+}
+
+function readGameOver(state: any): GameOverPayload {
+  return {
+    roundCount: Number(state?.roundCount) || 0,
+    totalRounds: Number(state?.totalRounds) || DEFAULT_TOTAL_ROUNDS,
+    podium: normalizePodium(state?.podium),
+  };
+}
 
 export const colyseusService = {
   get room() {
@@ -36,6 +72,7 @@ export const colyseusService = {
 
   async connectAsHost(playerName: string) {
     try {
+      clearGameOverHandoff();
       currentRoom = await client.create("lobby", { name: playerName });
       this.setupRoomListeners(currentRoom);
       return currentRoom?.roomId;
@@ -47,6 +84,7 @@ export const colyseusService = {
 
   async connectAsJoin(roomId: string, playerName: string) {
     try {
+      clearGameOverHandoff();
       currentRoom = await client.joinById(roomId, { name: playerName });
       this.setupRoomListeners(currentRoom);
       return currentRoom?.roomId;
@@ -57,13 +95,37 @@ export const colyseusService = {
   },
 
   disconnect() {
+    clearGameOverHandoff();
     if (currentRoom) {
+      currentRoom.reconnection.enabled = false;
       currentRoom.leave();
       currentRoom = null;
-      store.dispatch(setGamePhase('lobby'));
-      store.dispatch(setPlayers([]));
-      store.dispatch(setSelectedPlayers([]));
-      store.dispatch(setRoomId(''));
+    }
+    store.dispatch(resetMatch());
+  },
+
+  /**
+   * The podium stays up after the server frees the room. Home clears that
+   * snapshot and returns the player to the start screen.
+   */
+  leaveAfterGameOver() {
+    clearGameOverHandoff();
+    const room = currentRoom;
+    currentRoom = null;
+    if (room) {
+      room.reconnection.enabled = false;
+      try {
+        room.leave(true);
+      } catch (error) {
+        console.log("[Colyseus] Leave after game over:", error);
+      }
+    }
+    store.dispatch(resetMatch());
+  },
+
+  sendSetRounds(rounds: number) {
+    if (currentRoom) {
+      currentRoom.send("set_rounds", { rounds });
     }
   },
 
@@ -124,6 +186,20 @@ export const colyseusService = {
       }));
     });
 
+    room.onMessage("GameOverEvent", (event: any) => {
+      console.log(`[Colyseus] GameOverEvent:`, event);
+      holdGameOver(room, {
+        roundCount: Number(event?.roundCount) || 0,
+        totalRounds: Number(event?.totalRounds) || DEFAULT_TOTAL_ROUNDS,
+        podium: normalizePodium(event?.podium),
+      });
+    });
+
+    room.onMessage("LobbyError", (event: any) => {
+      if (!isRoundsErrorCode(event?.code)) return;
+      Alert.alert("Match length", roundsErrorMessage(event.code, event?.message));
+    });
+
     room.onMessage("SpinWheelEvent", (event: any) => {
       console.log(`[SpecialtyCard] SpinWheelEvent:`, event);
       this.leavePractice();
@@ -140,12 +216,31 @@ export const colyseusService = {
     });
 
     room.onStateChange((state: any) => {
+      if (state?.phase === "gameover") {
+        holdGameOver(room, readGameOver(state));
+      }
+
       import('react-redux').then(({ batch }) => {
+        // A patch can resolve after the socket is already gone. Don't put a
+        // finished match back on screen, and don't resurrect a room we left.
+        if (currentRoom !== room && !gameOverActive) return;
         batch(() => {
-          store.dispatch(setGamePhase(state.phase));
+          if (currentRoom !== room && !gameOverActive) return;
+          const phase = gameOverActive ? "gameover" : state.phase;
+          store.dispatch(setGamePhase(phase));
           store.dispatch(setTimer(state.timer));
           store.dispatch(setGameType(state.currentGameType));
           store.dispatch(setGameCategory(state.currentCategory));
+          if (typeof state.totalRounds === "number") {
+            store.dispatch(setTotalRounds(state.totalRounds));
+          }
+          if (typeof state.roundCount === "number") {
+            store.dispatch(setRoundCount(state.roundCount));
+          }
+          const podium = normalizePodium(state.podium);
+          if (!(gameOverActive && podium.length === 0)) {
+            store.dispatch(setPodium(podium));
+          }
 
           if (state.selectedPlayers) {
             store.dispatch(setSelectedPlayers(state.selectedPlayers.toArray()));
@@ -165,14 +260,31 @@ export const colyseusService = {
       });
     });
 
+    room.onError((code: number, message?: string) => {
+      if (gameOverActive) {
+        console.log(`[Colyseus] Game over socket closed (${code})`);
+        return;
+      }
+      console.log(`[Colyseus] Error ${code}: ${message || ""}`);
+    });
+
     room.onLeave((code: number) => {
       console.log(`[Colyseus] Disconnected with code: ${code}`);
       currentRoom = null;
-      store.dispatch(setGamePhase('lobby'));
-      store.dispatch(setPlayers([]));
-      store.dispatch(setSelectedPlayers([]));
-      store.dispatch(setRoomId(''));
-      
+      if (gameOverActive) {
+        if (gameOverPayload) {
+          store.dispatch(setGameOver(gameOverPayload));
+        } else {
+          store.dispatch(setGamePhase("gameover"));
+        }
+        import('expo-router').then(({ router }) => {
+          router.replace('/podium');
+        });
+        return;
+      }
+
+      store.dispatch(resetMatch());
+
       // Imperative routing to home screen when connection dies
       import('expo-router').then(({ router }) => {
         if (router.canGoBack() || true) {

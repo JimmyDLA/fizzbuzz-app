@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { ScrollView, Text, View, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { RetroButton } from '../components/RetroButton';
+import { RoundsPicker } from '../components/RoundsPicker';
 import { colyseusService } from '../store/colyseusService';
 import { RootState } from '../store/store';
 import { memphisShapes } from '../constants/theme';
@@ -21,7 +22,9 @@ export default function LobbyScreen() {
   const isReady = myPlayer?.isReady || false;
 
   useEffect(() => {
-    if (gamePhase === 'chart') {
+    if (gamePhase === 'gameover') {
+      router.replace('/podium');
+    } else if (gamePhase === 'chart') {
       router.replace('/chart');
     }
   }, [gamePhase]);
@@ -87,6 +90,10 @@ export default function LobbyScreen() {
         <Text className={`font-black text-lg mt-5 uppercase tracking-widest ${isDark ? "text-white" : "text-black"}`}>
           WAITING FOR PLAYERS
         </Text>
+      </View>
+
+      <View className="px-6">
+        <RoundsPicker isHost={!!myPlayer?.isHost} />
       </View>
 
       <ScrollView className="flex-1 mb-6 px-6" showsVerticalScrollIndicator={false}>
