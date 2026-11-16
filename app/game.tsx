@@ -539,7 +539,13 @@ export default function GameScreen() {
 
         <View className="w-full">
           <RetroButton
-            title={isReady ? "WAITING FOR OTHERS..." : "NEXT ROUND"}
+            title={
+              isReady
+                ? "WAITING FOR OTHERS..."
+                : roundCount > 0 && roundCount === totalRounds
+                  ? "SEE PODIUM"
+                  : "NEXT ROUND"
+            }
             variant={isReady ? "secondary" : "success"}
             onPress={handleReadyToggle}
           />
