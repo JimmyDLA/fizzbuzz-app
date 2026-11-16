@@ -7,9 +7,11 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
+import { BettingPayoutBoard, BettingRoundBanner, BettingRoundMark, BettingStakePanel } from "../components/BettingRound";
 import { CardAnnouncementPopup } from "../components/CardAnnouncementPopup";
 import { CardAwardPopup } from "../components/CardAwardPopup";
 import { CardDock } from "../components/CardDock";
@@ -27,6 +29,7 @@ import {
 import { colyseusService } from "../store/colyseusService";
 import { clearLobbyError } from "../store/lobbySlice";
 import { RootState } from "../store/store";
+import { displayedBetNet, displayMode } from "../utils/betting";
 import { isExpoGo } from "../utils/environment";
 import {
   playButtonClickSound,
@@ -60,6 +63,7 @@ const DEV_SPECIALTY_CARDS = [
 
 export default function ChartScreen() {
   const dispatch = useDispatch();
+  const { height: windowHeight } = useWindowDimensions();
   const {
     roomId,
     playerName,
@@ -73,6 +77,10 @@ export default function ChartScreen() {
     lastWinners,
     spinCount,
     cardAnnouncement,
+    isBettingRound,
+    bettingRound,
+    bettingPayout,
+    scorePopBlocked,
     roundCount,
     totalRounds,
     readyCount,
@@ -486,13 +494,17 @@ export default function ChartScreen() {
               ROOM: {roomId}
             </Text>
           </View>
-          <RoundBadge
-            phase={gamePhase}
-            roundCount={roundCount}
-            totalRounds={totalRounds}
-            isDark={isDark}
-            className="mt-2"
-          />
+          {!showWheelModal && (
+            <View className="flex-row flex-wrap items-center justify-center gap-2 mt-2">
+              <RoundBadge
+                phase={gamePhase}
+                roundCount={roundCount}
+                totalRounds={totalRounds}
+                isDark={isDark}
+              />
+              <BettingRoundMark />
+            </View>
+          )}
         </View>
 
         {/* Settings Dropdown Button */}
@@ -503,6 +515,8 @@ export default function ChartScreen() {
         className="flex-1 mb-6 px-6"
         showsVerticalScrollIndicator={false}
       >
+        <BettingRoundBanner />
+        <BettingPayoutBoard />
         {(() => {
           const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
           let currentRank = 1;
@@ -512,6 +526,7 @@ export default function ChartScreen() {
               currentRank++;
             }
             const isWinner = (lastWinners as any[])?.includes(p.id);
+            const celebrateScore = !isBettingRound && !scorePopBlocked && isWinner;
             return (
               <RetroPlayerCard
                 key={p.id}
@@ -522,8 +537,14 @@ export default function ChartScreen() {
                 score={p.score}
                 isReady={gamePhase === "chart" ? !!p.isReady : undefined}
                 isConnected={p.isConnected !== false}
-                isWinner={isWinner}
-                triggerAnimationKey={isWinner ? animationKey : 0}
+                isWinner={celebrateScore}
+                triggerAnimationKey={celebrateScore ? animationKey : 0}
+                betNet={displayedBetNet(p, {
+                  isBettingRound,
+                  phase: gamePhase,
+                  bettingRound,
+                  bettingPayout,
+                })}
               />
             );
           });
@@ -628,7 +649,7 @@ export default function ChartScreen() {
               <Text
                 className={`text-xs font-black uppercase tracking-widest mb-1 ${isDark ? "text-yellow-400" : "text-black/60"}`}
               >
-                {currentGameType} MATCH IN PROGRESS
+                {displayMode(currentGameType, isBettingRound)} MATCH IN PROGRESS
               </Text>
               <Text
                 className={`text-2xl font-black uppercase text-center tracking-wider ${isDark ? "text-white" : "text-black"}`}
@@ -642,6 +663,11 @@ export default function ChartScreen() {
               >
                 WAITING IN CHART LOBBY...
               </Text>
+              {isBettingRound && !showWheelModal && (
+                <View className="w-full mt-3">
+                  <BettingStakePanel />
+                </View>
+              )}
             </View>
           </View>
         </View>
@@ -664,30 +690,42 @@ export default function ChartScreen() {
             />
 
             {/* Card Body */}
-            <View
+            <ScrollView
               style={{
                 borderRadius: 28,
                 borderWidth: 5,
                 borderColor: isDark ? "#ffffff" : "#000000",
-                padding: 24,
-                alignItems: "center",
+                maxHeight: windowHeight - 96,
                 backgroundColor: isDark ? "#31102f" : "#fee2e2",
               }}
               className="bg-pink-400"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{
+                padding: 24,
+                alignItems: "center",
+                width: "100%",
+              }}
             >
-              <RoundBadge
-                phase={gamePhase}
-                roundCount={roundCount}
-                totalRounds={totalRounds}
-                isDark={isDark}
-                className="mb-4"
-              />
+              <View className="flex-row flex-wrap items-center justify-center gap-2 mb-4">
+                <RoundBadge
+                  phase={gamePhase}
+                  roundCount={roundCount}
+                  totalRounds={totalRounds}
+                  isDark={isDark}
+                />
+                <BettingRoundMark />
+              </View>
               <View
                 style={{ borderColor: isDark ? "#ffffff" : "#000000" }}
-                className={`bg-yellow-400 border-4 py-2 px-6 rounded-2xl rotate-[-2deg] mb-6 ${isDark ? "shadow-[4px_4px_0px_0px_#fff]" : "shadow-[4px_4px_0px_0px_#000]"}`}
+                className={`bg-yellow-400 border-4 py-2 px-6 rounded-2xl rotate-[-2deg] mb-6 ${isBettingRound ? "w-full" : ""} ${isDark ? "shadow-[4px_4px_0px_0px_#fff]" : "shadow-[4px_4px_0px_0px_#000]"}`}
               >
-                <Text className="text-black text-4xl font-black uppercase text-center tracking-wider">
-                  {displayedType}
+                <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.45}
+                  className="text-black text-4xl font-black uppercase text-center tracking-wider"
+                >
+                  {displayMode(displayedType, isBettingRound)}
                 </Text>
               </View>
 
@@ -772,13 +810,14 @@ export default function ChartScreen() {
                 </Text>
               </View>
 
+              {wheelHold && (
+                <WheelHoldNotice cardId={wheelHold.cardId} isDark={isDark} />
+              )}
+              <BettingStakePanel wrapped />
               <View
                 className="justify-center items-center w-full"
                 style={{ minHeight: 112 }}
               >
-                {wheelHold && (
-                  <WheelHoldNotice cardId={wheelHold.cardId} isDark={isDark} />
-                )}
                 {isSpinning ? (
                   <View
                     style={{ borderColor: isDark ? "#ffffff" : "#000000" }}
@@ -817,7 +856,7 @@ export default function ChartScreen() {
                   />
                 )}
               </View>
-            </View>
+            </ScrollView>
           </View>
         </View>
       )}

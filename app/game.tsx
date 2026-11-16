@@ -20,6 +20,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
+import { BettingPayoutBoard, BettingRoundMark, BettingStakePanel } from "../components/BettingRound";
 import { CardAnnouncementPopup } from "../components/CardAnnouncementPopup";
 import { CardDock } from "../components/CardDock";
 import { DynamicGameResults } from "../components/DynamicGameResults";
@@ -40,6 +41,7 @@ import { RetroButton } from "../components/RetroButton";
 import { RoundBadge } from "../components/RoundBadge";
 import { memphisShapes } from "../constants/theme";
 import { colyseusService } from "../store/colyseusService";
+import { displayMode } from "../utils/betting";
 import { holderDrinksToPass, passDrinkPhrase } from "../utils/shieldPass";
 
 export default function GameScreen() {
@@ -59,6 +61,7 @@ export default function GameScreen() {
     lastLosers,
     drinkChains,
     lastGameResult,
+    isBettingRound,
     roundCount,
     totalRounds,
     matchLengthSupported,
@@ -266,13 +269,15 @@ export default function GameScreen() {
   const renderCountdown = () => {
     return (
       <View className="flex-1 bg-transparent justify-center items-center px-6">
-        <RoundBadge
-          phase={gamePhase}
-          roundCount={roundCount}
-          totalRounds={totalRounds}
-          isDark={isDark}
-          className="mb-4"
-        />
+        <View className="flex-row flex-wrap items-center justify-center gap-2 mb-4">
+          <RoundBadge
+            phase={gamePhase}
+            roundCount={roundCount}
+            totalRounds={totalRounds}
+            isDark={isDark}
+          />
+          <BettingRoundMark />
+        </View>
         <Text className="text-white font-black text-2xl uppercase tracking-widest text-center mb-6">
           PREPARE TO PLAY!
         </Text>
@@ -302,6 +307,12 @@ export default function GameScreen() {
             </Text>
           </View>
         </View>
+
+        {isBettingRound && (
+          <View className="w-full mt-6">
+            <BettingStakePanel />
+          </View>
+        )}
 
         {activeEffectPlayers.length > 0 && (
           <View className="mt-8 px-4 py-3 bg-zinc-900/90 rounded-2xl border-2 border-black items-center max-w-xs">
@@ -427,10 +438,17 @@ export default function GameScreen() {
             <Text
               className={`font-black text-[9px] uppercase tracking-widest mt-0.5 ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
             >
-              {currentGameType}
+              {displayMode(currentGameType, isBettingRound)}
             </Text>
           </View>
         </View>
+
+        {isBettingRound && (
+          <View className="px-4">
+            <BettingRoundMark className="mb-2" />
+            <BettingStakePanel />
+          </View>
+        )}
 
         {/* Global Timer Badge */}
         {currentCategory !== "Hot Potato" &&
@@ -509,6 +527,15 @@ export default function GameScreen() {
           className="mb-3"
         />
 
+        <BettingRoundMark className="mb-3" />
+        {isBettingRound && (
+          <Text
+            className={`font-black text-xs uppercase tracking-widest mb-3 ${isDark ? "text-yellow-300" : "text-black"}`}
+          >
+            {displayMode("BR", true)}
+          </Text>
+        )}
+
         {/* Scroll board */}
         <View style={styles.resultsScrollWrapper}>
           {/* Shadow */}
@@ -533,6 +560,7 @@ export default function GameScreen() {
               contentContainerStyle={{ padding: 20 }}
               showsVerticalScrollIndicator={false}
             >
+              <BettingPayoutBoard />
               {lastGameResult && (
                 <View className="mb-6 border-b-2 border-black/10 dark:border-white/10 pb-6">
                   <DynamicGameResults rawData={lastGameResult} />
