@@ -45,6 +45,8 @@ const initialState = {
   totalRounds: DEFAULT_TOTAL_ROUNDS as number,
   roundCount: 0,
   podium: [] as PodiumEntry[],
+  /** True only after this room's state includes totalRounds. Older servers omit it. */
+  matchLengthSupported: false,
 };
 
 export const lobbySlice = createSlice({
@@ -66,6 +68,35 @@ export const lobbySlice = createSlice({
     setGamePhase: (state, action) => {
       if (state.gamePhase === action.payload) return;
       state.gamePhase = action.payload;
+    },
+    /**
+     * One store write for a room patch. Counts land before phase so a
+     * subscriber never sees the new phase with the previous roundCount.
+     */
+    applyRoomProgress: (
+      state,
+      action: {
+        payload: {
+          phase: string;
+          roundCount?: number;
+          totalRounds?: number;
+          matchLengthSupported?: boolean;
+        };
+      },
+    ) => {
+      const { phase, roundCount, totalRounds, matchLengthSupported } = action.payload;
+      if (typeof totalRounds === "number" && state.totalRounds !== totalRounds) {
+        state.totalRounds = totalRounds;
+      }
+      if (typeof roundCount === "number" && state.roundCount !== roundCount) {
+        state.roundCount = roundCount;
+      }
+      if (matchLengthSupported && !state.matchLengthSupported) {
+        state.matchLengthSupported = true;
+      }
+      if (state.gamePhase !== phase) {
+        state.gamePhase = phase;
+      }
     },
     setTimer: (state, action) => {
       state.timer = action.payload;
@@ -132,6 +163,10 @@ export const lobbySlice = createSlice({
       if (state.roundCount === action.payload) return;
       state.roundCount = action.payload;
     },
+    setMatchLengthSupported: (state, action) => {
+      if (state.matchLengthSupported === action.payload) return;
+      state.matchLengthSupported = action.payload;
+    },
     setPodium: (state, action) => {
       if (podiumEqual(state.podium, action.payload)) return;
       state.podium = action.payload;
@@ -149,10 +184,10 @@ export const lobbySlice = createSlice({
       ) {
         return;
       }
-      state.gamePhase = "gameover";
       state.roundCount = nextCount;
       state.totalRounds = nextTotal;
       state.podium = nextPodium;
+      state.gamePhase = "gameover";
     },
     resetMatch: (state) => {
       state.roomId = "";
@@ -172,6 +207,7 @@ export const lobbySlice = createSlice({
       state.totalRounds = DEFAULT_TOTAL_ROUNDS;
       state.roundCount = 0;
       state.podium = [];
+      state.matchLengthSupported = false;
     },
   },
 });
@@ -182,6 +218,7 @@ export const {
   setPlayers,
   setSelectedPlayers,
   setGamePhase,
+  applyRoomProgress,
   setTimer,
   setGameType,
   setGameCategory,
@@ -203,6 +240,7 @@ export const {
   incrementSpinCount,
   setTotalRounds,
   setRoundCount,
+  setMatchLengthSupported,
   setPodium,
   setGameOver,
   resetMatch,

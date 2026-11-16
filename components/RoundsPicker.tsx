@@ -22,7 +22,7 @@ const ITEM_HEIGHT = 64;
 const WHEEL_HEIGHT = ITEM_HEIGHT * 3;
 
 export function RoundsPicker({ isHost }: { isHost: boolean }) {
-  const { totalRounds, theme } = useSelector((state: RootState) => state.lobby);
+  const { totalRounds, theme, matchLengthSupported } = useSelector((state: RootState) => state.lobby);
   const isDark = theme === "dark";
   const shown = coerceRoundChoice(totalRounds);
   const [open, setOpen] = useState(false);
@@ -76,6 +76,8 @@ export function RoundsPicker({ isHost }: { isHost: boolean }) {
     colyseusService.sendSetRounds(draftRef.current);
     setOpen(false);
   };
+
+  if (!matchLengthSupported) return null;
 
   return (
     <View className="w-full mb-4">

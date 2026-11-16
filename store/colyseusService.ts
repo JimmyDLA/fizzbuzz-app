@@ -2,7 +2,7 @@ import type { Room } from '@colyseus/sdk';
 import * as Colyseus from '@colyseus/sdk';
 import Constants from 'expo-constants';
 import { Alert, Platform } from 'react-native';
-import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer, setLastGameResult, setPracticeState, setPendingCardAward, setCardAnnouncement, incrementSpinCount, setTotalRounds, setRoundCount, setPodium, setGameOver, resetMatch } from './lobbySlice';
+import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer, setLastGameResult, setPracticeState, setPendingCardAward, setCardAnnouncement, incrementSpinCount, setPodium, setGameOver, resetMatch, applyRoomProgress, setMatchLengthSupported } from './lobbySlice';
 import { store } from './store';
 import { DEFAULT_TOTAL_ROUNDS, GameOverPayload, isRoundsErrorCode, mergeGameOver, normalizePodium, roundsErrorMessage } from '../utils/rounds';
 
@@ -34,11 +34,15 @@ let practiceRoom: Room | null = null;
 let gameOverActive = false;
 let gameOverPayload: GameOverPayload | null = null;
 let podiumRouted = false;
+/** Colyseus 0.17 drops the socket if the client sends a message the room did not register. */
+let matchLengthSupported = false;
 
 function clearGameOverHandoff() {
   gameOverActive = false;
   gameOverPayload = null;
   podiumRouted = false;
+  matchLengthSupported = false;
+  store.dispatch(setMatchLengthSupported(false));
 }
 
 function holdGameOver(room: { reconnection?: { enabled: boolean } } | null, payload: GameOverPayload) {
@@ -57,6 +61,16 @@ function openPodium() {
   import('expo-router').then(({ router }) => {
     router.replace('/podium');
   });
+}
+
+function readProgress(state: any) {
+  const hasLength = typeof state?.totalRounds === "number";
+  return {
+    phase: typeof state?.phase === "string" ? state.phase : store.getState().lobby.gamePhase,
+    roundCount: typeof state?.roundCount === "number" ? state.roundCount : undefined,
+    totalRounds: hasLength ? state.totalRounds : undefined,
+    matchLengthSupported: hasLength,
+  };
 }
 
 function readGameOver(state: any): GameOverPayload {
@@ -129,9 +143,8 @@ export const colyseusService = {
   },
 
   sendSetRounds(rounds: number) {
-    if (currentRoom) {
-      currentRoom.send("set_rounds", { rounds });
-    }
+    if (!matchLengthSupported || !currentRoom) return;
+    currentRoom.send("set_rounds", { rounds });
   },
 
   sendReady(isReady: boolean) {
@@ -221,6 +234,7 @@ export const colyseusService = {
     });
 
     room.onStateChange((state: any) => {
+      const progress = readProgress(state);
       if (state?.phase === "gameover") {
         holdGameOver(room, readGameOver(state));
       }
@@ -233,17 +247,11 @@ export const colyseusService = {
         if (currentRoom !== room) return;
         batch(() => {
           if (currentRoom !== room) return;
-          const phase = state.phase;
-          store.dispatch(setGamePhase(phase));
+          if (progress.matchLengthSupported) matchLengthSupported = true;
+          store.dispatch(applyRoomProgress(progress));
           store.dispatch(setTimer(state.timer));
           store.dispatch(setGameType(state.currentGameType));
           store.dispatch(setGameCategory(state.currentCategory));
-          if (typeof state.totalRounds === "number") {
-            store.dispatch(setTotalRounds(state.totalRounds));
-          }
-          if (typeof state.roundCount === "number") {
-            store.dispatch(setRoundCount(state.roundCount));
-          }
           const podium = normalizePodium(state.podium);
           store.dispatch(setPodium(podium));
 
@@ -265,6 +273,13 @@ export const colyseusService = {
       });
     });
 
+    if (room.state) {
+      // The join handshake can deliver ROOM_STATE before this listener exists.
+      const progress = readProgress(room.state);
+      if (progress.matchLengthSupported) matchLengthSupported = true;
+      store.dispatch(applyRoomProgress(progress));
+    }
+
     room.onError((code: number, message?: string) => {
       if (gameOverActive) {
         console.log(`[Colyseus] Game over socket closed (${code})`);
@@ -277,8 +292,7 @@ export const colyseusService = {
       console.log(`[Colyseus] Disconnected with code: ${code}`);
       currentRoom = null;
       if (gameOverActive) {
-        // The podium route is the screen effect on gamePhase === "gameover".
-        // Replacing it again here remounts the screen when the socket closes.
+        // openPodium already opened the podium. Replacing it again remounts the screen.
         if (gameOverPayload) {
           store.dispatch(setGameOver(gameOverPayload));
         } else {
