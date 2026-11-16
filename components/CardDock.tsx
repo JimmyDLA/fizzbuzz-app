@@ -12,6 +12,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { getCardConfig, SpecialtyCardType } from "../constants/specialtyCards";
 import { colyseusService } from "../store/colyseusService";
 import { setCardError } from "../store/lobbySlice";
+import { selectRoundIsBetting } from "../store/selectors";
 import { RootState } from "../store/store";
 import {
   EARNED_THIS_ROUND_MESSAGE,
@@ -66,8 +67,8 @@ export function CardDock() {
     drinkChains,
     pendingCardAward,
     roundCount,
-    isBettingRound,
   } = useSelector((state: RootState) => state.lobby);
+  const isBettingRound = useSelector(selectRoundIsBetting);
   const dispatch = useDispatch();
 
   const myPlayer = players.find((p: any) => p.name === playerName);

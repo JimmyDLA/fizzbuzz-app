@@ -5,12 +5,69 @@ import type {
   BettingWagerView,
   LobbyPlayer,
 } from "../store/lobbySlice";
+import { visibleRoundNumber } from "./rounds";
+
+/**
+ * Fields that decide the mode label for the round on screen.
+ * `currentGameType` can still say "1v1" or "2v2" on the chart before a
+ * betting round, because the server does not clear it until the wheel starts.
+ */
+export interface GameTypeSource {
+  phase: string;
+  roundCount: number;
+  currentGameType: string;
+  /** Server `LobbyState.isBettingRound`, when the room already computed it. */
+  isBettingRound: boolean;
+  /** `BettingRoundEvent`, sent when that round's wheel first starts. */
+  bettingRound: Pick<BettingRoundEvent, "roundCount" | "mode"> | null;
+}
+
+/**
+ * Same rule as the server: a betting round is a positive multiple of 5.
+ * Round 0 and anything that is not a whole number are not betting rounds.
+ */
+export function isBettingRoundNumber(roundNumber: number): boolean {
+  return Number.isInteger(roundNumber) && roundNumber > 0 && roundNumber % 5 === 0;
+}
+
+/**
+ * The round whose mode is on screen.
+ * Chart, wheel, countdown, and playing show `roundCount + 1`.
+ * Resolution and game over show `roundCount`. The lobby has no round.
+ */
+export function displayedRoundNumber(phase: string, roundCount: number): number | null {
+  return visibleRoundNumber(phase, roundCount);
+}
+
+/**
+ * True when the round on screen is a betting round, so the label is Battle Royale
+ * no matter what `currentGameType` still says.
+ *
+ * Chart, wheel, countdown, playing, resolution, and game over use the round
+ * number, the same way the server does: a positive multiple of 5. A stale
+ * `isBettingRound` or `BettingRoundEvent` from the previous round cannot
+ * relabel this one. The lobby has no round number, so there the server flag
+ * or a `BettingRoundEvent` is used when the room has already sent one.
+ */
+export function roundIsBetting(source: GameTypeSource): boolean {
+  const shown = displayedRoundNumber(source.phase, source.roundCount);
+  if (shown != null) return isBettingRoundNumber(shown);
+  if (source.isBettingRound) return true;
+  return source.bettingRound != null && source.bettingRound.mode === "BR";
+}
+
+/**
+ * Mode label for the round on screen.
+ * A betting round is always "BATTLE ROYALE". Any other round keeps the short code
+ * the server stored (`1v1`, `2v2`, or `BR`).
+ */
+export function displayedGameType(source: GameTypeSource): string {
+  return displayMode(source.currentGameType, roundIsBetting(source));
+}
 
 /** Battle Royale is spelled out on a betting round. Other rounds keep the short code. */
 export function displayMode(gameType: string, isBettingRound: boolean): string {
-  if (isBettingRound && (gameType === "BR" || gameType === "BATTLE ROYALE")) {
-    return "BATTLE ROYALE";
-  }
+  if (isBettingRound) return "BATTLE ROYALE";
   return gameType;
 }
 

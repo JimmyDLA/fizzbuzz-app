@@ -42,7 +42,7 @@ import { RetroButton } from "../components/RetroButton";
 import { RoundBadge } from "../components/RoundBadge";
 import { memphisShapes } from "../constants/theme";
 import { colyseusService } from "../store/colyseusService";
-import { displayMode } from "../utils/betting";
+import { selectDisplayedGameType, selectRoundIsBetting } from "../store/selectors";
 import { hasUsableCopy, readEarnedRounds } from "../utils/cardRound";
 import { holderDrinksToPass, passDrinkPhrase } from "../utils/shieldPass";
 
@@ -57,7 +57,6 @@ export default function GameScreen() {
     selectedPlayers,
     gamePhase,
     timer,
-    currentGameType,
     currentCategory,
     lastWinners,
     lastLosers,
@@ -68,6 +67,8 @@ export default function GameScreen() {
     totalRounds,
     matchLengthSupported,
   } = useSelector((state: any) => state.lobby);
+  const modeLabel = useSelector(selectDisplayedGameType);
+  const bettingOnScreen = useSelector(selectRoundIsBetting);
 
   const players: any[] = reduxPlayers || [];
   const myPlayer = players.find((p: any) => p.name === playerName);
@@ -444,7 +445,7 @@ export default function GameScreen() {
             <Text
               className={`font-black text-[9px] uppercase tracking-widest mt-0.5 ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
             >
-              {displayMode(currentGameType, isBettingRound)}
+              {modeLabel}
             </Text>
           </View>
         </View>
@@ -534,11 +535,11 @@ export default function GameScreen() {
         />
 
         <BettingRoundMark className="mb-3" />
-        {isBettingRound && (
+        {bettingOnScreen && (
           <Text
             className={`font-black text-xs uppercase tracking-widest mb-3 ${isDark ? "text-yellow-300" : "text-black"}`}
           >
-            {displayMode("BR", true)}
+            {modeLabel}
           </Text>
         )}
 

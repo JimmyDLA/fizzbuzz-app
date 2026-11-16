@@ -1,8 +1,8 @@
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSelector } from "react-redux";
+import { selectDisplayedGameType, selectRoundIsBetting } from "../store/selectors";
 import { RootState } from "../store/store";
 import {
-  displayMode,
   formatBetNet,
   formatBetRank,
   payoutBoard,
@@ -27,8 +27,9 @@ function useBettingTheme() {
  * Distinct from the Round X/N badge. It never repeats that label.
  */
 export function BettingRoundMark({ className = "" }: { className?: string }) {
-  const { lobby, isDark } = useBettingTheme();
-  if (!lobby.isBettingRound) return null;
+  const { isDark } = useBettingTheme();
+  const betting = useSelector(selectRoundIsBetting);
+  if (!betting) return null;
 
   return (
     <View
@@ -44,7 +45,9 @@ export function BettingRoundMark({ className = "" }: { className?: string }) {
 /** Clear banner on the chart, before the spin. */
 export function BettingRoundBanner() {
   const { lobby, isDark } = useBettingTheme();
-  if (!lobby.isBettingRound || lobby.gamePhase !== "chart") return null;
+  const betting = useSelector(selectRoundIsBetting);
+  const modeLabel = useSelector(selectDisplayedGameType);
+  if (!betting || lobby.gamePhase !== "chart") return null;
 
   return (
     <View className="w-full mb-4 relative">
@@ -67,7 +70,7 @@ export function BettingRoundBanner() {
           Betting round
         </Text>
         <Text className="text-black font-black text-xs uppercase tracking-widest text-center mt-1">
-          {displayMode("BR", true)} · stake up to 3 points
+          {modeLabel} · stake up to 3 points
         </Text>
       </View>
     </View>

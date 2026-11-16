@@ -28,6 +28,7 @@ import {
 } from "../components/SpecialtyCardModal";
 import { colyseusService } from "../store/colyseusService";
 import { clearLobbyError } from "../store/lobbySlice";
+import { selectDisplayedGameType, selectRoundIsBetting } from "../store/selectors";
 import { RootState } from "../store/store";
 import { displayedBetNet, displayMode } from "../utils/betting";
 import { isExpoGo } from "../utils/environment";
@@ -88,6 +89,8 @@ export default function ChartScreen() {
     lobbyError,
     wheelHold,
   } = useSelector((state: RootState) => state.lobby);
+  const modeLabel = useSelector(selectDisplayedGameType);
+  const bettingOnScreen = useSelector(selectRoundIsBetting);
 
   const players: any[] = reduxPlayers.length > 0 ? reduxPlayers : [];
   const selectedPlayersList: any[] = selectedPlayers || [];
@@ -161,13 +164,15 @@ export default function ChartScreen() {
   const currentCategoryRef = useRef(currentCategory);
   const selectedPlayersListRef = useRef(selectedPlayersList);
   const playersRef = useRef(players);
+  const bettingOnScreenRef = useRef(bettingOnScreen);
 
   useEffect(() => {
     currentGameTypeRef.current = currentGameType;
     currentCategoryRef.current = currentCategory;
     selectedPlayersListRef.current = selectedPlayersList;
     playersRef.current = players;
-  }, [currentGameType, currentCategory, selectedPlayersList, players]);
+    bettingOnScreenRef.current = bettingOnScreen;
+  }, [currentGameType, currentCategory, selectedPlayersList, players, bettingOnScreen]);
 
   useEffect(() => {
     let interval: any;
@@ -184,14 +189,21 @@ export default function ChartScreen() {
       setShowWheelModal(true);
       playSpinSound();
 
-      let requiredCount = 2;
-      const type = currentGameTypeRef.current;
-      if (type === "1v1") requiredCount = 2;
-      if (type === "2v2") requiredCount = 4;
-      if (type === "BR") requiredCount = playersRef.current.length;
+      // A betting round stays Battle Royale. The wheel still shuffles the category.
+      const bettingSpin = bettingOnScreenRef.current;
+      let requiredCount = playersRef.current.length;
+      if (!bettingSpin) {
+        requiredCount = 2;
+        const type = currentGameTypeRef.current;
+        if (type === "1v1") requiredCount = 2;
+        if (type === "2v2") requiredCount = 4;
+        if (type === "BR") requiredCount = playersRef.current.length;
+      }
 
       interval = setInterval(() => {
-        setDisplayedType(TYPES[Math.floor(Math.random() * TYPES.length)]);
+        if (!bettingOnScreenRef.current) {
+          setDisplayedType(TYPES[Math.floor(Math.random() * TYPES.length)]);
+        }
         setDisplayedCategory(CATS[Math.floor(Math.random() * CATS.length)]);
 
         const randomP = [...playersRef.current]
@@ -203,7 +215,9 @@ export default function ChartScreen() {
 
       timeout = setTimeout(() => {
         clearInterval(interval);
-        setDisplayedType(currentGameTypeRef.current || "?");
+        setDisplayedType(
+          bettingOnScreenRef.current ? "BR" : currentGameTypeRef.current || "?",
+        );
         setDisplayedCategory(currentCategoryRef.current || "?");
         setDisplayedPlayers(selectedPlayersListRef.current);
         setIsSpinning(false);
@@ -649,7 +663,7 @@ export default function ChartScreen() {
               <Text
                 className={`text-xs font-black uppercase tracking-widest mb-1 ${isDark ? "text-yellow-400" : "text-black/60"}`}
               >
-                {displayMode(currentGameType, isBettingRound)} MATCH IN PROGRESS
+                {modeLabel} MATCH IN PROGRESS
               </Text>
               <Text
                 className={`text-2xl font-black uppercase text-center tracking-wider ${isDark ? "text-white" : "text-black"}`}
@@ -717,7 +731,7 @@ export default function ChartScreen() {
               </View>
               <View
                 style={{ borderColor: isDark ? "#ffffff" : "#000000" }}
-                className={`bg-yellow-400 border-4 py-2 px-6 rounded-2xl rotate-[-2deg] mb-6 ${isBettingRound ? "w-full" : ""} ${isDark ? "shadow-[4px_4px_0px_0px_#fff]" : "shadow-[4px_4px_0px_0px_#000]"}`}
+                className={`bg-yellow-400 border-4 py-2 px-6 rounded-2xl rotate-[-2deg] mb-6 ${bettingOnScreen ? "w-full" : ""} ${isDark ? "shadow-[4px_4px_0px_0px_#fff]" : "shadow-[4px_4px_0px_0px_#000]"}`}
               >
                 <Text
                   numberOfLines={1}
@@ -725,7 +739,7 @@ export default function ChartScreen() {
                   minimumFontScale={0.45}
                   className="text-black text-4xl font-black uppercase text-center tracking-wider"
                 >
-                  {displayMode(displayedType, isBettingRound)}
+                  {bettingOnScreen ? modeLabel : displayMode(displayedType, false)}
                 </Text>
               </View>
 
@@ -735,7 +749,7 @@ export default function ChartScreen() {
                     displayedPlayers.includes(p.id),
                   );
 
-                  if (displayedType === "2v2" && selectedPs.length === 4) {
+                  if (!bettingOnScreen && displayedType === "2v2" && selectedPs.length === 4) {
                     return (
                       <View className="items-center justify-center">
                         <View
