@@ -2,8 +2,8 @@ import type { Room } from '@colyseus/sdk';
 import * as Colyseus from '@colyseus/sdk';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer, setLastGameResult, setPracticeState, setPendingCardAward, setCardAnnouncement, setCardError, incrementSpinCount, setPodium, setGameOver, resetMatch, applyRoomProgress, setMatchLengthSupported, setDrinkChains, setReadyCount, setConnectedCount, setLobbyError, clearLobbyError, setWheelHold, clearWheelHold } from './lobbySlice';
-import type { CardUsedEvent } from './lobbySlice';
+import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer, setLastGameResult, setPracticeState, setPendingCardAward, setCardAnnouncement, setCardError, incrementSpinCount, setPodium, setGameOver, resetMatch, applyRoomProgress, setMatchLengthSupported, setDrinkChains, setReadyCount, setConnectedCount, setLobbyError, clearLobbyError, setWheelHold, clearWheelHold, setBettingState, setBettingRound, setBettingPayout } from './lobbySlice';
+import type { BettingPayoutEvent, BettingPayoutReason, BettingRoundEvent, CardUsedEvent, LobbyPlayer } from './lobbySlice';
 import { store } from './store';
 import { EARNED_THIS_ROUND_MESSAGE, readEarnedRounds } from '../utils/cardRound';
 import { DEFAULT_TOTAL_ROUNDS, GameOverPayload, isRoundsErrorCode, mergeGameOver, normalizePodium, roundsErrorMessage } from '../utils/rounds';
@@ -25,6 +25,46 @@ const ENDPOINT = `ws://${hostIp}:2567`;
 
 console.log(`[Colyseus] Connecting to endpoint: ${ENDPOINT}`);
 console.log(`[Colyseus] Detection Info: manifest=${Constants.expoConfig?.hostUri}, experience=${Constants.experienceUrl}, debugger=${(Constants as any).debuggerHost}`);
+
+const BETTING_PAYOUT_REASONS: BettingPayoutReason[] = ["payout", "no-action", "aborted", "unresolved"];
+
+const readNumber = (value: unknown): number => {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const readBettingRound = (event: any): BettingRoundEvent => {
+  const wagers = Array.isArray(event?.wagers) ? event.wagers : [];
+  return {
+    roundCount: readNumber(event?.roundCount),
+    pot: readNumber(event?.pot),
+    mode: "BR",
+    wagers: wagers.map((row: any) => ({
+      playerId: String(row?.playerId ?? ""),
+      name: String(row?.name ?? ""),
+      wager: readNumber(row?.wager),
+    })),
+  };
+};
+
+const readBettingPayout = (event: any): BettingPayoutEvent => {
+  const payouts = Array.isArray(event?.payouts) ? event.payouts : [];
+  const reason = BETTING_PAYOUT_REASONS.includes(event?.reason) ? event.reason : "payout";
+  return {
+    roundCount: readNumber(event?.roundCount),
+    pot: readNumber(event?.pot),
+    refunded: event?.refunded === true,
+    reason,
+    payouts: payouts.map((row: any) => ({
+      playerId: String(row?.playerId ?? ""),
+      name: String(row?.name ?? ""),
+      wager: readNumber(row?.wager),
+      payout: readNumber(row?.payout),
+      net: readNumber(row?.net),
+      rank: readNumber(row?.rank),
+    })),
+  };
+};
 
 const client = new Colyseus.Client(ENDPOINT);
 let currentRoom: Room | null = null;
@@ -223,7 +263,18 @@ export const colyseusService = {
         drinksToPass: event.drinksToPass,
         deflections: event.deflections,
         timestamp: Date.now(),
+        forcedBattleRoyale: event.forcedBattleRoyale === true,
       }));
+    });
+
+    room.onMessage("BettingRoundEvent", (event: any) => {
+      console.log(`[Betting] BettingRoundEvent:`, event);
+      store.dispatch(setBettingRound(readBettingRound(event)));
+    });
+
+    room.onMessage("BettingPayoutEvent", (event: any) => {
+      console.log(`[Betting] BettingPayoutEvent:`, event);
+      store.dispatch(setBettingPayout(readBettingPayout(event)));
     });
 
     room.onMessage("CardAwardedEvent", (event: any) => {
@@ -332,6 +383,12 @@ export const colyseusService = {
           if (state.lastGameResult !== undefined) {
             store.dispatch(setLastGameResult(state.lastGameResult));
           }
+          store.dispatch(setBettingState({
+            isBettingRound: state.isBettingRound === true,
+            bettingPot: readNumber(state.bettingPot),
+            bettingRefunded: state.bettingRefunded === true,
+            phase: typeof state.phase === "string" ? state.phase : "",
+          }));
           if (typeof state.readyCount === "number") {
             store.dispatch(setReadyCount(state.readyCount));
           }
@@ -411,7 +468,7 @@ export const colyseusService = {
   },
 
   syncPlayersState(room: any) {
-    const playersArray: any[] = [];
+    const playersArray: LobbyPlayer[] = [];
     room.state?.players?.forEach((player: any, key: string) => {
       if (!player) return;
       playersArray.push({
@@ -431,6 +488,10 @@ export const colyseusService = {
           : [],
         earnedRounds: readEarnedRounds(player.earnedRounds),
         activeEffects: player.activeEffects || "",
+        betWager: readNumber(player.betWager),
+        betPayout: readNumber(player.betPayout),
+        betNet: readNumber(player.betNet),
+        betRank: readNumber(player.betRank),
       });
     });
     store.dispatch(setPlayers(playersArray));

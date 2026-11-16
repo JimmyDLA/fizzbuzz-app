@@ -285,6 +285,13 @@ export function CardAnnouncementPopup() {
             <Text style={styles.holdHint}>Hold on, the wheel is locked</Text>
           </View>
         )}
+        {cardAnnouncement.forcedBattleRoyale && (
+          <View style={styles.messageWrapper}>
+            <Text style={styles.messageText}>
+              The game changed, but the mode stays Battle Royale.
+            </Text>
+          </View>
+        )}
       </View>
     </Modal>
   );

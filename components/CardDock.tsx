@@ -66,6 +66,7 @@ export function CardDock() {
     drinkChains,
     pendingCardAward,
     roundCount,
+    isBettingRound,
   } = useSelector((state: RootState) => state.lobby);
   const dispatch = useDispatch();
 
@@ -124,12 +125,17 @@ export function CardDock() {
     const cardKey = cardId.toLowerCase().replace(/\s+/g, "_");
 
     if (cardKey === "wild_card" || cardKey === "wildcard") {
-      // Default to first 2 players
-      const defaultPlayers = players.map((p) => p.id).slice(0, 2);
-      setSelectedWildPlayers(defaultPlayers);
-      setSelectedType("1v1");
+      if (isBettingRound) {
+        setSelectedType("BR");
+        setSelectedWildPlayers(players.map((p) => p.id));
+        setActiveAccordion("category");
+      } else {
+        const defaultPlayers = players.map((p) => p.id).slice(0, 2);
+        setSelectedWildPlayers(defaultPlayers);
+        setSelectedType("1v1");
+        setActiveAccordion("type");
+      }
       setSelectedCategory(ALL_CATEGORIES[0]);
-      setActiveAccordion("type");
       setSelectedCardIndex(null);
       setShowWildModal(true);
       return;
@@ -212,6 +218,7 @@ export function CardDock() {
   };
 
   const isWildPlayerCountValid = (): boolean => {
+    if (isBettingRound) return players.length >= 2;
     if (selectedType === "1v1") return selectedWildPlayers.length === 2;
     if (selectedType === "2v2") return selectedWildPlayers.length === 4;
     return selectedWildPlayers.length >= 2;
@@ -229,8 +236,10 @@ export function CardDock() {
     }
     colyseusService.useCard("WILD CARD", {
       category: selectedCategory,
-      type: selectedType,
-      selectedPlayers: selectedWildPlayers,
+      type: isBettingRound ? "BR" : selectedType,
+      selectedPlayers: isBettingRound
+        ? players.map((p) => p.id)
+        : selectedWildPlayers,
     });
     setShowWildModal(false);
     setSelectedCardIndex(null);
@@ -576,7 +585,7 @@ export function CardDock() {
                   className="flex-row justify-between items-center px-4 py-3 bg-zinc-800"
                 >
                   <Text className="text-white font-black text-xs uppercase tracking-wider">
-                    1. GAME TYPE ({selectedType})
+                    1. GAME TYPE ({isBettingRound ? "BATTLE ROYALE" : selectedType})
                   </Text>
                   <Ionicons
                     name={
@@ -587,7 +596,20 @@ export function CardDock() {
                   />
                 </TouchableOpacity>
 
-                {activeAccordion === "type" && (
+                {activeAccordion === "type" && isBettingRound && (
+                  <View className="p-3">
+                    <View className="bg-amber-400 border-2 border-black rounded-xl py-2.5 items-center">
+                      <Text className="text-black font-black text-xs uppercase">
+                        Battle Royale
+                      </Text>
+                    </View>
+                    <Text className="text-amber-200 font-bold text-[11px] text-center mt-2 uppercase">
+                      You can change the game. The mode stays Battle Royale.
+                    </Text>
+                  </View>
+                )}
+
+                {activeAccordion === "type" && !isBettingRound && (
                   <View className="p-3 flex-row gap-2">
                     {GAME_TYPES.map((t) => (
                       <TouchableOpacity
@@ -662,12 +684,12 @@ export function CardDock() {
                   className="flex-row justify-between items-center px-4 py-3 bg-zinc-800"
                 >
                   <Text className="text-white font-black text-xs uppercase tracking-wider">
-                    3. PLAYERS ({selectedWildPlayers.length}/
-                    {selectedType === "1v1"
-                      ? 2
-                      : selectedType === "2v2"
-                        ? 4
-                        : `min 2`}
+                    3. PLAYERS (
+                    {isBettingRound
+                      ? "EVERYONE"
+                      : `${selectedWildPlayers.length}/${
+                          selectedType === "1v1" ? 2 : selectedType === "2v2" ? 4 : "min 2"
+                        }`}
                     )
                   </Text>
                   <Ionicons
@@ -681,7 +703,15 @@ export function CardDock() {
                   />
                 </TouchableOpacity>
 
-                {activeAccordion === "players" && (
+                {activeAccordion === "players" && isBettingRound && (
+                  <View className="p-3">
+                    <Text className="text-amber-200 font-bold text-[11px] text-center uppercase">
+                      Every player is in. The mode stays Battle Royale.
+                    </Text>
+                  </View>
+                )}
+
+                {activeAccordion === "players" && !isBettingRound && (
                   <View className="p-3 flex-row flex-wrap gap-2">
                     {players.map((p) => {
                       const isSelected = selectedWildPlayers.includes(p.id);
