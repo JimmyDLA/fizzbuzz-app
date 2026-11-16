@@ -75,6 +75,7 @@ export default function ChartScreen() {
     readyCount,
     connectedCount,
     lobbyError,
+    wheelHold,
   } = useSelector((state: RootState) => state.lobby);
 
   const players: any[] = reduxPlayers.length > 0 ? reduxPlayers : [];
@@ -249,6 +250,7 @@ export default function ChartScreen() {
   }, [isSpinning, gamePhase, showPracticeModal]);
 
   const handleReadyToggle = () => {
+    if (wheelHold) return;
     colyseusService.sendReady(!isReady);
   };
 
@@ -518,8 +520,17 @@ export default function ChartScreen() {
         })()}
       </ScrollView>
 
+      {wheelHold && gamePhase !== "chart" && !showWheelModal && (
+        <View className="px-6 pb-2">
+          <WheelHoldNotice cardId={wheelHold.cardId} isDark={isDark} />
+        </View>
+      )}
+
       {gamePhase === "chart" && (
         <View className="pb-10 pt-4 w-full px-6">
+          {wheelHold && (
+            <WheelHoldNotice cardId={wheelHold.cardId} isDark={isDark} />
+          )}
           <View className="items-center mb-3">
             <View
               className={`px-4 py-1 rounded-lg border-2 ${isDark ? "border-white bg-zinc-800" : "border-black bg-black"}`}
@@ -538,9 +549,11 @@ export default function ChartScreen() {
             />
           )}
           <RetroButton
-            title={isReady ? "CANCEL READY" : "READY TO SPIN"}
-            variant={isReady ? "secondary" : "success"}
+            title={!wheelHold && isReady ? "CANCEL READY" : "READY TO SPIN"}
+            variant={!wheelHold && isReady ? "secondary" : "success"}
+            disabled={!!wheelHold}
             onPress={handleReadyToggle}
+            style={wheelHold ? { opacity: 0.45 } : undefined}
           />
           {__DEV__ && myPlayer?.isHost && (
             <TouchableOpacity
@@ -742,7 +755,13 @@ export default function ChartScreen() {
                 </Text>
               </View>
 
-              <View className="h-28 justify-center items-center w-full">
+              <View
+                className="justify-center items-center w-full"
+                style={{ minHeight: 112 }}
+              >
+                {wheelHold && (
+                  <WheelHoldNotice cardId={wheelHold.cardId} isDark={isDark} />
+                )}
                 {isSpinning ? (
                   <View
                     style={{ borderColor: isDark ? "#ffffff" : "#000000" }}
@@ -765,10 +784,11 @@ export default function ChartScreen() {
                       style={{ flex: 1 }}
                     />
                     <RetroButton
-                      title={isReady ? "READY!" : "READY UP!"}
-                      variant={isReady ? "primary" : "secondary"}
+                      title={!wheelHold && isReady ? "READY!" : "READY UP!"}
+                      variant={!wheelHold && isReady ? "primary" : "secondary"}
+                      disabled={!!wheelHold}
                       onPress={handleReadyToggle}
-                      style={{ flex: 2 }}
+                      style={{ flex: 2, opacity: wheelHold ? 0.45 : 1 }}
                     />
                   </View>
                 ) : (
@@ -1033,6 +1053,34 @@ export default function ChartScreen() {
       <CardDock />
       <CardAwardPopup />
       <CardAnnouncementPopup />
+    </View>
+  );
+}
+
+function WheelHoldNotice({
+  cardId,
+  isDark,
+}: {
+  cardId: string;
+  isDark: boolean;
+}) {
+  const title =
+    cardId === "WILD CARD" ? "Waiting for Wild Card" : "Waiting for Respin";
+
+  return (
+    <View className="items-center mb-2">
+      <View
+        className={`px-3 py-1 rounded-full border-2 ${isDark ? "border-white bg-purple-500" : "border-black bg-purple-300"}`}
+      >
+        <Text className="text-black font-black text-xs text-center">
+          {title}
+        </Text>
+      </View>
+      <Text
+        className={`mt-1 font-black text-xs text-center ${isDark ? "text-yellow-300" : "text-black"}`}
+      >
+        Hold on, the wheel is locked
+      </Text>
     </View>
   );
 }

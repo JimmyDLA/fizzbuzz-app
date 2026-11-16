@@ -20,6 +20,12 @@ export interface LobbyErrorNotice {
   message: string;
 }
 
+/** A Wild Card or Respin is in the server's private card lock. Ready must not be sent. */
+export interface WheelHold {
+  cardId: string;
+  startedAt: number;
+}
+
 const initialState = {
   playerName: "",
   roomId: "",
@@ -44,6 +50,7 @@ const initialState = {
   readyCount: null as number | null,
   connectedCount: null as number | null,
   lobbyError: null as LobbyErrorNotice | null,
+  wheelHold: null as WheelHold | null,
 };
 
 export const lobbySlice = createSlice({
@@ -134,6 +141,12 @@ export const lobbySlice = createSlice({
     clearLobbyError: (state) => {
       state.lobbyError = null;
     },
+    setWheelHold: (state, action) => {
+      state.wheelHold = action.payload;
+    },
+    clearWheelHold: (state) => {
+      state.wheelHold = null;
+    },
   },
 });
 
@@ -166,5 +179,7 @@ export const {
   setConnectedCount,
   setLobbyError,
   clearLobbyError,
+  setWheelHold,
+  clearWheelHold,
 } = lobbySlice.actions;
 export default lobbySlice.reducer;
