@@ -509,6 +509,7 @@ export default function ChartScreen() {
                 rank={currentRank}
                 score={p.score}
                 isReady={gamePhase === "chart" ? !!p.isReady : undefined}
+                isConnected={p.isConnected !== false}
                 isWinner={isWinner}
                 triggerAnimationKey={isWinner ? animationKey : 0}
               />
@@ -541,7 +542,7 @@ export default function ChartScreen() {
             variant={isReady ? "secondary" : "success"}
             onPress={handleReadyToggle}
           />
-          {myPlayer?.isHost && (
+          {__DEV__ && myPlayer?.isHost && (
             <TouchableOpacity
               onPress={openDevModal}
               style={{

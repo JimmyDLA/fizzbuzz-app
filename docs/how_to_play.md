@@ -48,7 +48,7 @@ Inspired by the chaotic mini-game showdowns of **Mario Party** and **WarioWare**
 ### Step 3: Ready to Spin
 - On the chart, every player, including the host, taps **Ready to Spin**. The screen shows how many connected players are ready, such as **3/5 ready**, and each player's ready state.
 - Anyone can cancel. The wheel waits until every connected player is ready. There is no timer.
-- A player who has disconnected does not hold the room. A player who joins during this step starts not ready.
+- A player who has disconnected shows as away and does not hold the room. A player who joins during this step starts not ready.
 - Readying up with fewer than two connected players shows that at least 2 players are required.
 - When every connected player is ready, the wheel spins by itself. Ready flags clear again. The players the wheel selected then use **Ready to Play** to start the round.
 

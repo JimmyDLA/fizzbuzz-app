@@ -99,6 +99,7 @@ export default function LobbyScreen() {
             isMe={p.id === myPlayer?.id}
             isHost={p.isHost}
             isReady={p.isReady}
+            isConnected={p.isConnected !== false}
           />
         ))}
       </ScrollView>
