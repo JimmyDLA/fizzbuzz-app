@@ -54,12 +54,13 @@ export function roundsErrorMessage(code: RoundsErrorCode, message?: string): str
 const UPCOMING_PHASES = new Set(["chart", "wheel", "countdown", "playing"]);
 
 /**
- * Round X/N.
+ * Round X, or Round X/N when the server sent a match length.
  * `roundCount` is how many resolutions have started. It stays 0 in the lobby,
  * and it does not move for a respin, wild card, abort, or the ready-out back
  * to the chart. The label uses that count during resolution and gameover, and
  * the next number (`roundCount + 1`) while the round is still being played.
- * The lobby stays hidden.
+ * The lobby stays hidden. A null total means the server has no totalRounds,
+ * so the label is "Round X" with no "/N".
  */
 export function visibleRoundNumber(phase: string, roundCount: number): number | null {
   if (!Number.isFinite(roundCount) || roundCount < 0) return null;
@@ -75,15 +76,14 @@ export function visibleRoundNumber(phase: string, roundCount: number): number | 
 export function roundLabel(
   phase: string,
   roundCount: number,
-  totalRounds: number,
+  totalRounds: number | null,
 ): string | null {
   const shown = visibleRoundNumber(phase, roundCount);
   if (shown == null) return null;
-  const total =
-    Number.isFinite(totalRounds) && totalRounds > 0
-      ? totalRounds
-      : DEFAULT_TOTAL_ROUNDS;
-  return `Round ${shown}/${total}`;
+  if (totalRounds == null || !Number.isFinite(totalRounds) || totalRounds <= 0) {
+    return `Round ${shown}`;
+  }
+  return `Round ${shown}/${totalRounds}`;
 }
 
 export function podiumEqual(

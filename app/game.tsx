@@ -59,6 +59,7 @@ export default function GameScreen() {
     lastGameResult,
     roundCount,
     totalRounds,
+    matchLengthSupported,
   } = useSelector((state: any) => state.lobby);
 
   const players: any[] = reduxPlayers || [];
@@ -544,6 +545,7 @@ export default function GameScreen() {
               isReady
                 ? "WAITING FOR OTHERS..."
                 : gamePhase === "resolution" &&
+                    matchLengthSupported &&
                     roundCount > 0 &&
                     roundCount === totalRounds
                   ? "SEE PODIUM"

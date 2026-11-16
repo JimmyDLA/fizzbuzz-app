@@ -1,4 +1,6 @@
 import { Text, View } from "react-native";
+import { useSelector } from "react-redux";
+import { RootState } from "../store/store";
 import { roundLabel } from "../utils/rounds";
 
 interface RoundBadgeProps {
@@ -16,7 +18,14 @@ export function RoundBadge({
   isDark = false,
   className = "",
 }: RoundBadgeProps) {
-  const label = roundLabel(phase, roundCount, totalRounds);
+  const matchLengthSupported = useSelector(
+    (state: RootState) => state.lobby.matchLengthSupported,
+  );
+  const label = roundLabel(
+    phase,
+    roundCount,
+    matchLengthSupported ? totalRounds : null,
+  );
   if (!label) return null;
 
   return (
