@@ -58,8 +58,12 @@ export function refundNotice(
   return { kind: "shared", message: leaverShareSentence(leaverNames(bettingRound, board.payouts)) };
 }
 
-/** Blank when the server has not sent a real 1-based rank yet. */
-export function formatBetRank(rank: number | null | undefined): string {
+/**
+ * Paid rounds show a 1-based rank. A missing rank stays blank.
+ * A refund has no placement, so the cell is a dash.
+ */
+export function formatBetRank(rank: number | null | undefined, refunded = false): string {
+  if (refunded) return "–";
   if (typeof rank !== "number" || !Number.isFinite(rank) || rank <= 0) return "";
   return String(Math.trunc(rank));
 }
@@ -89,11 +93,12 @@ function leaverShareSentence(names: string[]): string {
   if (names.length === 1) {
     return `Wagers returned. ${names[0]}'s stake was shared among the remaining players.`;
   }
+  const owned = names.map((name) => `${name}'s`);
   const listed =
-    names.length === 2
-      ? `${names[0]} and ${names[1]}`
-      : `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
-  return `Wagers returned. ${listed}'s stakes were shared among the remaining players.`;
+    owned.length === 2
+      ? `${owned[0]} and ${owned[1]}`
+      : `${owned.slice(0, -1).join(", ")} and ${owned[owned.length - 1]}`;
+  return `Wagers returned. ${listed} stakes were shared among the remaining players.`;
 }
 
 export function wagerRows(

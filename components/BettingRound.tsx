@@ -148,11 +148,14 @@ export function BettingPayoutBoard() {
   }
 
   const rows = [...board.payouts].sort((a, b) => {
-    const rankA = a.rank > 0 ? a.rank : Number.POSITIVE_INFINITY;
-    const rankB = b.rank > 0 ? b.rank : Number.POSITIVE_INFINITY;
-    if (rankA !== rankB) return rankA - rankB;
+    if (!board.refunded) {
+      const rankA = a.rank > 0 ? a.rank : Number.POSITIVE_INFINITY;
+      const rankB = b.rank > 0 ? b.rank : Number.POSITIVE_INFINITY;
+      if (rankA !== rankB) return rankA - rankB;
+    }
     return a.name.localeCompare(b.name);
   });
+  const amountLabel = board.refunded ? "Refund" : "Payout";
   const notice = refundNotice(board, lobby.bettingRound);
   const ink = isDark ? "text-white" : "text-black";
   const muted = isDark ? "text-zinc-400" : "text-black/70";
@@ -199,13 +202,15 @@ export function BettingPayoutBoard() {
           <Text className={`w-8 font-black text-[10px] uppercase ${muted}`}>Rank</Text>
           <Text className={`flex-1 font-black text-[10px] uppercase ${muted}`}>Player</Text>
           <Text className={`w-14 text-right font-black text-[10px] uppercase ${muted}`}>Wager</Text>
-          <Text className={`w-14 text-right font-black text-[10px] uppercase ${muted}`}>Payout</Text>
+          <Text className={`w-14 text-right font-black text-[10px] uppercase ${muted}`}>{amountLabel}</Text>
           <Text className={`w-12 text-right font-black text-[10px] uppercase ${muted}`}>Net</Text>
         </View>
 
         {rows.map((row) => (
           <View key={row.playerId || row.name} className="flex-row items-center py-1">
-            <Text className={`w-8 font-black text-sm ${ink}`}>{formatBetRank(row.rank)}</Text>
+            <Text className={`w-8 font-black text-sm ${ink}`}>
+              {formatBetRank(row.rank, board.refunded)}
+            </Text>
             <Text className={`flex-1 font-black text-sm uppercase ${ink}`} numberOfLines={1}>
               {row.name}
             </Text>
