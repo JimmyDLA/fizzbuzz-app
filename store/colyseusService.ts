@@ -2,7 +2,7 @@ import type { Room } from '@colyseus/sdk';
 import * as Colyseus from '@colyseus/sdk';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer } from './lobbySlice';
+import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer, setLastGameResult, setPracticeState, setPendingCardAward, setCardAnnouncement, incrementSpinCount } from './lobbySlice';
 import { store } from './store';
 
 
@@ -24,8 +24,16 @@ console.log(`[Colyseus] Detection Info: manifest=${Constants.expoConfig?.hostUri
 
 const client = new Colyseus.Client(ENDPOINT);
 let currentRoom: Room | null = null;
+let practiceRoom: Room | null = null;
 
 export const colyseusService = {
+  get room() {
+    return currentRoom;
+  },
+  get practiceRoom() {
+    return practiceRoom;
+  },
+
   async connectAsHost(playerName: string) {
     try {
       currentRoom = await client.create("lobby", { name: playerName });
@@ -83,8 +91,47 @@ export const colyseusService = {
     }
   },
 
+  sendDevAwardCard(targetPlayerId: string, cardId: string) {
+    if (currentRoom) {
+      currentRoom.send("dev_award_card", { targetPlayerId, cardId });
+    }
+  },
+
   setupRoomListeners(room: any) {
     store.dispatch(setRoomId(room.id || room.roomId));
+
+    room.onMessage("CardUsedEvent", (event: any) => {
+      console.log(`[SpecialtyCard] CardUsedEvent:`, event);
+      if (event.cardId === "RESPIN" || event.cardId === "WILD CARD") {
+        this.leavePractice();
+      }
+      store.dispatch(setCardAnnouncement({
+        cardId: event.cardId,
+        playerName: event.playerName,
+        message: event.message || event.description,
+        targetName: event.targetName,
+        drinkCount: event.drinkCount,
+        timestamp: Date.now(),
+      }));
+    });
+
+    room.onMessage("CardAwardedEvent", (event: any) => {
+      console.log(`[SpecialtyCard] CardAwardedEvent:`, event);
+      store.dispatch(setPendingCardAward({
+        cardId: event.cardId,
+        reason: event.reason,
+        message: event.message,
+      }));
+    });
+
+    room.onMessage("SpinWheelEvent", (event: any) => {
+      console.log(`[SpecialtyCard] SpinWheelEvent:`, event);
+      this.leavePractice();
+      if (event.type) store.dispatch(setGameType(event.type));
+      if (event.category) store.dispatch(setGameCategory(event.category));
+      if (event.selectedPlayers) store.dispatch(setSelectedPlayers(event.selectedPlayers));
+      store.dispatch(incrementSpinCount());
+    });
 
     room.state.players?.onAdd?.((player: any, sessionId: string) => {
       player.onChange(() => {
@@ -109,11 +156,46 @@ export const colyseusService = {
           if (state.lastLosers) {
             store.dispatch(setLastLosers(state.lastLosers.toArray()));
           }
+          if (state.lastGameResult !== undefined) {
+            store.dispatch(setLastGameResult(state.lastGameResult));
+          }
 
           this.syncPlayersState(room);
         });
       });
     });
+
+    room.onLeave((code: number) => {
+      console.log(`[Colyseus] Disconnected with code: ${code}`);
+      currentRoom = null;
+      store.dispatch(setGamePhase('lobby'));
+      store.dispatch(setPlayers([]));
+      store.dispatch(setSelectedPlayers([]));
+      store.dispatch(setRoomId(''));
+      
+      // Imperative routing to home screen when connection dies
+      import('expo-router').then(({ router }) => {
+        if (router.canGoBack() || true) {
+          router.replace('/');
+        }
+      });
+    });
+  },
+
+  useCard(cardId: string, payload?: any) {
+    if (currentRoom) {
+      currentRoom.send("use_card", { cardId, ...payload });
+    }
+  },
+
+  discardCard(cardIndexOrId: number | string) {
+    if (currentRoom) {
+      if (typeof cardIndexOrId === "number") {
+        currentRoom.send("discard_card", { cardIndex: cardIndexOrId });
+      } else {
+        currentRoom.send("discard_card", { cardId: cardIndexOrId });
+      }
+    }
   },
 
   syncPlayersState(room: any) {
@@ -129,8 +211,72 @@ export const colyseusService = {
         drinks: player.drinks || 0,
         gameScore: player.gameScore || 0,
         gameData: player.gameData || "",
+        cards: player.cards
+          ? player.cards.toArray
+            ? player.cards.toArray()
+            : Array.from(player.cards)
+          : [],
+        activeEffects: player.activeEffects || "",
       });
     });
     store.dispatch(setPlayers(playersArray));
   },
+
+  async joinPractice(category: string, playerName: string) {
+    try {
+      practiceRoom = await client.create("practice_room", { category, name: playerName });
+      this.setupPracticeRoomListeners(practiceRoom);
+      return practiceRoom?.roomId;
+    } catch (e: any) {
+      console.error("Practice Join Error:", e?.message || e?.name || e);
+      throw e;
+    }
+  },
+
+  leavePractice() {
+    if (practiceRoom) {
+      practiceRoom.leave();
+      practiceRoom = null;
+      store.dispatch(setPracticeState(null));
+    }
+  },
+
+  sendPracticeGameAction(message: any) {
+    if (practiceRoom) {
+      practiceRoom.send("action", message);
+    }
+  },
+
+  setupPracticeRoomListeners(room: any) {
+    const updatePracticeState = (state: any) => {
+      const playersArray: any[] = [];
+      state.players?.forEach((player: any) => {
+        playersArray.push({
+          id: player.id,
+          name: player.name,
+          gameScore: player.gameScore || 0,
+          gameData: player.gameData || "",
+        });
+      });
+      
+      store.dispatch(setPracticeState({
+        phase: state.phase,
+        timer: state.timer,
+        players: playersArray,
+      }));
+    };
+
+    room.state.players?.onAdd?.((player: any) => {
+      player.onChange(() => updatePracticeState(room.state));
+    });
+
+    room.onStateChange((state: any) => {
+      updatePracticeState(state);
+    });
+
+    room.onLeave(() => {
+      practiceRoom = null;
+      store.dispatch(setPracticeState(null));
+    });
+  }
 };

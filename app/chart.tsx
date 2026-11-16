@@ -1,115 +1,286 @@
-import { router } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { useSelector } from 'react-redux';
-import { PartyButton } from '../components/PartyButton';
-import { colyseusService } from '../store/colyseusService';
+import { router } from "expo-router";
+import { useEffect, useRef, useState } from "react";
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useDispatch, useSelector } from "react-redux";
+import { CardAnnouncementPopup } from "../components/CardAnnouncementPopup";
+import { CardAwardPopup } from "../components/CardAwardPopup";
+import { CardDock } from "../components/CardDock";
+import { PracticeModal } from "../components/PracticeModal";
+import { RetroButton } from "../components/RetroButton";
+import { RetroPlayerCard } from "../components/RetroPlayerCard";
+import { SettingsDropdown } from "../components/SettingsDropdown";
+import {
+  FINAL_SPECIALTY_CARDS,
+  SpecialtyCard,
+  SpecialtyCardModal,
+} from "../components/SpecialtyCardModal";
+import { colyseusService } from "../store/colyseusService";
+import { RootState } from "../store/store";
+import { isExpoGo } from "../utils/environment";
+import {
+  playButtonClickSound,
+  playSpinSound,
+  stopSpinSound,
+} from "../utils/sound";
 
 const TYPES = ["1v1", "2v2", "BR"];
-const CATS = ["Tapping Race", "Math Problem", "Hot Potato", "Lumber Cut", "Trivia", "Rock Paper Scissors"];
+const CATS = [
+  "Tapping Race",
+  "Math Problem",
+  "Hot Potato",
+  "Lumber Cut",
+  "Trivia",
+  "Rock Paper Scissors",
+  "Cyclone",
+  "Balloon Inflate",
+  "Simon Says",
+  "Scrabble",
+  ...(isExpoGo ? [] : ["Screen Painting"]),
+  "Perfection",
+];
+
+const DEV_SPECIALTY_CARDS = [
+  { id: "TURBO", name: "TURBO", color: "bg-cyan-400" },
+  { id: "SHIELD", name: "SHIELD", color: "bg-pink-400" },
+  { id: "DOUBLE POINTS", name: "DOUBLE POINTS", color: "bg-amber-400" },
+  { id: "RESPIN", name: "RESPIN", color: "bg-emerald-400" },
+  { id: "WILD CARD", name: "WILD CARD", color: "bg-purple-500" },
+];
 
 export default function ChartScreen() {
-  const { roomId, playerName, players: reduxPlayers, gamePhase, timer, currentGameType, currentCategory, selectedPlayers } = useSelector((state: any) => state.lobby);
+  const dispatch = useDispatch();
+  const {
+    roomId,
+    playerName,
+    players: reduxPlayers,
+    gamePhase,
+    timer,
+    currentGameType,
+    currentCategory,
+    selectedPlayers,
+    theme,
+    lastWinners,
+    spinCount,
+    cardAnnouncement,
+  } = useSelector((state: RootState) => state.lobby);
 
-  const players = reduxPlayers.length > 0 ? reduxPlayers : [];
+  const players: any[] = reduxPlayers.length > 0 ? reduxPlayers : [];
+  const selectedPlayersList: any[] = selectedPlayers || [];
+
   const myPlayer = players.find((p: any) => p.name === playerName);
   const isReady = myPlayer?.isReady || false;
-  const amISelected = selectedPlayers?.includes(myPlayer?.id) || false;
+  const amISelected = selectedPlayersList.includes(myPlayer?.id) || false;
 
-  const [displayedType, setDisplayedType] = useState('?');
-  const [displayedCategory, setDisplayedCategory] = useState('?');
+  const [displayedType, setDisplayedType] = useState("?");
+  const [displayedCategory, setDisplayedCategory] = useState("?");
   const [displayedPlayers, setDisplayedPlayers] = useState<string[]>([]);
   const [isSpinning, setIsSpinning] = useState(false);
   const [showWheelModal, setShowWheelModal] = useState(false);
+  const [showPracticeModal, setShowPracticeModal] = useState(false);
+  const [showSpecialtyModal, setShowSpecialtyModal] = useState(false);
+  const [drawnSpecialtyCard, setDrawnSpecialtyCard] =
+    useState<SpecialtyCard | null>(null);
+
+  const drawRandomSpecialtyCard = () => {
+    playButtonClickSound();
+    const randomIndex = Math.floor(
+      Math.random() * FINAL_SPECIALTY_CARDS.length,
+    );
+    setDrawnSpecialtyCard(FINAL_SPECIALTY_CARDS[randomIndex]);
+    setShowSpecialtyModal(true);
+  };
   const hasSpunRef = useRef(false);
+  const lastSpinCountRef = useRef(0);
+  const isLeavingRef = useRef(false);
+  const practiceOpenedAtRef = useRef<number>(0);
+  const [animationKey, setAnimationKey] = useState(0);
+  const celebratedWinnersRef = useRef<string>("");
+
+  useEffect(() => {
+    if (gamePhase !== "chart") {
+      setAnimationKey(0);
+      celebratedWinnersRef.current = "";
+      return;
+    }
+
+    if (gamePhase === "chart" && lastWinners && lastWinners.length > 0) {
+      const winnersKey = lastWinners.join(",");
+      if (celebratedWinnersRef.current !== winnersKey) {
+        celebratedWinnersRef.current = winnersKey;
+        const timer = setTimeout(() => {
+          setAnimationKey((prev) => prev + 1);
+        }, 350);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [gamePhase, lastWinners]);
 
   // Dev Modal State
   const [showDevModal, setShowDevModal] = useState(false);
   const [devType, setDevType] = useState(TYPES[0]);
   const [devCategory, setDevCategory] = useState(CATS[0]);
   const [devPlayers, setDevPlayers] = useState<string[]>([]);
+  const [devAwardTargetPlayer, setDevAwardTargetPlayer] = useState<string>("");
+  const [devAwardFeedback, setDevAwardFeedback] = useState<string>("");
+
+  const currentGameTypeRef = useRef(currentGameType);
+  const currentCategoryRef = useRef(currentCategory);
+  const selectedPlayersListRef = useRef(selectedPlayersList);
+  const playersRef = useRef(players);
+
+  useEffect(() => {
+    currentGameTypeRef.current = currentGameType;
+    currentCategoryRef.current = currentCategory;
+    selectedPlayersListRef.current = selectedPlayersList;
+    playersRef.current = players;
+  }, [currentGameType, currentCategory, selectedPlayersList, players]);
 
   useEffect(() => {
     let interval: any;
     let timeout: any;
-    let autoDismiss: any;
 
-    if (gamePhase === 'wheel' && !hasSpunRef.current) {
+    const isNewSpin =
+      (gamePhase === "wheel" && !hasSpunRef.current) ||
+      (gamePhase === "wheel" && spinCount > lastSpinCountRef.current);
+
+    if (isNewSpin) {
       hasSpunRef.current = true;
+      lastSpinCountRef.current = spinCount;
       setIsSpinning(true);
       setShowWheelModal(true);
+      playSpinSound();
 
       let requiredCount = 2;
-      if (currentGameType === '1v1') requiredCount = 2;
-      if (currentGameType === '2v2') requiredCount = 4;
-      if (currentGameType === 'BR') requiredCount = players.length;
+      const type = currentGameTypeRef.current;
+      if (type === "1v1") requiredCount = 2;
+      if (type === "2v2") requiredCount = 4;
+      if (type === "BR") requiredCount = playersRef.current.length;
 
       interval = setInterval(() => {
         setDisplayedType(TYPES[Math.floor(Math.random() * TYPES.length)]);
         setDisplayedCategory(CATS[Math.floor(Math.random() * CATS.length)]);
 
-        const randomP = [...players].sort(() => 0.5 - Math.random()).slice(0, requiredCount).map((p) => p.id);
+        const randomP = [...playersRef.current]
+          .sort(() => 0.5 - Math.random())
+          .slice(0, requiredCount)
+          .map((p) => p.id);
         setDisplayedPlayers(randomP);
       }, 100);
 
       timeout = setTimeout(() => {
         clearInterval(interval);
-        setDisplayedType(currentGameType || '?');
-        setDisplayedCategory(currentCategory || '?');
-        setDisplayedPlayers(selectedPlayers || []);
+        setDisplayedType(currentGameTypeRef.current || "?");
+        setDisplayedCategory(currentCategoryRef.current || "?");
+        setDisplayedPlayers(selectedPlayersListRef.current);
         setIsSpinning(false);
-
-        if (!selectedPlayers?.includes(myPlayer?.id)) {
-          autoDismiss = setTimeout(() => setShowWheelModal(false), 3000);
-        }
+        stopSpinSound();
       }, 2000);
-
-    } else if (gamePhase !== 'wheel') {
+    } else if (gamePhase !== "wheel") {
       setShowWheelModal(false);
       hasSpunRef.current = false;
+      setIsSpinning(false);
+      stopSpinSound();
     }
 
     return () => {
       clearInterval(interval);
       clearTimeout(timeout);
-      clearTimeout(autoDismiss);
+      if (gamePhase !== "wheel") {
+        stopSpinSound();
+      }
     };
-  }, [gamePhase, currentGameType, currentCategory, selectedPlayers, players.length]);
+  }, [gamePhase, spinCount]);
 
   useEffect(() => {
-    if (gamePhase === 'lobby') {
-      router.replace('/lobby');
-    } else if (amISelected && !isReady && (gamePhase === 'countdown' || gamePhase === 'playing' || gamePhase === 'resolution')) {
-      router.replace('/game');
+    if (gamePhase === "lobby") {
+      router.replace("/lobby");
+    } else if (
+      (gamePhase === "countdown" ||
+        gamePhase === "playing" ||
+        gamePhase === "resolution") &&
+      amISelected
+    ) {
+      router.replace("/game");
     }
-  }, [gamePhase, isReady, amISelected]);
+  }, [gamePhase, amISelected]);
+
+  // Guardrail: Exit practice mode immediately when a NEW RESPIN or WILD CARD is played
+  useEffect(() => {
+    if (
+      showPracticeModal &&
+      cardAnnouncement &&
+      (cardAnnouncement.timestamp || 0) > practiceOpenedAtRef.current &&
+      (cardAnnouncement.cardId === "RESPIN" || cardAnnouncement.cardId === "WILD CARD")
+    ) {
+      setShowPracticeModal(false);
+    }
+  }, [cardAnnouncement, showPracticeModal]);
+
+  // Guardrail: Exit practice mode if wheel starts spinning or lobby transitions to match phase
+  useEffect(() => {
+    if (
+      showPracticeModal &&
+      (isSpinning || gamePhase === "countdown" || gamePhase === "playing")
+    ) {
+      setShowPracticeModal(false);
+    }
+  }, [isSpinning, gamePhase, showPracticeModal]);
 
   const handleReadyToggle = () => {
     colyseusService.sendReady(!isReady);
   };
 
   const handleLeaveGame = () => {
-    Alert.alert("Leave Game", "Are you sure you want to end the session? You will return to the home screen.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Exit", style: "destructive", onPress: () => {
-          colyseusService.disconnect();
-          router.replace('/');
-        }
-      }
-    ]);
+    Alert.alert(
+      "Leave Game",
+      "Are you sure you want to end the session? You will return to the home screen.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Exit",
+          style: "destructive",
+          onPress: () => {
+            isLeavingRef.current = true;
+            colyseusService.disconnect();
+            router.replace("/" as any);
+          },
+        },
+      ],
+    );
   };
 
   const openDevModal = () => {
     setDevType(TYPES[0]);
     setDevCategory(CATS[0]);
     setDevPlayers([]);
+    setDevAwardTargetPlayer(myPlayer?.id || players[0]?.id || "");
+    setDevAwardFeedback("");
     setShowDevModal(true);
+  };
+
+  const handleDevAwardCard = (cardId: string) => {
+    if (!devAwardTargetPlayer) return;
+    playButtonClickSound();
+    colyseusService.sendDevAwardCard(devAwardTargetPlayer, cardId);
+    const targetPlayerName =
+      players.find((p: any) => p.id === devAwardTargetPlayer)?.name || "Player";
+    setDevAwardFeedback(`Awarded ${cardId} to ${targetPlayerName}!`);
+    setTimeout(() => {
+      setDevAwardFeedback("");
+    }, 2500);
   };
 
   const toggleDevPlayer = (id: string) => {
     if (devPlayers.includes(id)) {
-      setDevPlayers(devPlayers.filter(p => p !== id));
+      setDevPlayers(devPlayers.filter((p) => p !== id));
     } else {
       setDevPlayers([...devPlayers, id]);
     }
@@ -125,11 +296,17 @@ export default function ChartScreen() {
     if (c === "Hot Potato" && devType === "2v2") {
       setDevType("1v1");
     }
+    if (c === "Screen Painting" && devType === "2v2") {
+      setDevType("BR");
+    }
   };
 
   const handleDevTypeChange = (t: string) => {
     if (devCategory === "Rock Paper Scissors" && t !== "1v1") {
       return; // RPS is strictly 1v1
+    }
+    if (devCategory === "Screen Painting" && t === "2v2") {
+      return; // Screen Painting is 1v1 or BR
     }
     if (devCategory === "Hot Potato" && t === "2v2") {
       return; // Hot Potato doesn't do 2v2
@@ -138,33 +315,168 @@ export default function ChartScreen() {
   };
 
   const handleDevStart = () => {
-    const isValid = devType === '1v1' ? devPlayers.length === 2 :
-      devType === '2v2' ? devPlayers.length === 4 :
-        devPlayers.length >= 2;
+    const isValid =
+      devType === "1v1"
+        ? devPlayers.length === 2
+        : devType === "2v2"
+          ? devPlayers.length === 4
+          : devPlayers.length >= 2;
 
-    if (!isValid) return alert(`Expected ${devType === '1v1' ? 2 : devType === '2v2' ? 4 : '2+'} players for this mode!`);
+    if (!isValid)
+      return alert(
+        `Expected ${devType === "1v1" ? 2 : devType === "2v2" ? 4 : "2+"} players for this mode!`,
+      );
     colyseusService.sendDevStart(devType, devCategory, devPlayers);
     setShowDevModal(false);
   };
 
+  const memphisShapes = [
+    {
+      type: "circle",
+      color: "bg-yellow-400",
+      size: 24,
+      top: "8%",
+      left: "10%",
+    },
+    { type: "circle", color: "bg-pink-400", size: 16, top: "75%", left: "80%" },
+    {
+      type: "square",
+      color: "bg-cyan-400",
+      size: 20,
+      top: "25%",
+      left: "85%",
+      rotate: "45deg",
+    },
+    {
+      type: "square",
+      color: "bg-yellow-400",
+      size: 18,
+      top: "82%",
+      left: "15%",
+      rotate: "15deg",
+    },
+    {
+      type: "triangle",
+      color: "bg-pink-500",
+      size: 24,
+      top: "48%",
+      left: "8%",
+    },
+    { type: "dots", color: "text-black", top: "15%", left: "65%" },
+    { type: "dots", color: "text-black", top: "65%", left: "12%" },
+  ];
+
+  const isDark = theme === "dark";
+
+  const renderBackgroundDebris = () => {
+    return memphisShapes.map((shape, i) => {
+      const transform = shape.rotate ? [{ rotate: shape.rotate }] : [];
+      if (shape.type === "dots") {
+        return (
+          <View
+            key={i}
+            style={{
+              position: "absolute",
+              top: shape.top as any,
+              left: shape.left as any,
+              opacity: 0.15,
+            }}
+          >
+            <Text
+              className={`font-black tracking-widest text-lg ${isDark ? "text-zinc-700" : "text-black"}`}
+            >
+              •••••{"\n"}•••••{"\n"}•••••
+            </Text>
+          </View>
+        );
+      }
+      return (
+        <View
+          key={i}
+          style={{
+            position: "absolute",
+            top: shape.top as any,
+            left: shape.left as any,
+            width: shape.size,
+            height: shape.size,
+            borderRadius: shape.type === "circle" ? 999 : 4,
+            borderWidth: 2,
+            borderColor: isDark ? "#ffffff" : "#000000",
+            transform: transform as any,
+            opacity: 0.4,
+          }}
+          className={shape.color}
+        />
+      );
+    });
+  };
+
   return (
-    <View className="flex-1 bg-green-900 pt-16">
+    <View
+      style={StyleSheet.absoluteFillObject}
+      className={`${isDark ? "bg-zinc-950" : "bg-amber-50"} justify-center pt-16`}
+    >
+      {renderBackgroundDebris()}
+
       <View className="flex-row items-center justify-between mb-8 w-full px-6">
-        <TouchableOpacity onPress={handleLeaveGame} className="bg-red-500 w-12 h-12 rounded-full items-center justify-center border-4 border-red-700 shadow-xl">
-          <Text className="text-white font-black text-xl">X</Text>
+        <TouchableOpacity
+          onPress={handleLeaveGame}
+          style={{ width: 48, height: 48, position: "relative" }}
+        >
+          <View
+            style={[
+              StyleSheet.absoluteFillObject,
+              { borderRadius: 12, top: 3, left: 3 },
+            ]}
+            className={isDark ? "bg-white" : "bg-black"}
+          />
+          <View
+            style={[
+              StyleSheet.absoluteFillObject,
+              {
+                borderRadius: 12,
+                borderWidth: 3,
+                borderColor: isDark ? "#ffffff" : "#000000",
+                alignItems: "center",
+                justifyContent: "center",
+              },
+            ]}
+            className="bg-pink-400"
+          >
+            <Text className="text-black font-black text-xl">X</Text>
+          </View>
         </TouchableOpacity>
 
-        <View className="flex-1 items-center mr-12">
-          <Text className="text-white text-4xl font-black tracking-widest uppercase" style={{ textShadowColor: 'rgba(0,0,0,0.4)', textShadowOffset: { width: 3, height: 3 }, textShadowRadius: 1 }}>
+        <View className="flex-1 items-center">
+          <Text
+            className={`text-black text-4xl font-black tracking-widest uppercase ${isDark ? "text-white" : "text-black"}`}
+            style={{
+              textShadowColor: isDark ? "#06b6d4" : "#facc15",
+              textShadowOffset: { width: 3, height: 3 },
+              textShadowRadius: 0,
+            }}
+          >
             Game Chart
           </Text>
-          <Text className="text-yellow-400 font-bold text-lg mt-1 tracking-widest">
-            ROOM: {roomId}
-          </Text>
+          <View
+            className={`px-3 py-0.5 rounded-lg border-2 ${isDark ? "border-white bg-zinc-800" : "border-black bg-black"} mt-1`}
+          >
+            <Text
+              className={`font-black text-xs tracking-widest ${isDark ? "text-yellow-300" : "text-yellow-400"}`}
+            >
+              ROOM: {roomId}
+            </Text>
+          </View>
         </View>
+
+        {/* Settings Dropdown Button */}
+        <SettingsDropdown />
       </View>
 
-      <ScrollView className="flex-1 mb-6 px-6" showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="flex-1 mb-6 px-6"
+        showsVerticalScrollIndicator={false}
+      >
         {(() => {
           const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
           let currentRank = 1;
@@ -173,189 +485,547 @@ export default function ChartScreen() {
             if (index > 0 && p.score < sortedPlayers[index - 1].score) {
               currentRank++;
             }
+            const isWinner = (lastWinners as any[])?.includes(p.id);
             return (
-              <View
+              <RetroPlayerCard
                 key={p.id}
-                className={`flex-row items-center justify-between p-5 mb-4 rounded-3xl border-b-8 ${p.id === myPlayer?.id ? 'bg-blue-500 border-blue-700' : 'bg-white/10 border-white/20'}`}
-              >
-                <View className="flex-row items-center flex-1">
-                  <Text className="text-yellow-400 font-black text-3xl mr-4" style={{ textShadowColor: 'rgba(0,0,0,0.3)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 1 }}>#{currentRank}</Text>
-                  <View className="w-12 h-12 bg-white/20 rounded-full items-center justify-center mr-3">
-                    <Text className="text-2xl font-black text-white">{p.name.charAt(0)}</Text>
-                  </View>
-                  <Text className="text-2xl font-black text-white flex-1" numberOfLines={1}>
-                    {p.name} {p.isHost && '👑'}
-                  </Text>
-                </View>
-                <View className="flex-row items-center bg-yellow-400 px-4 py-2 rounded-2xl ml-2 shadow-sm border-b-4 border-yellow-600">
-                  <View className="w-5 h-7 bg-yellow-200 rounded-[10px] border-2 border-orange-500 items-center justify-center mr-2 shadow-sm">
-                    <View className="w-1 h-4 bg-orange-400 rounded-full" />
-                  </View>
-                  <Text className="text-indigo-900 font-black text-2xl">{p.score}</Text>
-                </View>
-              </View>
+                name={p.name}
+                isMe={p.id === myPlayer?.id}
+                isHost={p.isHost}
+                rank={currentRank}
+                score={p.score}
+                isWinner={isWinner}
+                triggerAnimationKey={isWinner ? animationKey : 0}
+              />
             );
           });
         })()}
       </ScrollView>
 
-      {gamePhase === 'chart' && (
+      {gamePhase === "chart" && (
         <View className="pb-10 pt-4 w-full px-6">
           {myPlayer?.isHost ? (
             <View>
-              <PartyButton title="SPIN WHEEL!" color="secondary" onPress={() => colyseusService.startWheel()} />
-              <TouchableOpacity onPress={openDevModal} className="mt-4 p-3 border-4 border-white/20 rounded-full mx-32">
-                <Text className="text-white text-center font-bold tracking-[0.2em] opacity-80">DEV MODE</Text>
+              <RetroButton
+                title="SPIN WHEEL!"
+                variant="secondary"
+                onPress={() => colyseusService.startWheel()}
+              />
+              <TouchableOpacity
+                onPress={openDevModal}
+                style={{
+                  height: 48,
+                  position: "relative",
+                  width: "50%",
+                  alignSelf: "center",
+                  marginTop: 8,
+                }}
+              >
+                <View
+                  style={[
+                    StyleSheet.absoluteFillObject,
+                    { borderRadius: 16, top: 3, left: 3 },
+                  ]}
+                  className="bg-black"
+                />
+                <View
+                  style={[
+                    StyleSheet.absoluteFillObject,
+                    {
+                      borderRadius: 16,
+                      borderWidth: 3,
+                      borderColor: "#000000",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    },
+                  ]}
+                  className="bg-white"
+                >
+                  <Text className="text-black font-black text-sm tracking-wider">
+                    DEV MODE
+                  </Text>
+                </View>
               </TouchableOpacity>
             </View>
           ) : (
-            <View className="bg-black/30 p-8 rounded-[32px] items-center border-4 border-white/10">
-              <Text className="text-white text-2xl font-black opacity-80 uppercase text-center tracking-wider">Waiting for host...</Text>
+            <View className="relative w-full mb-4">
+              <View
+                style={[
+                  StyleSheet.absoluteFillObject,
+                  { borderRadius: 24, top: 4, left: 4 },
+                ]}
+                className="bg-black"
+              />
+              <View
+                style={{
+                  borderRadius: 24,
+                  borderWidth: 4,
+                  borderColor: "#000000",
+                  padding: 20,
+                  alignItems: "center",
+                }}
+                className="bg-pink-300"
+              >
+                <Text className="text-black text-2xl font-black uppercase text-center tracking-wider">
+                  Waiting for host...
+                </Text>
+              </View>
             </View>
           )}
         </View>
       )}
 
-      {showWheelModal && (
-        <View className="absolute top-0 left-0 w-full h-[150%] bg-black/90 p-6 z-50 pt-32">
-          <View className="bg-pink-500 w-full p-8 rounded-[40px] border-[10px] border-pink-700 shadow-2xl items-center relative">
-            <Text className="text-white text-5xl font-black mb-8 text-center shadow-lg uppercase"
+      {gamePhase !== "chart" && !amISelected && (
+        <View className="pb-10 pt-4 w-full px-6">
+          <View className="relative w-full mb-4">
+            <View
+              style={[
+                StyleSheet.absoluteFillObject,
+                { borderRadius: 24, top: 4, left: 4 },
+              ]}
+              className={isDark ? "bg-white" : "bg-black"}
+            />
+            <View
               style={{
-                textShadowColor: 'rgba(0,0,0,0.3)',
-                textShadowOffset: { width: 3, height: 3 },
-                textShadowRadius: 1
-              }}>
-              {displayedType}
-            </Text>
-
-            <View className="flex-row flex-wrap justify-center items-center mb-6 gap-3 min-h-[130px]">
-              {(() => {
-                const selectedPs = players.filter((p: any) => displayedPlayers.includes(p.id));
-
-                if (displayedType === '2v2' && selectedPs.length === 4) {
-                  return (
-                    <View className="items-center justify-center flex-wrap">
-                      <View className="bg-indigo-500 px-5 py-3 rounded-full border-4 border-indigo-300 shadow-lg">
-                        <Text className="text-white font-black text-xl">{selectedPs[0].name} & {selectedPs[1].name}</Text>
-                      </View>
-                      <Text className="text-yellow-400 font-black text-3xl mx-4 italic"
-                        style={{
-                          textShadowColor: 'rgba(0,0,0,0.5)',
-                          textShadowOffset: { width: 2, height: 2 },
-                          textShadowRadius: 1
-                        }}
-                      >
-                        VS
-                      </Text>
-                      <View className="bg-rose-500 px-5 py-3 rounded-full border-4 border-rose-300 shadow-lg">
-                        <Text className="text-white font-black text-xl">{selectedPs[2].name} & {selectedPs[3].name}</Text>
-                      </View>
-                    </View>
-                  );
-                }
-
-                return selectedPs.map((p: any) => (
-                  <View key={p.id} className="bg-white/20 px-5 py-3 rounded-full border-4 border-white/50">
-                    <Text className="text-white font-black text-xl">{p.name}</Text>
-                  </View>
-                ));
-              })()}
-            </View>
-
-            <View className="bg-indigo-600 p-8 rounded-3xl border-8 border-indigo-400 w-full items-center justify-center mb-10 shadow-inner min-h-[160px]">
-              <Text className="text-blue-200 text-xl font-black uppercase mb-2">CATEGORY</Text>
+                borderRadius: 24,
+                borderWidth: 4,
+                borderColor: isDark ? "#ffffff" : "#000000",
+                padding: 20,
+                alignItems: "center",
+              }}
+              className={isDark ? "bg-zinc-800" : "bg-yellow-300"}
+            >
               <Text
+                className={`text-xs font-black uppercase tracking-widest mb-1 ${isDark ? "text-yellow-400" : "text-black/60"}`}
+              >
+                {currentGameType} MATCH IN PROGRESS
+              </Text>
+              <Text
+                className={`text-2xl font-black uppercase text-center tracking-wider ${isDark ? "text-white" : "text-black"}`}
                 numberOfLines={1}
                 adjustsFontSizeToFit
-                minimumFontScale={0.4}
-                className="text-white font-black uppercase text-center w-full"
-                style={{ fontSize: 36, textShadowColor: 'rgba(0,0,0,0.3)', textShadowOffset: { width: 2, height: 2 }, textShadowRadius: 1 }}
               >
-                {displayedCategory}
+                {currentCategory}
+              </Text>
+              <Text
+                className={`text-xs font-bold uppercase tracking-wide text-center mt-2 ${isDark ? "text-zinc-400" : "text-black/70"}`}
+              >
+                WAITING IN CHART LOBBY...
               </Text>
             </View>
+          </View>
+        </View>
+      )}
 
-            <View className="h-32 justify-center items-center w-full">
-              {isSpinning ? (
-                <View className="w-32 h-32 rounded-full border-[8px] border-white/30 items-center justify-center">
-                  <Text className="text-white/80 font-bold text-center text-lg">Spinning...</Text>
-                </View>
-              ) : (
-                amISelected ? (
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={handleReadyToggle}
-                    className={`w-32 h-32 rounded-full items-center justify-center border-[8px] shadow-2xl ${isReady ? 'bg-green-500 border-green-300' : 'bg-yellow-400 border-yellow-200'}`}
+      {showWheelModal && (
+        <View
+          style={StyleSheet.absoluteFillObject}
+          className={`${isDark ? "bg-zinc-950/95" : "bg-amber-50/95"} justify-center items-center px-6 z-[9999] pt-12`}
+        >
+          {renderBackgroundDebris()}
+          <View className="w-full max-w-sm relative">
+            {/* Card Shadow */}
+            <View
+              style={[
+                StyleSheet.absoluteFillObject,
+                { borderRadius: 28, top: 8, left: 8 },
+              ]}
+              className={isDark ? "bg-white" : "bg-black"}
+            />
+
+            {/* Card Body */}
+            <View
+              style={{
+                borderRadius: 28,
+                borderWidth: 5,
+                borderColor: isDark ? "#ffffff" : "#000000",
+                padding: 24,
+                alignItems: "center",
+                backgroundColor: isDark ? "#31102f" : "#fee2e2",
+              }}
+              className="bg-pink-400"
+            >
+              <View
+                style={{ borderColor: isDark ? "#ffffff" : "#000000" }}
+                className={`bg-yellow-400 border-4 py-2 px-6 rounded-2xl rotate-[-2deg] mb-6 ${isDark ? "shadow-[4px_4px_0px_0px_#fff]" : "shadow-[4px_4px_0px_0px_#000]"}`}
+              >
+                <Text className="text-black text-4xl font-black uppercase text-center tracking-wider">
+                  {displayedType}
+                </Text>
+              </View>
+
+              <View className="flex-row flex-wrap justify-center items-center mb-6 gap-3 min-h-[110px]">
+                {(() => {
+                  const selectedPs = players.filter((p: any) =>
+                    displayedPlayers.includes(p.id),
+                  );
+
+                  if (displayedType === "2v2" && selectedPs.length === 4) {
+                    return (
+                      <View className="items-center justify-center">
+                        <View
+                          style={{
+                            borderColor: isDark ? "#ffffff" : "#000000",
+                          }}
+                          className={`bg-cyan-300 px-5 py-2.5 rounded-xl border-3 ${isDark ? "shadow-[3px_3px_0px_0px_#fff]" : "shadow-[3px_3px_0px_0px_#000]"}`}
+                        >
+                          <Text className="text-black font-black text-lg">
+                            {selectedPs[0].name} & {selectedPs[1].name}
+                          </Text>
+                        </View>
+                        <Text
+                          className={`font-black text-2xl my-2 italic ${isDark ? "text-white" : "text-black"}`}
+                          style={{
+                            textShadowColor: isDark ? "#ec4899" : "#facc15",
+                            textShadowOffset: { width: 2, height: 2 },
+                            textShadowRadius: 0,
+                          }}
+                        >
+                          VS
+                        </Text>
+                        <View
+                          style={{
+                            borderColor: isDark ? "#ffffff" : "#000000",
+                          }}
+                          className={`bg-yellow-300 px-5 py-2.5 rounded-xl border-3 ${isDark ? "shadow-[3px_3px_0px_0px_#fff]" : "shadow-[3px_3px_0px_0px_#000]"}`}
+                        >
+                          <Text className="text-black font-black text-lg">
+                            {selectedPs[2].name} & {selectedPs[3].name}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  }
+
+                  return selectedPs.map((p: any) => (
+                    <View
+                      key={p.id}
+                      style={{ borderColor: isDark ? "#ffffff" : "#000000" }}
+                      className={`px-4 py-2 rounded-xl border-3 ${isDark ? "bg-zinc-800 shadow-[2px_2px_0px_0px_#fff]" : "bg-white shadow-[2px_2px_0px_0px_#000]"}`}
+                    >
+                      <Text
+                        className={`font-black text-lg ${isDark ? "text-white" : "text-black"}`}
+                      >
+                        {p.name}
+                      </Text>
+                    </View>
+                  ));
+                })()}
+              </View>
+
+              <View
+                style={{ borderColor: isDark ? "#ffffff" : "#000000" }}
+                className={`p-5 rounded-2xl border-4 w-full items-center justify-center mb-8 min-h-[120px] bg-indigo-400 ${isDark ? "shadow-[4px_4px_0px_0px_#fff]" : "shadow-[4px_4px_0px_0px_#000]"}`}
+              >
+                <Text className="text-black/60 text-xs font-black uppercase tracking-widest mb-1">
+                  CATEGORY
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.4}
+                  className="text-white font-black uppercase text-center w-full text-3xl"
+                  style={{
+                    textShadowColor: "#000000",
+                    textShadowOffset: { width: 2, height: 2 },
+                    textShadowRadius: 0,
+                  }}
+                >
+                  {displayedCategory}
+                </Text>
+              </View>
+
+              <View className="h-28 justify-center items-center w-full">
+                {isSpinning ? (
+                  <View
+                    style={{ borderColor: isDark ? "#ffffff" : "#000000" }}
+                    className={`w-full bg-white border-3 py-3 rounded-2xl ${isDark ? "shadow-[3px_3px_0px_0px_#fff]" : "shadow-[3px_3px_0px_0px_#000]"} items-center justify-center`}
                   >
-                    <Text className={`text-6xl font-black ${isReady ? 'text-white' : 'text-indigo-900'}`}>✓</Text>
-                  </TouchableOpacity>
-                ) : (
-                  <View className="w-full">
-                    <PartyButton title="DISMISS" color="secondary" onPress={() => setShowWheelModal(false)} />
+                    <Text className="text-black font-black text-center text-lg uppercase tracking-wider">
+                      Spinning Wheel...
+                    </Text>
                   </View>
-                )
-              )}
+                ) : amISelected ? (
+                  <View className="flex-row gap-4 items-center justify-center w-full">
+                    <RetroButton
+                      title="Try It"
+                      variant="success"
+                      size="md"
+                      onPress={() => {
+                        practiceOpenedAtRef.current = Date.now();
+                        setShowPracticeModal(true);
+                      }}
+                      style={{ flex: 1 }}
+                    />
+                    <RetroButton
+                      title={isReady ? "READY!" : "READY UP!"}
+                      variant={isReady ? "primary" : "secondary"}
+                      onPress={handleReadyToggle}
+                      style={{ flex: 2 }}
+                    />
+                  </View>
+                ) : (
+                  <RetroButton
+                    title="DISMISS"
+                    variant="danger"
+                    onPress={() => setShowWheelModal(false)}
+                    style={{ width: "100%" }}
+                  />
+                )}
+              </View>
             </View>
           </View>
         </View>
       )}
 
       {showDevModal && (
-        <View className="absolute top-0 left-0 w-full h-[150%] z-50 pt-16 px-6 pb-32" style={{ backgroundColor: 'rgba(0,0,0,0.95)', position: 'absolute' }}>
-          <View className="flex-1 w-full pt-4 pb-32">
-            <Text className="text-yellow-400 text-3xl font-black mb-8 text-center uppercase tracking-widest px-2" style={{ textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 2, height: 2 }, textShadowRadius: 1 }}>DEV OVERRIDE</Text>
-            <ScrollView className="w-full flex-1 mb-32" showsVerticalScrollIndicator={false}>
-
-              <Text className="text-white font-black opacity-80 text-xl tracking-widest mb-4 ml-2">GAME TYPE</Text>
-              <View className="flex-row gap-2 mb-8">
-                {TYPES.map(t => {
-                  const isBlocked = (devCategory === "Rock Paper Scissors" && t !== "1v1") ||
+        <View
+          style={[
+            StyleSheet.absoluteFillObject,
+            {
+              backgroundColor: "rgba(0,0,0,0.95)",
+              zIndex: 99999,
+              paddingTop: 50,
+              paddingHorizontal: 24,
+              height: "120%",
+              paddingBottom: 50,
+            },
+          ]}
+        >
+          <View className="flex-1 w-full max-w-sm mx-auto">
+            <Text
+              className="text-yellow-400 text-3xl font-black mb-6 text-center uppercase tracking-widest"
+              style={{
+                textShadowColor: "#000",
+                textShadowOffset: { width: 2, height: 2 },
+                textShadowRadius: 0,
+              }}
+            >
+              DEV OVERRIDE
+            </Text>
+            <ScrollView
+              className="w-full flex-1 mb-24"
+              // showsVerticalScrollIndicator={true}
+            >
+              <Text className="text-white font-black opacity-80 text-xl tracking-widest mb-3 ml-2">
+                GAME TYPE
+              </Text>
+              <View className="flex-row gap-2 mb-6">
+                {TYPES.map((t) => {
+                  const isBlocked =
+                    (devCategory === "Rock Paper Scissors" && t !== "1v1") ||
                     (devCategory === "Hot Potato" && t === "2v2");
                   return (
                     <Pressable
                       key={t}
                       onPress={() => handleDevTypeChange(t)}
-                      className={`flex-1 py-4 border-[6px] rounded-[32px] items-center ${devType === t ? 'bg-indigo-600 border-indigo-400' : 'bg-white/10 border-white/10'} ${isBlocked ? 'opacity-20' : ''}`}
+                      style={{
+                        borderWidth: 3,
+                        borderColor: "#000000",
+                        height: 48,
+                        borderRadius: 14,
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                      className={`flex-1 ${devType === t ? "bg-cyan-300" : "bg-white"} ${isBlocked ? "opacity-35" : ""}`}
                     >
-                      <Text className={`font-black text-xl tracking-wider ${devType === t ? 'text-white' : 'text-gray-400'}`}>{t}</Text>
+                      <Text className="font-black text-black text-lg">{t}</Text>
                     </Pressable>
                   );
                 })}
               </View>
 
-              <Text className="text-white font-black opacity-80 text-xl tracking-widest mb-4 ml-2">CATEGORY</Text>
-              <View className="flex-row flex-wrap gap-2 mb-8 border-b-4 border-white/10 pb-8">
-                {CATS.map(c => (
-                  <Pressable key={c} onPress={() => handleDevCategoryChange(c)} className={`w-[48%] py-4 border-[6px] rounded-[32px] items-center justify-center shadow-lg mb-2 ${devCategory === c ? 'bg-pink-600 border-pink-400' : 'bg-white/10 border-white/10'}`}>
-                    <Text className={`font-black text-center text-sm uppercase tracking-wider ${devCategory === c ? 'text-white' : 'text-gray-400'}`}>{c}</Text>
+              <Text className="text-white font-black opacity-80 text-xl tracking-widest mb-3 ml-2">
+                CATEGORY
+              </Text>
+              <View className="flex-row flex-wrap gap-2 mb-6 border-b-2 border-white/10 pb-6">
+                {CATS.map((c) => (
+                  <Pressable
+                    key={c}
+                    onPress={() => handleDevCategoryChange(c)}
+                    style={{
+                      borderWidth: 3,
+                      borderColor: "#000000",
+                      height: 48,
+                      borderRadius: 14,
+                      justifyContent: "center",
+                      alignItems: "center",
+                      width: "48%",
+                      marginBottom: 8,
+                    }}
+                    className={devCategory === c ? "bg-pink-300" : "bg-white"}
+                  >
+                    <Text className="font-black text-black text-xs text-center uppercase">
+                      {c}
+                    </Text>
                   </Pressable>
                 ))}
               </View>
 
-              <Text className="text-white font-black opacity-80 text-xl tracking-widest mb-4 ml-2">PLAYERS ({devPlayers.length} SELECTED)</Text>
-              <View className="flex-row flex-wrap gap-3 mb-10">
+              <Text className="text-white font-black opacity-80 text-xl tracking-widest mb-3 ml-2">
+                PLAYERS ({devPlayers.length} SELECTED)
+              </Text>
+              <View className="flex-row flex-wrap gap-3 mb-8">
                 {players.map((p: any) => {
                   const isSelected = devPlayers.includes(p.id);
                   return (
-                    <View key={p.id}>
-                      <Pressable onPress={() => toggleDevPlayer(p.id)} className={`px-6 py-4 border-[6px] rounded-full items-center ${isSelected ? 'bg-green-600 border-green-400' : 'bg-white/10 border-white/10'}`}>
-                        <Text className={`font-black text-xl tracking-wider ${isSelected ? 'text-white' : 'text-gray-400'}`}>{p.name}</Text>
-                      </Pressable>
-                    </View>
+                    <Pressable
+                      key={p.id}
+                      onPress={() => toggleDevPlayer(p.id)}
+                      style={{
+                        borderWidth: 3,
+                        borderColor: "#000000",
+                        borderRadius: 20,
+                        paddingHorizontal: 16,
+                        paddingVertical: 8,
+                      }}
+                      className={isSelected ? "bg-emerald-400" : "bg-white"}
+                    >
+                      <Text className="font-black text-black text-sm">
+                        {p.name}
+                      </Text>
+                    </Pressable>
                   );
                 })}
               </View>
-              <View className="pt-4 gap-4 pb-12 shadow-2xl">
-                <PartyButton title="FORCE START" color="success" onPress={handleDevStart} />
-                <Pressable onPress={() => setShowDevModal(false)} className="w-full bg-red-500 py-5 rounded-[40px] items-center border-[8px] border-red-700 shadow-2xl mt-2">
-                  <Text className="text-white font-black text-2xl tracking-[0.2em]">CANCEL</Text>
-                </Pressable>
+
+              <View className="pt-4 gap-4 pb-12 pl-1">
+                <RetroButton
+                  title="FORCE START"
+                  variant="success"
+                  onPress={handleDevStart}
+                />
+                <RetroButton
+                  title="CANCEL"
+                  variant="danger"
+                  onPress={() => setShowDevModal(false)}
+                />
+              </View>
+
+              {/* Specialty Card Award Section */}
+              <View className="border-t-2 border-white/10 pt-6 mb-8">
+                <Text className="text-yellow-400 font-black text-xl tracking-widest mb-3 ml-2 uppercase">
+                  AWARD SPECIALTY CARD
+                </Text>
+
+                <Text className="text-white font-black opacity-80 text-xs tracking-wider mb-2 ml-2 uppercase">
+                  1. SELECT RECIPIENT:
+                </Text>
+                <View className="flex-row flex-wrap gap-2 mb-4">
+                  {players.map((p: any) => {
+                    const isTarget = devAwardTargetPlayer === p.id;
+                    return (
+                      <Pressable
+                        key={p.id}
+                        onPress={() => {
+                          playButtonClickSound();
+                          setDevAwardTargetPlayer(p.id);
+                        }}
+                        style={{
+                          borderWidth: 3,
+                          borderColor: "#000000",
+                          borderRadius: 16,
+                          paddingHorizontal: 14,
+                          paddingVertical: 6,
+                        }}
+                        className={isTarget ? "bg-amber-400" : "bg-zinc-700"}
+                      >
+                        <Text
+                          className={`font-black text-xs uppercase ${isTarget ? "text-black" : "text-white"}`}
+                        >
+                          {p.name} {p.id === myPlayer?.id ? "(YOU)" : ""}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                <Text className="text-white font-black opacity-80 text-xs tracking-wider mb-2 ml-2 uppercase">
+                  2. CHOOSE CARD TO AWARD:
+                </Text>
+                <View className="flex-row flex-wrap gap-2 mb-3">
+                  {DEV_SPECIALTY_CARDS.map((card) => (
+                    <Pressable
+                      key={card.id}
+                      onPress={() => handleDevAwardCard(card.id)}
+                      style={{
+                        borderWidth: 3,
+                        borderColor: "#000000",
+                        borderRadius: 14,
+                        paddingVertical: 10,
+                        paddingHorizontal: 12,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minWidth: "48%",
+                        flexGrow: 1,
+                      }}
+                      className={card.color}
+                    >
+                      <Text className="font-black text-black text-xs uppercase tracking-wider text-center">
+                        + {card.name}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+
+                {devAwardFeedback ? (
+                  <View className="bg-emerald-500/20 border-2 border-emerald-400 rounded-xl p-2.5 items-center mt-2">
+                    <Text className="text-emerald-300 font-black text-xs uppercase tracking-wider text-center">
+                      {devAwardFeedback}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
             </ScrollView>
-
           </View>
         </View>
       )}
+
+      {showPracticeModal && (
+        <PracticeModal
+          category={currentCategory || displayedCategory}
+          onClose={() => setShowPracticeModal(false)}
+        />
+      )}
+
+      {/* Temp Floating Action Button to Draw Random Specialty Card */}
+      {/* <View style={{ position: "absolute", bottom: 28, right: 20, zIndex: 9999 }}>
+        <TouchableOpacity
+          onPress={drawRandomSpecialtyCard}
+          style={{
+            backgroundColor: "#f59e0b",
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            borderRadius: 30,
+            borderWidth: 3,
+            borderColor: "#000000",
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 4,
+            elevation: 8,
+          }}
+        >
+          <Ionicons name="card" size={20} color="#000000" />
+          <Text className="font-black text-black text-xs uppercase tracking-wider">
+            SPECIALTY CARD
+          </Text>
+        </TouchableOpacity>
+      </View> */}
+
+      <SpecialtyCardModal
+        visible={showSpecialtyModal}
+        card={drawnSpecialtyCard}
+        onClose={() => setShowSpecialtyModal(false)}
+        onDrawNew={drawRandomSpecialtyCard}
+      />
+
+      <CardDock />
+      <CardAwardPopup />
+      <CardAnnouncementPopup />
     </View>
   );
 }

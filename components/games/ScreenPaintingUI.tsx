@@ -1,0 +1,373 @@
+import {
+  Canvas,
+  PaintStyle,
+  Path,
+  Skia,
+  SkPath,
+  type SkPathBuilder,
+  StrokeCap,
+  StrokeJoin,
+} from "@shopify/react-native-skia";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Dimensions, StyleSheet, Text, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSelector } from "react-redux";
+import {
+  playPaintSplat1Sound,
+  playPaintSplat2Sound,
+} from "../../utils/sound";
+import { colyseusService } from "../../store/colyseusService";
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+
+// Performance Note: Checking every pixel on a 50x50 grid (2500 pixels) is fast.
+const CHECK_SIZE = 50;
+const REFRESH_RATE = 500; // ms
+
+const COLORS = [
+  "#EF4444", // Red
+  "#F97316", // Orange
+  "#EAB308", // Yellow
+  "#22C55E", // Green
+  "#3B82F6", // Blue
+  "#A855F7", // Purple
+  "#EC4899", // Pink
+];
+
+export function ScreenPaintingUI() {
+  const insets = useSafeAreaInsets();
+  const { players, playerName } = useSelector((state: any) => state.lobby);
+  const myPlayer = players.find((p: any) => p.name === playerName);
+  const theme = useSelector((state: any) => state.lobby.theme) || "light";
+  const isDark = theme === "dark";
+
+  const [paths, setPaths] = useState<SkPath[]>([]);
+  const pathsRef = useRef<SkPath[]>([]);
+  const currentBuilder = useRef<SkPathBuilder | null>(null);
+  const lastCheckTime = useRef<number>(0);
+  const lastDrawTime = useRef<number>(0);
+  const isFinished = useRef(false);
+
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [currentCoverage, setCurrentCoverage] = useState(0);
+  const playedSplatThresholdsRef = useRef<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (currentCoverage === 0) {
+      playedSplatThresholdsRef.current.clear();
+      return;
+    }
+
+    const thresholds = [
+      { pct: 20, sound: 1 },
+      { pct: 40, sound: 2 },
+      { pct: 60, sound: 1 },
+      { pct: 80, sound: 2 },
+    ];
+
+    thresholds.forEach(({ pct, sound }) => {
+      if (
+        currentCoverage >= pct &&
+        currentCoverage < 100 &&
+        !playedSplatThresholdsRef.current.has(pct)
+      ) {
+        playedSplatThresholdsRef.current.add(pct);
+        if (sound === 1) {
+          playPaintSplat1Sound();
+        } else {
+          playPaintSplat2Sound();
+        }
+      }
+    });
+  }, [currentCoverage]);
+
+  const onLayout = useCallback((event: any) => {
+    const { width, height } = event.nativeEvent.layout;
+    setDimensions({ width, height });
+  }, []);
+
+  // Helper to keep paths ref and state synchronized to prevent stale closures in callbacks
+  const updatePaths = useCallback(
+    (newPathsOrFunc: SkPath[] | ((prev: SkPath[]) => SkPath[])) => {
+      setPaths((prev) => {
+        const next =
+          typeof newPathsOrFunc === "function"
+            ? newPathsOrFunc(prev)
+            : newPathsOrFunc;
+        pathsRef.current = next;
+        return next;
+      });
+    },
+    [],
+  );
+
+  let gameData: any = {};
+  try {
+    gameData = JSON.parse(myPlayer?.gameData || "{}");
+  } catch (e) {}
+
+  let isTurbo = false;
+  try {
+    const fx = JSON.parse(myPlayer?.activeEffects || "{}");
+    isTurbo = !!fx.turbo;
+  } catch (e) {}
+
+  const myColor = COLORS[gameData.colorIndex ?? 0] ?? COLORS[0];
+  const activeStrokeWidth = isTurbo ? 90 : 60; // 1.5x stroke width for Turbo
+
+  // Layout calculations considering SafeArea and actual view dimensions dynamically
+  const canvasWidth = dimensions.width || SCREEN_WIDTH;
+  const canvasHeight =
+    dimensions.height || SCREEN_HEIGHT - insets.top - insets.bottom;
+
+  const checkCoverage = useCallback(
+    (pathsToDraw: SkPath[]) => {
+      if (
+        isFinished.current ||
+        dimensions.width === 0 ||
+        dimensions.height === 0
+      )
+        return;
+
+      try {
+        // 1. Create a tiny offscreen surface
+        const surface = Skia.Surface.MakeOffscreen(CHECK_SIZE, CHECK_SIZE);
+        if (!surface) return;
+        const smallCanvas = surface.getCanvas();
+
+        // 2. Clear with full transparency (hex format required by RN Skia)
+        smallCanvas.clear(Skia.Color("#00000000"));
+
+        // 3. Draw all current paths into the small canvas, scaled down
+        smallCanvas.save();
+        smallCanvas.scale(CHECK_SIZE / canvasWidth, CHECK_SIZE / canvasHeight);
+
+        const paint = Skia.Paint();
+        paint.setColor(Skia.Color(myColor));
+        paint.setStrokeWidth(activeStrokeWidth); // Dynamic brush width
+        paint.setStyle(PaintStyle.Stroke);
+        paint.setStrokeCap(StrokeCap.Round);
+        paint.setStrokeJoin(StrokeJoin.Round);
+
+        pathsToDraw.forEach((p) => {
+          if (p) {
+            smallCanvas.drawPath(p, paint);
+          }
+        });
+
+        smallCanvas.restore();
+
+        // 4. Analyze pixels
+        const snapshot = surface.makeImageSnapshot();
+        const pixels = snapshot.readPixels(0, 0, {
+          width: CHECK_SIZE,
+          height: CHECK_SIZE,
+          alphaType: 3, // Unpremul
+          colorType: 4, // RGBA_8888
+        });
+
+        if (pixels) {
+          let opaqueCount = 0;
+          const totalPixels = CHECK_SIZE * CHECK_SIZE;
+
+          // Alpha is at index 3, 7, 11, ...
+          for (let i = 3; i < pixels.length; i += 4) {
+            if (pixels[i] > 200) {
+              // Threshold for "painted"
+              opaqueCount++;
+            }
+          }
+
+          const coverage = opaqueCount / totalPixels;
+          const roundedCoverage = Math.min(100, Math.round(coverage * 100));
+          setCurrentCoverage(roundedCoverage);
+
+          // Report current progress to server so leaderboard reflects exact % painted
+          colyseusService.sendGameAction({
+            action: "progress",
+            coverage: roundedCoverage,
+          });
+
+          // 99% coverage or rounded 100% threshold for finishing & declaring winner
+          if (roundedCoverage >= 100 || coverage >= 0.99) {
+            if (!isFinished.current) {
+              isFinished.current = true;
+              colyseusService.sendGameAction({
+                action: "finished",
+                coverage: 100,
+              });
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Coverage check failed:", e);
+      }
+    },
+    [dimensions, canvasWidth, canvasHeight, myColor],
+  );
+
+  const pan = Gesture.Pan()
+    .runOnJS(true)
+    .minDistance(0)
+    .onStart((e) => {
+      if (isFinished.current || gameData.finished) return;
+      const builder = Skia.PathBuilder.Make();
+      builder.moveTo(e.x, e.y);
+      currentBuilder.current = builder;
+      const initialPath = builder.build();
+      updatePaths((prev) => [...prev, initialPath]);
+    })
+    .onUpdate((e) => {
+      if (isFinished.current || gameData.finished || !currentBuilder.current)
+        return;
+      currentBuilder.current.lineTo(e.x, e.y);
+      const updatedPath = currentBuilder.current.build();
+
+      const now = Date.now();
+      // Draw smoothly at ~60fps (16ms throttle)
+      if (now - lastDrawTime.current > 16) {
+        lastDrawTime.current = now;
+        updatePaths((prev) => {
+          if (prev.length === 0) return [updatedPath];
+          const next = [...prev];
+          next[next.length - 1] = updatedPath;
+          return next;
+        });
+      }
+
+      // Periodically check coverage during drawing (every 500ms)
+      if (now - lastCheckTime.current > REFRESH_RATE) {
+        lastCheckTime.current = now;
+        checkCoverage(pathsRef.current);
+      }
+    })
+    .onEnd(() => {
+      if (isFinished.current || gameData.finished) return;
+      if (currentBuilder.current) {
+        const finalPath = currentBuilder.current.detach();
+        currentBuilder.current = null;
+        updatePaths((prev) => {
+          if (prev.length === 0) return [finalPath];
+          const next = [...prev];
+          next[next.length - 1] = finalPath;
+          return next;
+        });
+        checkCoverage(pathsRef.current);
+      }
+    });
+
+  return (
+    <View
+      style={styles.container}
+      className={isDark ? "bg-zinc-950" : "bg-green-500"}
+    >
+      {/* Top HUD covered Card */}
+      <View
+        pointerEvents="none"
+        className="absolute top-3 left-0 right-0 items-center justify-center z-40"
+      >
+        <View style={styles.hudCardWrapper}>
+          {/* Shadow */}
+          <View
+            style={[StyleSheet.absoluteFillObject, { borderRadius: 16 }]}
+            className={isDark ? "bg-white" : "bg-black"}
+          />
+          {/* Face */}
+          <View
+            style={{
+              width: "100%",
+              height: "100%",
+              borderRadius: 16,
+              borderWidth: 3,
+              borderColor: isDark ? "#ffffff" : "#000000",
+              alignItems: "center",
+              justifyContent: "center",
+              transform: [{ translateY: -3 }, { translateX: -3 }],
+            }}
+            className={isDark ? "bg-yellow-600" : "bg-yellow-300"}
+          >
+            <Text className="text-black font-black text-sm uppercase tracking-widest">
+              {currentCoverage}% COVERED
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Parent bordered wrapper (keeps GestureDetector and Canvas JSX fully untouched inside) */}
+      <View
+        style={{
+          flex: 1,
+          marginTop: 64,
+          borderWidth: 6,
+          borderColor: isDark ? "#ffffff" : "#000000",
+          borderRadius: 24,
+          overflow: "hidden",
+          backgroundColor: isDark ? "#000000" : "#ffffff",
+        }}
+      >
+        <GestureDetector gesture={pan}>
+          <View
+            onLayout={onLayout}
+            style={[
+              styles.canvasWrapper,
+              // { marginTop: insets.top, marginBottom: insets.bottom },
+            ]}
+          >
+            <Canvas style={styles.canvas}>
+              {paths.map(
+                (p, i) =>
+                  p && (
+                    <Path
+                      key={i}
+                      path={p}
+                      color={myColor}
+                      style="stroke"
+                      strokeWidth={activeStrokeWidth}
+                      strokeCap="round"
+                      strokeJoin="round"
+                    />
+                  ),
+              )}
+              {/* Active path is rendered in the next frame anyway via touchHandler's state update trigger if we wanted, 
+                but for Skia it's better to just keep it in paths for the render loop */}
+            </Canvas>
+          </View>
+        </GestureDetector>
+      </View>
+
+      <View pointerEvents="none" style={styles.overlay}>
+        <Text
+          className={`font-black text-4xl text-center uppercase rotate-12 tracking-widest ${isDark ? "text-white/10" : "text-black/10"}`}
+        >
+          PAINT EVERYWHERE!
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  hudCardWrapper: {
+    width: 180,
+    height: 48,
+    position: "relative",
+  },
+  canvasWrapper: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: "#FFFFFF", // Whitespace to be covered
+    overflow: "hidden",
+  },
+  canvas: {
+    flex: 1,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+});

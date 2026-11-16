@@ -1,130 +1,824 @@
-import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
-import { Text, View } from 'react-native';
-import { useSelector } from 'react-redux';
-import { HotPotatoUI } from '../components/games/HotPotatoUI';
-import { LumberCutUI } from '../components/games/LumberCutUI';
-import { MathProblemUI } from '../components/games/MathProblemUI';
-import { TappingRaceUI } from '../components/games/TappingRaceUI';
-import { TriviaUI } from '../components/games/TriviaUI';
-import { RockPaperScissorsUI } from '../components/games/RockPaperScissorsUI';
-import { PartyButton } from '../components/PartyButton';
-import { colyseusService } from '../store/colyseusService';
+import { isExpoGo } from "@/utils/environment";
+import {
+  playBeerOpeningSound,
+  playButtonClickSound,
+  playCountDownSound,
+  playWhistleSound,
+} from "@/utils/sound";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import LottieView from "lottie-react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  Animated,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useSelector } from "react-redux";
+import { CardAnnouncementPopup } from "../components/CardAnnouncementPopup";
+import { CardDock } from "../components/CardDock";
+import { DynamicGameResults } from "../components/DynamicGameResults";
+import { BalloonInflateUI } from "../components/games/BalloonInflateUI";
+import { CycloneUI } from "../components/games/CycloneUI";
+import { HotPotatoUI } from "../components/games/HotPotatoUI";
+import { LumberCutUI } from "../components/games/LumberCutUI";
+import { MathProblemUI } from "../components/games/MathProblemUI";
+import { PerfectionUI } from "../components/games/PerfectionUI";
+import { RockPaperScissorsUI } from "../components/games/RockPaperScissorsUI";
+import { ScrabbleUI } from "../components/games/ScrabbleUI";
+import { ScreenPaintingUI } from "../components/games/ScreenPaintingUI";
+import { SimonSaysUI } from "../components/games/SimonSaysUI";
+import { TappingRaceUI } from "../components/games/TappingRaceUI";
+import { TriviaUI } from "../components/games/TriviaUI";
+import { GameProvider } from "../components/games/useGameData";
+import { RetroButton } from "../components/RetroButton";
+import { memphisShapes } from "../constants/theme";
+import { colyseusService } from "../store/colyseusService";
 
 export default function GameScreen() {
   const router = useRouter();
-  const { playerName, players: reduxPlayers, gamePhase, timer, currentGameType, currentCategory, lastWinners, lastLosers } = useSelector((state: any) => state.lobby);
+  const theme = useSelector((state: any) => state.lobby.theme) || "light";
+  const isDark = theme === "dark";
 
-  const myPlayer = reduxPlayers.find((p: any) => p.name === playerName);
+  const {
+    playerName,
+    players: reduxPlayers,
+    selectedPlayers,
+    gamePhase,
+    timer,
+    currentGameType,
+    currentCategory,
+    lastWinners,
+    lastLosers,
+    lastGameResult,
+  } = useSelector((state: any) => state.lobby);
+
+  const players: any[] = reduxPlayers || [];
+  const myPlayer = players.find((p: any) => p.name === playerName);
   const isReady = myPlayer?.isReady || false;
+  const selectedPlayersList: any[] = selectedPlayers || [];
+  const amISelected = selectedPlayersList.includes(myPlayer?.id) || false;
+
+  let gameData: any = {};
+  try {
+    gameData = JSON.parse(myPlayer?.gameData || "{}");
+  } catch (e) {}
+
+  const renderBackgroundDebris = () => {
+    return memphisShapes.map((shape, i) => {
+      const transform = shape.rotate ? [{ rotate: shape.rotate }] : [];
+      if (shape.type === "dots") {
+        return (
+          <View
+            key={i}
+            style={{
+              position: "absolute",
+              top: shape.top as any,
+              left: shape.left as any,
+              opacity: 0.15,
+            }}
+          >
+            <Text
+              className={`font-black tracking-widest text-lg ${isDark ? "text-zinc-700" : "text-black"}`}
+            >
+              •••••{"\n"}•••••{"\n"}•••••
+            </Text>
+          </View>
+        );
+      }
+      return (
+        <View
+          key={i}
+          style={{
+            position: "absolute",
+            top: shape.top as any,
+            left: shape.left as any,
+            width: shape.size,
+            height: shape.size,
+            borderRadius: shape.type === "circle" ? 999 : 4,
+            borderWidth: 2,
+            borderColor: isDark ? "#ffffff" : "#000000",
+            transform: transform as any,
+            opacity: 0.4,
+          }}
+          className={shape.color}
+        />
+      );
+    });
+  };
 
   const handleReadyToggle = () => {
     colyseusService.sendReady(true);
   };
 
-  useEffect(() => {
-    if (gamePhase === 'chart') {
-      router.replace('/chart');
-    } else if (isReady && gamePhase === 'resolution') {
-      router.replace('/chart');
-    }
-  }, [gamePhase, isReady]);
+  const [showBeerModal, setShowBeerModal] = useState(false);
+  const [hasDismissedModal, setHasDismissedModal] = useState(false);
 
-  const renderCountdown = () => (
-    <View className="flex-1 bg-blue-600 justify-center items-center">
-      <Text className="text-white font-black text-center" style={{ fontSize: 180, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 5, height: 5 }, textShadowRadius: 5 }}>
-        {timer}
-      </Text>
-    </View>
-  );
-
-  const renderMiniGame = () => {
-    switch (currentCategory) {
-      case "Tapping Race": return <TappingRaceUI />;
-      case "Math Problem": return <MathProblemUI />;
-      case "Hot Potato": return <HotPotatoUI />;
-      case "Lumber Cut": return <LumberCutUI />;
-      case "Trivia": return <TriviaUI />;
-      case "Rock Paper Scissors": return <RockPaperScissorsUI />;
-      default: return (
-        <Text className="text-white text-2xl font-bold text-center bg-black/20 p-6 rounded-3xl">
-          Mini-game interactive UI goes here! Turn the phone to play.
-        </Text>
-      );
-    }
+  const handleCloseBeerModal = () => {
+    setShowBeerModal(false);
+    setHasDismissedModal(true);
   };
 
-  const renderPlaying = () => (
-    <View className="flex-1 bg-green-500 pt-16">
-      <View className="items-center px-6">
-        <Text className="text-white text-4xl font-black mb-2 text-center" style={{ textShadowColor: 'rgba(0,0,0,0.3)', textShadowOffset: { width: 2, height: 2 }, textShadowRadius: 1 }}>{currentCategory}</Text>
-        <Text className="text-white text-xl font-bold mb-6 uppercase opacity-90">{currentGameType}</Text>
-      </View>
+  const losers = reduxPlayers.filter((p: any) => lastLosers?.includes(p.id));
 
-      {currentCategory !== "Hot Potato" && currentCategory !== "Rock Paper Scissors" && (
-        <View className="bg-white/20 px-8 py-4 rounded-full border-[6px] border-white/30 shadow-xl mb-4 absolute top-[4.5rem] right-6 z-50">
-          <Text className="text-white font-black text-xl">{timer}</Text>
-        </View>
-      )}
+  const getPlayerDrinkCount = (playerId: string) => {
+    return (lastLosers || []).filter((id: string) => id === playerId).length;
+  };
 
-      <View className="flex-1 w-full relative">
-        {renderMiniGame()}
-      </View>
-    </View>
+  const myDrinkCount = myPlayer ? getPlayerDrinkCount(myPlayer.id) : 0;
+
+  const bounceAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const prevDrinkCountRef = useRef(0);
+
+  useEffect(() => {
+    let soundTimer: any;
+    if (showBeerModal && losers.length > 0) {
+      soundTimer = setTimeout(() => {
+        playBeerOpeningSound();
+      }, 1000);
+
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(bounceAnim, {
+            toValue: -8,
+            duration: 450,
+            useNativeDriver: true,
+          }),
+          Animated.timing(bounceAnim, {
+            toValue: 0,
+            duration: 450,
+            useNativeDriver: true,
+          }),
+        ]),
+      ).start();
+
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.08,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+        ]),
+      ).start();
+    } else {
+      bounceAnim.setValue(0);
+      pulseAnim.setValue(1);
+    }
+    return () => {
+      if (soundTimer) clearTimeout(soundTimer);
+    };
+  }, [showBeerModal, losers.length]);
+
+  useEffect(() => {
+    let showTimer: any;
+    if (gamePhase === "resolution" && losers.length > 0) {
+      if (myDrinkCount > prevDrinkCountRef.current) {
+        // Player received a new drink penalty (initial or passed via Shield)
+        setHasDismissedModal(false);
+        showTimer = setTimeout(() => {
+          setShowBeerModal(true);
+        }, 200);
+      } else if (!hasDismissedModal) {
+        showTimer = setTimeout(() => {
+          setShowBeerModal(true);
+        }, 200);
+      }
+      prevDrinkCountRef.current = myDrinkCount;
+    } else if (gamePhase !== "resolution") {
+      setShowBeerModal(false);
+      setHasDismissedModal(false);
+      prevDrinkCountRef.current = 0;
+    }
+    if (gamePhase === "countdown" && timer === 3) {
+      playCountDownSound();
+    }
+    return () => {
+      if (showTimer) clearTimeout(showTimer);
+    };
+  }, [gamePhase, hasDismissedModal, timer, losers.length, myDrinkCount]);
+
+  const wasFinishedRef = useRef(false);
+
+  useEffect(() => {
+    const isGameEnd =
+      gamePhase === "playing" && (gameData.finished || timer === 0);
+
+    if (isGameEnd && !wasFinishedRef.current) {
+      playWhistleSound();
+      wasFinishedRef.current = true;
+    } else if (
+      gamePhase === "countdown" ||
+      (gamePhase === "playing" && !gameData.finished && timer > 0)
+    ) {
+      wasFinishedRef.current = false;
+    }
+  }, [gamePhase, gameData.finished, timer]);
+
+  useEffect(() => {
+    if (gamePhase === "chart") {
+      router.replace("/chart");
+    } else if (
+      (gamePhase === "countdown" ||
+        gamePhase === "playing" ||
+        gamePhase === "resolution") &&
+      !amISelected
+    ) {
+      router.replace("/chart");
+    }
+  }, [gamePhase, amISelected, router]);
+
+  const [showBeerShieldPicker, setShowBeerShieldPicker] = useState(false);
+
+  const activeEffectPlayers = players.filter((p: any) => {
+    if (!p.activeEffects) return false;
+    try {
+      const fx = JSON.parse(p.activeEffects);
+      return fx.turbo || fx.doublePoints;
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const amILoser = losers.some((p: any) => p.id === myPlayer?.id);
+  const hasShieldCard = myPlayer?.cards?.some(
+    (c: string) => c.toLowerCase().replace(/\s+/g, "_") === "shield",
   );
 
-  const renderResolution = () => {
-    const winners = reduxPlayers.filter((p: any) => lastWinners?.includes(p.id));
-    const losers = reduxPlayers.filter((p: any) => lastLosers?.includes(p.id));
-
+  const renderCountdown = () => {
     return (
-      <View className="flex-1 bg-purple-600 justify-center items-center px-6 pt-12">
-        <Text className="text-white text-6xl font-black mb-10 text-center shadow-lg uppercase" style={{ textShadowColor: 'rgba(0,0,0,0.3)', textShadowOffset: { width: 3, height: 3 }, textShadowRadius: 1 }}>RESULTS!</Text>
+      <View className="flex-1 bg-transparent justify-center items-center px-6">
+        <Text className="text-white font-black text-2xl uppercase tracking-widest text-center mb-6">
+          PREPARE TO PLAY!
+        </Text>
 
-        <View className="w-full bg-black/30 rounded-[40px] p-6 mb-12 border-4 border-white/20">
-          <View className="flex-row items-center justify-center mb-4">
-            <Text className="text-yellow-400 font-black text-2xl text-center tracking-widest uppercase mr-2">WINNERS (+3</Text>
-            <View className="w-4 h-6 bg-yellow-300 rounded-[8px] border-2 border-orange-500 items-center justify-center shadow-lg">
-              <View className="w-[3px] h-3 bg-orange-500 rounded-full opacity-80" />
-            </View>
-            <Text className="text-yellow-400 font-black text-2xl text-center tracking-widest uppercase ml-1">)</Text>
-          </View>
-          <View className="flex-row flex-wrap justify-center mb-8 gap-3">
-            {winners.map((p: any) => (
-              <View key={p.id} className="bg-green-500 border-[6px] border-green-700 px-6 py-3 rounded-full shadow-lg">
-                <Text className="text-white font-black text-2xl uppercase tracking-wider">{p.name}</Text>
-              </View>
-            ))}
-            {winners.length === 0 && <Text className="text-white/50 font-bold uppercase">Nobody</Text>}
-          </View>
-
-          <Text className="text-blue-300 font-black text-2xl mb-4 text-center tracking-widest uppercase mt-2">LOSERS (+1 Drink)</Text>
-          <View className="flex-row flex-wrap justify-center gap-3">
-            {losers.map((p: any) => (
-              <View key={p.id} className="bg-red-500 border-[6px] border-red-700 px-6 py-3 rounded-full shadow-lg">
-                <Text className="text-white font-black text-2xl uppercase tracking-wider">{p.name}</Text>
-              </View>
-            ))}
-            {losers.length === 0 && <Text className="text-white/50 font-bold uppercase">Nobody</Text>}
-          </View>
-        </View>
-
-        <View className="pb-10 pt-4 w-full">
-          <PartyButton
-            title={isReady ? "WAITING FOR OTHERS..." : "NEXT ROUND"}
-            color={isReady ? "secondary" : "success"}
-            onPress={handleReadyToggle}
+        <View style={styles.countdownCard}>
+          {/* Shadow */}
+          <View
+            style={[StyleSheet.absoluteFillObject, { borderRadius: 40 }]}
+            className={isDark ? "bg-white" : "bg-black"}
           />
+          {/* Card Face */}
+          <View
+            style={{
+              width: "100%",
+              height: "100%",
+              borderRadius: 40,
+              borderWidth: 5,
+              borderColor: isDark ? "#ffffff" : "#000000",
+              alignItems: "center",
+              justifyContent: "center",
+              transform: [{ translateY: -6 }, { translateX: -6 }],
+            }}
+            className={isDark ? "bg-yellow-600" : "bg-yellow-300"}
+          >
+            <Text className="text-black font-black text-8xl font-mono text-center">
+              {timer}
+            </Text>
+          </View>
         </View>
+
+        {activeEffectPlayers.length > 0 && (
+          <View className="mt-8 px-4 py-3 bg-zinc-900/90 rounded-2xl border-2 border-black items-center max-w-xs">
+            <Text className="text-zinc-400 font-bold text-[10px] uppercase tracking-widest mb-2">
+              ACTIVE SPECIALTY CARDS
+            </Text>
+            <View className="flex-row flex-wrap justify-center gap-2">
+              {activeEffectPlayers.map((p: any) => {
+                let fx: any = {};
+                try {
+                  fx = JSON.parse(p.activeEffects);
+                } catch (e) {}
+                return (
+                  <View key={p.id} className="flex-row items-center gap-1">
+                    {fx.turbo && (
+                      <View className="bg-cyan-400 border border-black px-2.5 py-1 rounded-full">
+                        <Text className="text-black font-black text-[10px] uppercase">
+                          {p.name} (TURBO)
+                        </Text>
+                      </View>
+                    )}
+                    {fx.doublePoints && (
+                      <View className="bg-amber-400 border border-black px-2.5 py-1 rounded-full">
+                        <Text className="text-black font-black text-[10px] uppercase">
+                          {p.name} (DOUBLE POINTS)
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
       </View>
     );
   };
 
+  const renderMiniGame = () => {
+    switch (currentCategory) {
+      case "Tapping Race":
+        return <TappingRaceUI />;
+      case "Math Problem":
+        return <MathProblemUI />;
+      case "Hot Potato":
+        return <HotPotatoUI />;
+      case "Lumber Cut":
+        return <LumberCutUI />;
+      case "Trivia":
+        return <TriviaUI />;
+      case "Rock Paper Scissors":
+        return <RockPaperScissorsUI />;
+      case "Cyclone":
+        return <CycloneUI />;
+      case "Balloon Inflate":
+        return <BalloonInflateUI />;
+      case "Simon Says":
+        return <SimonSaysUI />;
+      case "Scrabble":
+        return <ScrabbleUI />;
+      case "Screen Painting":
+        return isExpoGo ? (
+          <View className="flex-1 bg-yellow-500 justify-center items-center p-6">
+            <Text className="text-black text-2xl font-bold text-center uppercase tracking-widest">
+              Screen Painting requires a Development Build!
+            </Text>
+          </View>
+        ) : (
+          <ScreenPaintingUI />
+        );
+      case "Perfection":
+        return <PerfectionUI />;
+      default:
+        return (
+          <View className="flex-1 bg-red-500 justify-center items-center p-6">
+            <Text className="text-white text-2xl font-bold text-center">
+              A new mini-game is being played!
+            </Text>
+            <Text className="text-white text-xl font-bold text-center mt-4">
+              Update your app to join the fun. You will sit out this round.
+            </Text>
+          </View>
+        );
+    }
+  };
+
+  const renderPlaying = () => {
+    return (
+      <View className="flex-1 bg-transparent pt-12">
+        {/* Header HUD Title Card */}
+        <View style={styles.headerTitleCard} className="z-10">
+          {/* Shadow */}
+          <View
+            style={[StyleSheet.absoluteFillObject, { borderRadius: 16 }]}
+            className={isDark ? "bg-white" : "bg-black"}
+          />
+          {/* Face */}
+          <View
+            style={{
+              width: "100%",
+              height: "100%",
+              borderRadius: 16,
+              borderWidth: 3,
+              borderColor: isDark ? "#ffffff" : "#000000",
+              alignItems: "center",
+              justifyContent: "center",
+              transform: [{ translateY: -3 }, { translateX: -3 }],
+            }}
+            className={isDark ? "bg-zinc-900" : "bg-white"}
+          >
+            <Text
+              className={`font-black text-lg uppercase tracking-wider ${isDark ? "text-white" : "text-black"}`}
+            >
+              {currentCategory}
+            </Text>
+            <Text
+              className={`font-black text-[9px] uppercase tracking-widest mt-0.5 ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
+            >
+              {currentGameType}
+            </Text>
+          </View>
+        </View>
+
+        {/* Global Timer Badge */}
+        {currentCategory !== "Hot Potato" &&
+          currentCategory !== "Simon Says" && (
+            <View style={styles.timerBadge}>
+              {/* Shadow */}
+              <View
+                style={[StyleSheet.absoluteFillObject, { borderRadius: 24 }]}
+                className={isDark ? "bg-white" : "bg-black"}
+              />
+              {/* Face */}
+              <View
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  borderRadius: 24,
+                  borderWidth: 3,
+                  borderColor: isDark ? "#ffffff" : "#000000",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transform: [{ translateY: -3 }, { translateX: -3 }],
+                }}
+                className="bg-rose-400"
+              >
+                <Text className="text-black font-black text-base font-mono">
+                  {Math.max(0, timer)}
+                </Text>
+              </View>
+            </View>
+          )}
+
+        <View className="flex-1 w-full relative">{renderMiniGame()}</View>
+      </View>
+    );
+  };
+
+  const renderResolution = () => {
+    const winners = reduxPlayers.filter((p: any) =>
+      lastWinners?.includes(p.id),
+    );
+    const losers = reduxPlayers.filter((p: any) => lastLosers?.includes(p.id));
+
+    return (
+      <SafeAreaView className="flex-1 justify-between items-center px-6 pt-12 pb-8 bg-transparent w-full">
+        {/* Results title badge */}
+        <View style={styles.resultsTitleWrapper} className="mb-6">
+          {/* Shadow */}
+          <View
+            style={[StyleSheet.absoluteFillObject, { borderRadius: 16 }]}
+            className={isDark ? "bg-white" : "bg-black"}
+          />
+          {/* Face */}
+          <View
+            style={{
+              width: "100%",
+              height: "100%",
+              borderRadius: 16,
+              borderWidth: 3,
+              borderColor: isDark ? "#ffffff" : "#000000",
+              alignItems: "center",
+              justifyContent: "center",
+              transform: [{ translateY: -3 }, { translateX: -3 }],
+            }}
+            className="bg-rose-400"
+          >
+            <Text className="text-black font-black text-2xl uppercase tracking-wider">
+              RESULTS!
+            </Text>
+          </View>
+        </View>
+
+        {/* Scroll board */}
+        <View style={styles.resultsScrollWrapper}>
+          {/* Shadow */}
+          <View
+            style={[StyleSheet.absoluteFillObject, { borderRadius: 28 }]}
+            className={isDark ? "bg-white" : "bg-black"}
+          />
+          {/* Face */}
+          <View
+            style={{
+              width: "100%",
+              height: "100%",
+              borderRadius: 28,
+              borderWidth: 4,
+              borderColor: isDark ? "#ffffff" : "#000000",
+              overflow: "hidden",
+              transform: [{ translateY: -5 }, { translateX: -5 }],
+            }}
+            className={isDark ? "bg-zinc-900" : "bg-orange-50"}
+          >
+            <ScrollView
+              contentContainerStyle={{ padding: 20 }}
+              showsVerticalScrollIndicator={false}
+            >
+              {lastGameResult && (
+                <View className="mb-6 border-b-2 border-black/10 dark:border-white/10 pb-6">
+                  <DynamicGameResults rawData={lastGameResult} />
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+
+        <View className="w-full">
+          <RetroButton
+            title={isReady ? "WAITING FOR OTHERS..." : "NEXT ROUND"}
+            variant={isReady ? "secondary" : "success"}
+            onPress={handleReadyToggle}
+          />
+        </View>
+      </SafeAreaView>
+    );
+  };
+
+  const isDarkGame = currentCategory === "Simon Says" || isDark;
+  let screenBgClass = isDarkGame ? "bg-zinc-950" : "bg-green-500";
+  if (gamePhase === "countdown") {
+    screenBgClass = "bg-indigo-500";
+  } else if (gamePhase === "resolution") {
+    screenBgClass = isDark ? "bg-zinc-950" : "bg-amber-100";
+  }
+
   return (
-    <View className="flex-1 bg-black">
-      {gamePhase === 'countdown' && renderCountdown()}
-      {gamePhase === 'playing' && renderPlaying()}
-      {gamePhase === 'resolution' && renderResolution()}
-    </View>
+    <GameProvider isPractice={false}>
+      <SafeAreaView className={`flex-1 relative ${screenBgClass}`}>
+        {renderBackgroundDebris()}
+        {gamePhase === "countdown" && renderCountdown()}
+        {gamePhase === "playing" && renderPlaying()}
+        {gamePhase === "resolution" && renderResolution()}
+
+        {gamePhase === "playing" && gameData.finished && (
+          <View className="absolute inset-0 bg-black/75 items-center justify-center z-50 px-6">
+            <View style={styles.finishedCard}>
+              {/* Shadow */}
+              <View
+                style={[StyleSheet.absoluteFillObject, { borderRadius: 24 }]}
+                className={isDark ? "bg-white" : "bg-black"}
+              />
+              {/* Card Face */}
+              <View
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  borderRadius: 24,
+                  borderWidth: 4,
+                  borderColor: isDark ? "#ffffff" : "#000000",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transform: [{ translateY: -5 }, { translateX: -5 }],
+                }}
+                className="bg-red-400"
+              >
+                <Text className="text-black text-4xl font-black uppercase text-center tracking-wider">
+                  FINISHED!
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+        {/* Beer Can Animation Overlay on Results Screen */}
+        {gamePhase === "resolution" && showBeerModal && losers.length > 0 && !hasDismissedModal && (
+          <View
+            style={[StyleSheet.absoluteFillObject, { zIndex: 50 }]}
+            className="bg-black/75 items-center justify-center px-6"
+          >
+            <View className="w-[88%] max-w-[340px] relative">
+              {/* Dynamic Offset Shadow */}
+              <View
+                style={{
+                  position: "absolute",
+                  top: 6,
+                  left: 6,
+                  right: -6,
+                  bottom: -6,
+                  borderRadius: 28,
+                }}
+                className={isDark ? "bg-white" : "bg-black"}
+              />
+              {/* Card Face - Content determines height dynamically */}
+              <View
+                style={{
+                  borderRadius: 28,
+                  borderWidth: 4,
+                  borderColor: isDark ? "#ffffff" : "#000000",
+                  alignItems: "center",
+                  paddingVertical: 20,
+                  paddingHorizontal: 16,
+                  position: "relative",
+                  width: "100%",
+                }}
+                className={isDark ? "bg-zinc-900" : "bg-orange-50"}
+              >
+                {/* Close 'X' Button on top-left inside the white box */}
+                <TouchableOpacity
+                  onPress={handleCloseBeerModal}
+                  hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+                  style={{
+                    position: "absolute",
+                    top: 12,
+                    left: 12,
+                    zIndex: 999,
+                    elevation: 10,
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    borderWidth: 2.5,
+                    borderColor: isDark ? "#ffffff" : "#000000",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                  className="bg-rose-400"
+                  activeOpacity={0.7}
+                >
+                  <Text className="text-black font-black text-base">X</Text>
+                </TouchableOpacity>
+
+                {showBeerShieldPicker ? (
+                  <View className="w-full items-center pt-2">
+                    <Ionicons
+                      name="shield-checkmark"
+                      size={44}
+                      color="#EC4899"
+                    />
+                    <Text
+                      className={`font-black text-2xl uppercase tracking-widest text-center mt-2 mb-1 ${isDark ? "text-pink-400" : "text-black"}`}
+                    >
+                      SHIELD TARGET
+                    </Text>
+                    <Text className="text-zinc-500 font-bold text-xs uppercase text-center mb-4">
+                      Select a player to receive your drink penalty:
+                    </Text>
+
+                    <View className="w-full gap-2 mb-4">
+                      {players
+                        .filter((p: any) => p.id !== myPlayer?.id)
+                        .map((p: any) => (
+                          <TouchableOpacity
+                            key={p.id}
+                            onPress={() => {
+                              playButtonClickSound();
+                              colyseusService.useCard("SHIELD", {
+                                targetPlayerId: p.id,
+                              });
+                              setShowBeerShieldPicker(false);
+                              setShowBeerModal(false);
+                              setHasDismissedModal(true);
+                            }}
+                            className="w-full bg-pink-500 border-2 border-black py-2.5 rounded-2xl items-center shadow-[2px_2px_0px_0px_#000]"
+                            activeOpacity={0.8}
+                          >
+                            <Text className="text-white font-black text-sm uppercase">
+                              PASS {myDrinkCount > 1 ? `${myDrinkCount}X DRINKS` : "DRINK"} TO {p.name}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    <RetroButton
+                      title="CANCEL"
+                      variant="secondary"
+                      size="md"
+                      onPress={() => {
+                        playButtonClickSound();
+                        setShowBeerShieldPicker(false);
+                      }}
+                      style={{ width: "100%" }}
+                    />
+                  </View>
+                ) : (
+                  <>
+                    {/* Animated "DRINK UP!" Header */}
+                    <Animated.View
+                      pointerEvents="none"
+                      style={{
+                        transform: [{ translateY: bounceAnim }],
+                        marginTop: 8,
+                        marginBottom: 4,
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text
+                        className={`font-black text-3xl uppercase tracking-widest text-center ${isDark ? "text-rose-400" : "text-black"}`}
+                      >
+                        DRINK UP!
+                      </Text>
+                      {myDrinkCount > 1 && (
+                        <View className="bg-amber-400 border-2 border-black px-3 py-0.5 rounded-full mt-1.5 shadow-[2px_2px_0px_0px_#000]">
+                          <Text className="text-black font-black text-xs uppercase tracking-wider text-center">
+                            {myDrinkCount}X DRINKS PENALTY
+                          </Text>
+                        </View>
+                      )}
+                    </Animated.View>
+
+                    {/* Losers List */}
+                    <View
+                      pointerEvents="none"
+                      style={{
+                        alignItems: "center",
+                        width: "100%",
+                        marginTop: 4,
+                      }}
+                    >
+                      <View className="flex-row flex-wrap justify-center gap-2 max-w-full">
+                        {losers.map((p: any) => {
+                          const pDrinks = getPlayerDrinkCount(p.id);
+                          return (
+                            <View
+                              key={p.id}
+                              className="bg-red-500 border-2 border-black px-3.5 py-1 rounded-full shadow-[2px_2px_0px_0px_#000] flex-row items-center gap-1.5"
+                            >
+                              <Text className="text-white font-black text-xs uppercase tracking-wider">
+                                {p.name}
+                              </Text>
+                              {pDrinks > 1 && (
+                                <View className="bg-yellow-400 px-1.5 py-0.5 rounded-md border border-black">
+                                  <Text className="text-black font-black text-[10px]">
+                                    {pDrinks}X
+                                  </Text>
+                                </View>
+                              )}
+                            </View>
+                          );
+                        })}
+                        {losers.length === 0 && (
+                          <View className="bg-zinc-300 border-2 border-black px-3.5 py-1 rounded-full">
+                            <Text className="text-black font-black text-xs uppercase tracking-wider">
+                              NOBODY
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+
+                    {/* Lottie Beer Can Animation */}
+                    <View pointerEvents="none">
+                      <LottieView
+                        source={require("../assets/images/beer_can.json")}
+                        autoPlay
+                        loop
+                        style={{ width: 150, height: 150, marginBottom: 0 }}
+                      />
+                    </View>
+
+                    {/* Shield Card Trigger inside Beer Modal */}
+                    {amILoser && hasShieldCard && (
+                      <TouchableOpacity
+                        onPress={() => {
+                          playButtonClickSound();
+                          setShowBeerShieldPicker(true);
+                        }}
+                        className="mt-2 bg-pink-500 border-3 border-black px-6 py-2.5 rounded-full shadow-[3px_3px_0px_0px_#000] items-center"
+                        activeOpacity={0.8}
+                      >
+                        <Text className="text-white font-black text-xs uppercase tracking-wider">
+                          USE SHIELD CARD
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </>
+                )}
+              </View>
+            </View>
+          </View>
+        )}
+
+        <CardDock />
+        <CardAnnouncementPopup />
+      </SafeAreaView>
+    </GameProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  countdownCard: {
+    width: 180,
+    height: 180,
+    position: "relative",
+  },
+  headerTitleCard: {
+    width: "70%",
+    height: 52,
+    alignSelf: "center",
+    marginBottom: 12,
+    position: "relative",
+  },
+  timerBadge: {
+    width: 48,
+    height: 48,
+    position: "absolute",
+    top: 12,
+    right: 16,
+    zIndex: 50,
+  },
+  resultsTitleWrapper: {
+    width: 200,
+    height: 54,
+    position: "relative",
+  },
+  resultsScrollWrapper: {
+    flex: 1,
+    width: "100%",
+    marginBottom: 24,
+    position: "relative",
+  },
+  finishedCard: {
+    width: 260,
+    height: 100,
+    position: "relative",
+  },
+});

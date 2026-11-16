@@ -51,3 +51,40 @@ export const Fonts = Platform.select({
     mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
   },
 });
+
+export const memphisShapes = [
+  {
+    type: "circle",
+    color: "bg-yellow-400",
+    size: 24,
+    top: "10%",
+    left: "8%",
+  },
+  { type: "circle", color: "bg-pink-400", size: 16, top: "75%", left: "82%" },
+  {
+    type: "square",
+    color: "bg-cyan-400",
+    size: 20,
+    top: "22%",
+    left: "84%",
+    rotate: "45deg",
+  },
+  {
+    type: "square",
+    color: "bg-yellow-400",
+    size: 18,
+    top: "85%",
+    left: "12%",
+    rotate: "15deg",
+  },
+  {
+    type: "triangle",
+    color: "bg-pink-500",
+    size: 24,
+    top: "45%",
+    left: "10%",
+  },
+  { type: "dots", color: "text-black", top: "12%", left: "68%" },
+  { type: "dots", color: "text-black", top: "68%", left: "8%" },
+];
+

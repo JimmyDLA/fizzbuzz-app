@@ -1,15 +1,22 @@
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useEffect } from 'react';
-import { ScrollView, Text, View } from 'react-native';
-import { useSelector } from 'react-redux';
-import { PartyButton } from '../components/PartyButton';
+import { ScrollView, Text, View, StyleSheet, TouchableOpacity } from 'react-native';
+import { useSelector, useDispatch } from 'react-redux';
+import { RetroButton } from '../components/RetroButton';
 import { colyseusService } from '../store/colyseusService';
+import { RootState } from '../store/store';
+import { memphisShapes } from '../constants/theme';
+import { RetroPlayerCard } from '../components/RetroPlayerCard';
+import { SettingsDropdown } from '../components/SettingsDropdown';
 
 export default function LobbyScreen() {
   const router = useRouter();
-  const { playerName, players: reduxPlayers, roomId, gamePhase } = useSelector((state: any) => state.lobby);
+  const dispatch = useDispatch();
+  const { playerName, players: reduxPlayers, roomId, gamePhase, theme } = useSelector((state: RootState) => state.lobby);
+  const isDark = theme === 'dark';
 
-  const players = reduxPlayers.length > 0 ? reduxPlayers : [];
+  const players: any[] = reduxPlayers.length > 0 ? reduxPlayers : [];
   const myPlayer = players.find((p: any) => p.name === playerName);
   const isReady = myPlayer?.isReady || false;
 
@@ -28,53 +35,85 @@ export default function LobbyScreen() {
     router.back();
   };
 
+  const renderBackgroundDebris = () => {
+    return memphisShapes.map((shape, i) => {
+      const transform = shape.rotate ? [{ rotate: shape.rotate }] : [];
+      if (shape.type === 'dots') {
+        return (
+          <View key={i} style={{ position: 'absolute', top: shape.top as any, left: shape.left as any, opacity: 0.15 }}>
+            <Text className={`font-black tracking-widest text-lg ${isDark ? "text-zinc-700" : "text-black"}`}>•••••{"\n"}•••••{"\n"}•••••</Text>
+          </View>
+        );
+      }
+      return (
+        <View
+          key={i}
+          style={{
+            position: 'absolute',
+            top: shape.top as any,
+            left: shape.left as any,
+            width: shape.size,
+            height: shape.size,
+            borderRadius: shape.type === 'circle' ? 999 : 4,
+            borderWidth: 2,
+            borderColor: isDark ? "#ffffff" : "#000000",
+            transform: transform as any,
+            opacity: 0.4,
+          }}
+          className={shape.color}
+        />
+      );
+    });
+  };
+
   return (
-    <View className="flex-1 bg-indigo-900 pt-16">
-      <View className="items-center mb-8 px-6">
-        <View className="bg-yellow-400 px-10 py-4 rounded-full border-4 border-yellow-200 shadow-xl">
-          <Text className="text-4xl font-black text-indigo-900 tracking-widest">
+    <View style={StyleSheet.absoluteFillObject} className={`${isDark ? "bg-zinc-950" : "bg-amber-50"} justify-center pt-16`}>
+      {renderBackgroundDebris()}
+
+      {/* Settings Dropdown Button */}
+      <SettingsDropdown
+        style={{ position: 'absolute', top: 50, right: 24, zIndex: 10 }}
+      />
+
+      <View className="items-center mb-8 px-6 mt-6">
+        <View 
+          style={{ borderColor: isDark ? '#ffffff' : '#000000' }}
+          className={`${isDark ? "bg-yellow-600 shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]" : "bg-yellow-400 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"} border-4 px-10 py-3 rounded-2xl rotate-[-1.5deg]`}
+        >
+          <Text className="text-3xl font-black text-black tracking-wider uppercase text-center">
             ROOM: {roomId || '...'}
           </Text>
         </View>
-        <Text className="text-white text-xl font-bold mt-4 opacity-80 uppercase tracking-wide">
-          Waiting for players...
+        <Text className={`font-black text-lg mt-5 uppercase tracking-widest ${isDark ? "text-white" : "text-black"}`}>
+          WAITING FOR PLAYERS
         </Text>
       </View>
 
       <ScrollView className="flex-1 mb-6 px-6" showsVerticalScrollIndicator={false}>
         {players.map((p: any) => (
-          <View
+          <RetroPlayerCard
             key={p.id}
-            className={`flex-row items-center justify-between p-5 mb-4 rounded-3xl border-b-8 ${p.id === myPlayer?.id ? 'bg-blue-500 border-blue-700' : 'bg-white/10 border-white/20'}`}
-          >
-            <View className="flex-row items-center flex-1">
-              <View className="w-14 h-14 bg-white/20 rounded-full items-center justify-center mr-4">
-                <Text className="text-3xl font-black text-white">{p.name.charAt(0)}</Text>
-              </View>
-              <Text className="text-3xl font-black text-white flex-1" numberOfLines={1}>
-                {p.name}
-              </Text>
-              {p.isHost && (
-                <View className="ml-2 bg-yellow-400 px-3 py-1 rounded-xl">
-                  <Text className="text-sm font-black text-indigo-900">HOST</Text>
-                </View>
-              )}
-            </View>
-            <View className={`px-5 py-3 rounded-2xl ml-2 ${p.isReady ? 'bg-green-500' : 'bg-red-500'}`}>
-              <Text className="text-white font-black text-lg">{p.isReady ? 'READY' : 'WAIT'}</Text>
-            </View>
-          </View>
+            name={p.name}
+            isMe={p.id === myPlayer?.id}
+            isHost={p.isHost}
+            isReady={p.isReady}
+          />
         ))}
       </ScrollView>
 
       <View className="pb-10 pt-4 px-6">
-        <PartyButton
+        <RetroButton
           title={isReady ? "CANCEL READY" : "READY UP!"}
-          color={isReady ? "secondary" : "success"}
+          variant={isReady ? "secondary" : "success"}
           onPress={handleReadyToggle}
         />
-        <PartyButton title="LEAVE ROOM" color="danger" onPress={handleLeave} />
+        <RetroButton 
+          title="LEAVE ROOM" 
+          variant="danger" 
+          onPress={handleLeave} 
+        />
       </View>
     </View>
   );
 }
+
