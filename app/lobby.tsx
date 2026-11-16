@@ -5,6 +5,7 @@ import { ScrollView, Text, View, StyleSheet, TouchableOpacity } from 'react-nati
 import { useSelector, useDispatch } from 'react-redux';
 import { LobbyErrorBanner } from '../components/LobbyErrorBanner';
 import { RetroButton } from '../components/RetroButton';
+import { RoundsPicker } from '../components/RoundsPicker';
 import { colyseusService } from '../store/colyseusService';
 import { clearLobbyError } from '../store/lobbySlice';
 import { RootState } from '../store/store';
@@ -89,6 +90,10 @@ export default function LobbyScreen() {
         <Text className={`font-black text-lg mt-5 uppercase tracking-widest ${isDark ? "text-white" : "text-black"}`}>
           WAITING FOR PLAYERS
         </Text>
+      </View>
+
+      <View className="px-6">
+        <RoundsPicker isHost={!!myPlayer?.isHost} />
       </View>
 
       <ScrollView className="flex-1 mb-6 px-6" showsVerticalScrollIndicator={false}>

@@ -1,4 +1,10 @@
 import { createSlice } from "@reduxjs/toolkit";
+import {
+  DEFAULT_TOTAL_ROUNDS,
+  GameOverPayload,
+  PodiumEntry,
+  podiumEqual,
+} from "../utils/rounds";
 
 export interface PendingCardAward {
   cardId: string;
@@ -70,7 +76,7 @@ const initialState = {
   roomId: "",
   players: [] as any[],
   selectedPlayers: [] as string[],
-  gamePhase: "lobby", // lobby, chart, wheel, countdown, playing, resolution
+  gamePhase: "lobby", // lobby, chart, wheel, countdown, playing, resolution, gameover
   timer: 0,
   currentGameType: "",
   currentCategory: "",
@@ -87,6 +93,11 @@ const initialState = {
   pendingCardAward: null as PendingCardAward | null,
   cardAnnouncement: null as CardAnnouncement | null,
   spinCount: 0,
+  totalRounds: DEFAULT_TOTAL_ROUNDS as number,
+  roundCount: 0,
+  podium: [] as PodiumEntry[],
+  /** True only after this room's state includes totalRounds. Older servers omit it. */
+  matchLengthSupported: false,
   readyCount: null as number | null,
   connectedCount: null as number | null,
   lobbyError: null as LobbyErrorNotice | null,
@@ -110,7 +121,37 @@ export const lobbySlice = createSlice({
       state.selectedPlayers = action.payload;
     },
     setGamePhase: (state, action) => {
+      if (state.gamePhase === action.payload) return;
       state.gamePhase = action.payload;
+    },
+    /**
+     * One store write for a room patch. Counts land before phase so a
+     * subscriber never sees the new phase with the previous roundCount.
+     */
+    applyRoomProgress: (
+      state,
+      action: {
+        payload: {
+          phase: string;
+          roundCount?: number;
+          totalRounds?: number;
+          matchLengthSupported?: boolean;
+        };
+      },
+    ) => {
+      const { phase, roundCount, totalRounds, matchLengthSupported } = action.payload;
+      if (typeof totalRounds === "number" && state.totalRounds !== totalRounds) {
+        state.totalRounds = totalRounds;
+      }
+      if (typeof roundCount === "number" && state.roundCount !== roundCount) {
+        state.roundCount = roundCount;
+      }
+      if (matchLengthSupported && !state.matchLengthSupported) {
+        state.matchLengthSupported = true;
+      }
+      if (state.gamePhase !== phase) {
+        state.gamePhase = phase;
+      }
     },
     setTimer: (state, action) => {
       state.timer = action.payload;
@@ -172,6 +213,40 @@ export const lobbySlice = createSlice({
     incrementSpinCount: (state) => {
       state.spinCount += 1;
     },
+    setTotalRounds: (state, action) => {
+      if (state.totalRounds === action.payload) return;
+      state.totalRounds = action.payload;
+    },
+    setRoundCount: (state, action) => {
+      if (state.roundCount === action.payload) return;
+      state.roundCount = action.payload;
+    },
+    setMatchLengthSupported: (state, action) => {
+      if (state.matchLengthSupported === action.payload) return;
+      state.matchLengthSupported = action.payload;
+    },
+    setPodium: (state, action) => {
+      if (podiumEqual(state.podium, action.payload)) return;
+      state.podium = action.payload;
+    },
+    setGameOver: (state, action: { payload: GameOverPayload }) => {
+      const payload = action.payload;
+      const nextCount = payload.roundCount > 0 ? payload.roundCount : state.roundCount;
+      const nextTotal = payload.totalRounds > 0 ? payload.totalRounds : state.totalRounds;
+      const nextPodium = payload.podium.length > 0 ? payload.podium : state.podium;
+      if (
+        state.gamePhase === "gameover" &&
+        state.roundCount === nextCount &&
+        state.totalRounds === nextTotal &&
+        podiumEqual(state.podium, nextPodium)
+      ) {
+        return;
+      }
+      state.roundCount = nextCount;
+      state.totalRounds = nextTotal;
+      state.podium = nextPodium;
+      state.gamePhase = "gameover";
+    },
     setReadyCount: (state, action) => {
       state.readyCount = action.payload;
     },
@@ -190,6 +265,31 @@ export const lobbySlice = createSlice({
     clearWheelHold: (state) => {
       state.wheelHold = null;
     },
+    resetMatch: (state) => {
+      state.roomId = "";
+      state.players = [];
+      state.selectedPlayers = [];
+      state.gamePhase = "lobby";
+      state.timer = 0;
+      state.currentGameType = "";
+      state.currentCategory = "";
+      state.lastWinners = [];
+      state.lastLosers = [];
+      state.drinkChains = {};
+      state.lastGameResult = "";
+      state.practiceState = null;
+      state.pendingCardAward = null;
+      state.cardAnnouncement = null;
+      state.spinCount = 0;
+      state.totalRounds = DEFAULT_TOTAL_ROUNDS;
+      state.roundCount = 0;
+      state.podium = [];
+      state.matchLengthSupported = false;
+      state.readyCount = null;
+      state.connectedCount = null;
+      state.lobbyError = null;
+      state.wheelHold = null;
+    },
   },
 });
 
@@ -199,6 +299,7 @@ export const {
   setPlayers,
   setSelectedPlayers,
   setGamePhase,
+  applyRoomProgress,
   setTimer,
   setGameType,
   setGameCategory,
@@ -219,11 +320,17 @@ export const {
   setCardAnnouncement,
   clearCardAnnouncement,
   incrementSpinCount,
+  setTotalRounds,
+  setRoundCount,
+  setMatchLengthSupported,
+  setPodium,
+  setGameOver,
   setReadyCount,
   setConnectedCount,
   setLobbyError,
   clearLobbyError,
   setWheelHold,
   clearWheelHold,
+  resetMatch,
 } = lobbySlice.actions;
 export default lobbySlice.reducer;

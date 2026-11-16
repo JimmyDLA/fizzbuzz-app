@@ -37,6 +37,7 @@ import { TappingRaceUI } from "../components/games/TappingRaceUI";
 import { TriviaUI } from "../components/games/TriviaUI";
 import { GameProvider } from "../components/games/useGameData";
 import { RetroButton } from "../components/RetroButton";
+import { RoundBadge } from "../components/RoundBadge";
 import { memphisShapes } from "../constants/theme";
 import { colyseusService } from "../store/colyseusService";
 import { holderDrinksToPass, passDrinkPhrase } from "../utils/shieldPass";
@@ -58,6 +59,9 @@ export default function GameScreen() {
     lastLosers,
     drinkChains,
     lastGameResult,
+    roundCount,
+    totalRounds,
+    matchLengthSupported,
   } = useSelector((state: any) => state.lobby);
 
   const players: any[] = reduxPlayers || [];
@@ -262,6 +266,13 @@ export default function GameScreen() {
   const renderCountdown = () => {
     return (
       <View className="flex-1 bg-transparent justify-center items-center px-6">
+        <RoundBadge
+          phase={gamePhase}
+          roundCount={roundCount}
+          totalRounds={totalRounds}
+          isDark={isDark}
+          className="mb-4"
+        />
         <Text className="text-white font-black text-2xl uppercase tracking-widest text-center mb-6">
           PREPARE TO PLAY!
         </Text>
@@ -380,6 +391,13 @@ export default function GameScreen() {
   const renderPlaying = () => {
     return (
       <View className="flex-1 bg-transparent pt-12">
+        <RoundBadge
+          phase={gamePhase}
+          roundCount={roundCount}
+          totalRounds={totalRounds}
+          isDark={isDark}
+          className="mb-2"
+        />
         {/* Header HUD Title Card */}
         <View style={styles.headerTitleCard} className="z-10">
           {/* Shadow */}
@@ -483,6 +501,13 @@ export default function GameScreen() {
             </Text>
           </View>
         </View>
+        <RoundBadge
+          phase={gamePhase}
+          roundCount={roundCount}
+          totalRounds={totalRounds}
+          isDark={isDark}
+          className="mb-3"
+        />
 
         {/* Scroll board */}
         <View style={styles.resultsScrollWrapper}>
@@ -519,7 +544,16 @@ export default function GameScreen() {
 
         <View className="w-full">
           <RetroButton
-            title={isReady ? "WAITING FOR OTHERS..." : "NEXT ROUND"}
+            title={
+              isReady
+                ? "WAITING FOR OTHERS..."
+                : gamePhase === "resolution" &&
+                    matchLengthSupported &&
+                    roundCount > 0 &&
+                    roundCount === totalRounds
+                  ? "SEE PODIUM"
+                  : "NEXT ROUND"
+            }
             variant={isReady ? "secondary" : "success"}
             onPress={handleReadyToggle}
           />
@@ -527,6 +561,10 @@ export default function GameScreen() {
       </SafeAreaView>
     );
   };
+
+  if (gamePhase === "gameover") {
+    return null;
+  }
 
   const isDarkGame = currentCategory === "Simon Says" || isDark;
   let screenBgClass = isDarkGame ? "bg-zinc-950" : "bg-green-500";

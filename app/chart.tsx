@@ -17,6 +17,7 @@ import { LobbyErrorBanner } from "../components/LobbyErrorBanner";
 import { PracticeModal } from "../components/PracticeModal";
 import { RetroButton } from "../components/RetroButton";
 import { RetroPlayerCard } from "../components/RetroPlayerCard";
+import { RoundBadge } from "../components/RoundBadge";
 import { SettingsDropdown } from "../components/SettingsDropdown";
 import {
   FINAL_SPECIALTY_CARDS,
@@ -72,6 +73,8 @@ export default function ChartScreen() {
     lastWinners,
     spinCount,
     cardAnnouncement,
+    roundCount,
+    totalRounds,
     readyCount,
     connectedCount,
     lobbyError,
@@ -483,6 +486,13 @@ export default function ChartScreen() {
               ROOM: {roomId}
             </Text>
           </View>
+          <RoundBadge
+            phase={gamePhase}
+            roundCount={roundCount}
+            totalRounds={totalRounds}
+            isDark={isDark}
+            className="mt-2"
+          />
         </View>
 
         {/* Settings Dropdown Button */}
@@ -665,6 +675,13 @@ export default function ChartScreen() {
               }}
               className="bg-pink-400"
             >
+              <RoundBadge
+                phase={gamePhase}
+                roundCount={roundCount}
+                totalRounds={totalRounds}
+                isDark={isDark}
+                className="mb-4"
+              />
               <View
                 style={{ borderColor: isDark ? "#ffffff" : "#000000" }}
                 className={`bg-yellow-400 border-4 py-2 px-6 rounded-2xl rotate-[-2deg] mb-6 ${isDark ? "shadow-[4px_4px_0px_0px_#fff]" : "shadow-[4px_4px_0px_0px_#000]"}`}
