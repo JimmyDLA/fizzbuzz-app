@@ -189,7 +189,10 @@ export function CardAnnouncementPopup() {
   });
 
   const isShield = config.id === "shield";
-  const drinkCount = cardAnnouncement.drinkCount || 1;
+  const drinkCount =
+    (isShield ? cardAnnouncement.drinksToPass : undefined) ||
+    cardAnnouncement.drinkCount ||
+    1;
   const drinkText = drinkCount > 1 ? `${drinkCount}X DRINKS` : "DRINK";
   const badgeTitle =
     isShield && cardAnnouncement.targetName

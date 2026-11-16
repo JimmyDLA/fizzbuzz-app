@@ -39,6 +39,7 @@ import { GameProvider } from "../components/games/useGameData";
 import { RetroButton } from "../components/RetroButton";
 import { memphisShapes } from "../constants/theme";
 import { colyseusService } from "../store/colyseusService";
+import { holderDrinksToPass, passDrinkPhrase } from "../utils/shieldPass";
 
 export default function GameScreen() {
   const router = useRouter();
@@ -55,6 +56,7 @@ export default function GameScreen() {
     currentCategory,
     lastWinners,
     lastLosers,
+    drinkChains,
     lastGameResult,
   } = useSelector((state: any) => state.lobby);
 
@@ -131,6 +133,7 @@ export default function GameScreen() {
   };
 
   const myDrinkCount = myPlayer ? getPlayerDrinkCount(myPlayer.id) : 0;
+  const drinksToPass = holderDrinksToPass(myPlayer?.id, drinkChains, lastLosers);
 
   const bounceAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -662,7 +665,7 @@ export default function GameScreen() {
                             activeOpacity={0.8}
                           >
                             <Text className="text-white font-black text-sm uppercase">
-                              PASS {myDrinkCount > 1 ? `${myDrinkCount}X DRINKS` : "DRINK"} TO {p.name}
+                              PASS {passDrinkPhrase(drinksToPass)} TO {p.name}
                             </Text>
                           </TouchableOpacity>
                         ))}
