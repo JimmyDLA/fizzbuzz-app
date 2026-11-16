@@ -270,6 +270,14 @@ export function CardAnnouncementPopup() {
             ]}
           />
         </Animated.View>
+
+        {cardAnnouncement.forcedBattleRoyale && (
+          <View style={styles.messageWrapper}>
+            <Text style={styles.messageText}>
+              The game changed, but the mode stays Battle Royale.
+            </Text>
+          </View>
+        )}
       </View>
     </Modal>
   );

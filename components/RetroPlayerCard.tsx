@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
+import { formatBetNet } from "../utils/betting";
 import { playCoinDropSound } from "../utils/sound";
 
 interface RetroPlayerCardProps {
@@ -19,6 +20,8 @@ interface RetroPlayerCardProps {
   isReady?: boolean;
   triggerAnimationKey?: number;
   isWinner?: boolean;
+  /** Net change from this betting round. Omit to hide the chip. */
+  betNet?: number | null;
 }
 
 export function RetroPlayerCard({
@@ -30,6 +33,7 @@ export function RetroPlayerCard({
   isReady,
   triggerAnimationKey,
   isWinner,
+  betNet,
 }: RetroPlayerCardProps) {
   const theme = useSelector((state: RootState) => state.lobby.theme) || "light";
   const isDark = theme === "dark";
@@ -137,6 +141,9 @@ export function RetroPlayerCard({
       : "text-black";
 
   const rankTextColorClass = isDark ? "text-white" : "text-black";
+  let netChipClass = "bg-zinc-200";
+  if (betNet != null && betNet > 0) netChipClass = "bg-emerald-400";
+  else if (betNet != null && betNet < 0) netChipClass = "bg-rose-400";
 
   return (
     <View className="w-full relative mb-4">
@@ -198,6 +205,24 @@ export function RetroPlayerCard({
             </View>
           )}
         </View>
+
+        {betNet != null && (
+          <View
+            style={{
+              borderWidth: 2,
+              borderColor: isDark ? "#ffffff" : "#000000",
+              borderRadius: 12,
+            }}
+            className={`items-center px-2 py-1 ml-2 ${netChipClass}`}
+          >
+            <Text className="text-black font-black text-[8px] uppercase leading-none">
+              Net
+            </Text>
+            <Text className="text-black font-black text-sm leading-none mt-0.5">
+              {formatBetNet(betNet)}
+            </Text>
+          </View>
+        )}
 
         {/* Score Indicator */}
         {score !== undefined && (

@@ -2,7 +2,8 @@ import type { Room } from '@colyseus/sdk';
 import * as Colyseus from '@colyseus/sdk';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer, setLastGameResult, setPracticeState, setPendingCardAward, setCardAnnouncement, incrementSpinCount } from './lobbySlice';
+import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer, setLastGameResult, setPracticeState, setPendingCardAward, setCardAnnouncement, incrementSpinCount, setBettingState, setBettingRound, setBettingPayout, clearBetting } from './lobbySlice';
+import type { BettingPayoutEvent, BettingPayoutReason, BettingRoundEvent, LobbyPlayer } from './lobbySlice';
 import { store } from './store';
 
 
@@ -21,6 +22,46 @@ const ENDPOINT = `ws://${hostIp}:2567`;
 
 console.log(`[Colyseus] Connecting to endpoint: ${ENDPOINT}`);
 console.log(`[Colyseus] Detection Info: manifest=${Constants.expoConfig?.hostUri}, experience=${Constants.experienceUrl}, debugger=${(Constants as any).debuggerHost}`);
+
+const BETTING_PAYOUT_REASONS: BettingPayoutReason[] = ["payout", "no-action", "aborted", "unresolved"];
+
+const readNumber = (value: unknown): number => {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const readBettingRound = (event: any): BettingRoundEvent => {
+  const wagers = Array.isArray(event?.wagers) ? event.wagers : [];
+  return {
+    roundCount: readNumber(event?.roundCount),
+    pot: readNumber(event?.pot),
+    mode: "BR",
+    wagers: wagers.map((row: any) => ({
+      playerId: String(row?.playerId ?? ""),
+      name: String(row?.name ?? ""),
+      wager: readNumber(row?.wager),
+    })),
+  };
+};
+
+const readBettingPayout = (event: any): BettingPayoutEvent => {
+  const payouts = Array.isArray(event?.payouts) ? event.payouts : [];
+  const reason = BETTING_PAYOUT_REASONS.includes(event?.reason) ? event.reason : "payout";
+  return {
+    roundCount: readNumber(event?.roundCount),
+    pot: readNumber(event?.pot),
+    refunded: event?.refunded === true,
+    reason,
+    payouts: payouts.map((row: any) => ({
+      playerId: String(row?.playerId ?? ""),
+      name: String(row?.name ?? ""),
+      wager: readNumber(row?.wager),
+      payout: readNumber(row?.payout),
+      net: readNumber(row?.net),
+      rank: readNumber(row?.rank),
+    })),
+  };
+};
 
 const client = new Colyseus.Client(ENDPOINT);
 let currentRoom: Room | null = null;
@@ -64,6 +105,7 @@ export const colyseusService = {
       store.dispatch(setPlayers([]));
       store.dispatch(setSelectedPlayers([]));
       store.dispatch(setRoomId(''));
+      store.dispatch(clearBetting());
     }
   },
 
@@ -112,7 +154,18 @@ export const colyseusService = {
         targetName: event.targetName,
         drinkCount: event.drinkCount,
         timestamp: Date.now(),
+        forcedBattleRoyale: event.forcedBattleRoyale === true,
       }));
+    });
+
+    room.onMessage("BettingRoundEvent", (event: any) => {
+      console.log(`[Betting] BettingRoundEvent:`, event);
+      store.dispatch(setBettingRound(readBettingRound(event)));
+    });
+
+    room.onMessage("BettingPayoutEvent", (event: any) => {
+      console.log(`[Betting] BettingPayoutEvent:`, event);
+      store.dispatch(setBettingPayout(readBettingPayout(event)));
     });
 
     room.onMessage("CardAwardedEvent", (event: any) => {
@@ -159,6 +212,12 @@ export const colyseusService = {
           if (state.lastGameResult !== undefined) {
             store.dispatch(setLastGameResult(state.lastGameResult));
           }
+          store.dispatch(setBettingState({
+            isBettingRound: state.isBettingRound === true,
+            bettingPot: readNumber(state.bettingPot),
+            bettingRefunded: state.bettingRefunded === true,
+            phase: typeof state.phase === "string" ? state.phase : "",
+          }));
 
           this.syncPlayersState(room);
         });
@@ -172,7 +231,8 @@ export const colyseusService = {
       store.dispatch(setPlayers([]));
       store.dispatch(setSelectedPlayers([]));
       store.dispatch(setRoomId(''));
-      
+      store.dispatch(clearBetting());
+
       // Imperative routing to home screen when connection dies
       import('expo-router').then(({ router }) => {
         if (router.canGoBack() || true) {
@@ -199,7 +259,7 @@ export const colyseusService = {
   },
 
   syncPlayersState(room: any) {
-    const playersArray: any[] = [];
+    const playersArray: LobbyPlayer[] = [];
     room.state?.players?.forEach((player: any, key: string) => {
       if (!player) return;
       playersArray.push({
@@ -217,6 +277,10 @@ export const colyseusService = {
             : Array.from(player.cards)
           : [],
         activeEffects: player.activeEffects || "",
+        betWager: readNumber(player.betWager),
+        betPayout: readNumber(player.betPayout),
+        betNet: readNumber(player.betNet),
+        betRank: readNumber(player.betRank),
       });
     });
     store.dispatch(setPlayers(playersArray));
