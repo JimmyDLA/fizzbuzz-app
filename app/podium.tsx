@@ -23,7 +23,7 @@ const PLACE_COLOR: Record<number, string> = {
 };
 
 export default function PodiumScreen() {
-  const { podium, roundCount, totalRounds, playerName, theme } = useSelector(
+  const { podium, roundCount, totalRounds, playerName, theme, gamePhase } = useSelector(
     (state: RootState) => state.lobby,
   );
   const isDark = theme === "dark";
@@ -108,6 +108,7 @@ export default function PodiumScreen() {
             Game over
           </Text>
           <RoundBadge
+            phase={gamePhase}
             roundCount={roundCount}
             totalRounds={totalRounds}
             isDark={isDark}

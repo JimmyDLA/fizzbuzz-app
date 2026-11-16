@@ -230,9 +230,7 @@ export default function GameScreen() {
   }, [gamePhase, gameData.finished, timer]);
 
   useEffect(() => {
-    if (gamePhase === "gameover") {
-      router.replace("/podium");
-    } else if (gamePhase === "chart") {
+    if (gamePhase === "chart") {
       router.replace("/chart");
     } else if (
       (gamePhase === "countdown" ||
@@ -265,6 +263,7 @@ export default function GameScreen() {
     return (
       <View className="flex-1 bg-transparent justify-center items-center px-6">
         <RoundBadge
+          phase={gamePhase}
           roundCount={roundCount}
           totalRounds={totalRounds}
           isDark={isDark}
@@ -389,6 +388,7 @@ export default function GameScreen() {
     return (
       <View className="flex-1 bg-transparent pt-12">
         <RoundBadge
+          phase={gamePhase}
           roundCount={roundCount}
           totalRounds={totalRounds}
           isDark={isDark}
@@ -498,6 +498,7 @@ export default function GameScreen() {
           </View>
         </View>
         <RoundBadge
+          phase={gamePhase}
           roundCount={roundCount}
           totalRounds={totalRounds}
           isDark={isDark}
@@ -542,7 +543,9 @@ export default function GameScreen() {
             title={
               isReady
                 ? "WAITING FOR OTHERS..."
-                : roundCount > 0 && roundCount === totalRounds
+                : gamePhase === "resolution" &&
+                    roundCount > 0 &&
+                    roundCount === totalRounds
                   ? "SEE PODIUM"
                   : "NEXT ROUND"
             }

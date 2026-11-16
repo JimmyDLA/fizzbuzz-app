@@ -22,9 +22,7 @@ export default function LobbyScreen() {
   const isReady = myPlayer?.isReady || false;
 
   useEffect(() => {
-    if (gamePhase === 'gameover') {
-      router.replace('/podium');
-    } else if (gamePhase === 'chart') {
+    if (gamePhase === 'chart') {
       router.replace('/chart');
     }
   }, [gamePhase]);

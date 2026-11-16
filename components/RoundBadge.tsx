@@ -2,6 +2,7 @@ import { Text, View } from "react-native";
 import { roundLabel } from "../utils/rounds";
 
 interface RoundBadgeProps {
+  phase: string;
   roundCount: number;
   totalRounds: number;
   isDark?: boolean;
@@ -9,12 +10,13 @@ interface RoundBadgeProps {
 }
 
 export function RoundBadge({
+  phase,
   roundCount,
   totalRounds,
   isDark = false,
   className = "",
 }: RoundBadgeProps) {
-  const label = roundLabel(roundCount, totalRounds);
+  const label = roundLabel(phase, roundCount, totalRounds);
   if (!label) return null;
 
   return (

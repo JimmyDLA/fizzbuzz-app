@@ -51,14 +51,59 @@ export function roundsErrorMessage(code: RoundsErrorCode, message?: string): str
   return trimmed ? trimmed : ROUNDS_ERROR_FALLBACK[code];
 }
 
-/** "Round X/N" once the match has left the lobby. Hidden while roundCount is 0. */
-export function roundLabel(roundCount: number, totalRounds: number): string | null {
-  if (!Number.isFinite(roundCount) || roundCount <= 0) return null;
+const UPCOMING_PHASES = new Set(["chart", "wheel", "countdown", "playing"]);
+
+/**
+ * Round X/N.
+ * `roundCount` is how many resolutions have started. It stays 0 in the lobby,
+ * and it does not move for a respin, wild card, abort, or the ready-out back
+ * to the chart. The label uses that count during resolution and gameover, and
+ * the next number (`roundCount + 1`) while the round is still being played.
+ * The lobby stays hidden.
+ */
+export function visibleRoundNumber(phase: string, roundCount: number): number | null {
+  if (!Number.isFinite(roundCount) || roundCount < 0) return null;
+  if (phase === "resolution" || phase === "gameover") {
+    return roundCount > 0 ? roundCount : null;
+  }
+  if (UPCOMING_PHASES.has(phase)) {
+    return roundCount + 1;
+  }
+  return null;
+}
+
+export function roundLabel(
+  phase: string,
+  roundCount: number,
+  totalRounds: number,
+): string | null {
+  const shown = visibleRoundNumber(phase, roundCount);
+  if (shown == null) return null;
   const total =
     Number.isFinite(totalRounds) && totalRounds > 0
       ? totalRounds
       : DEFAULT_TOTAL_ROUNDS;
-  return `Round ${roundCount}/${total}`;
+  return `Round ${shown}/${total}`;
+}
+
+export function podiumEqual(
+  left: readonly PodiumEntry[],
+  right: readonly PodiumEntry[],
+): boolean {
+  if (left.length !== right.length) return false;
+  for (let index = 0; index < left.length; index += 1) {
+    const a = left[index];
+    const b = right[index];
+    if (
+      a.place !== b.place ||
+      a.playerId !== b.playerId ||
+      a.name !== b.name ||
+      a.score !== b.score
+    ) {
+      return false;
+    }
+  }
+  return true;
 }
 
 function readList(value: unknown): unknown[] {

@@ -3,6 +3,7 @@ import {
   DEFAULT_TOTAL_ROUNDS,
   GameOverPayload,
   PodiumEntry,
+  podiumEqual,
 } from "../utils/rounds";
 
 export interface PendingCardAward {
@@ -63,6 +64,7 @@ export const lobbySlice = createSlice({
       state.selectedPlayers = action.payload;
     },
     setGamePhase: (state, action) => {
+      if (state.gamePhase === action.payload) return;
       state.gamePhase = action.payload;
     },
     setTimer: (state, action) => {
@@ -123,20 +125,34 @@ export const lobbySlice = createSlice({
       state.spinCount += 1;
     },
     setTotalRounds: (state, action) => {
+      if (state.totalRounds === action.payload) return;
       state.totalRounds = action.payload;
     },
     setRoundCount: (state, action) => {
+      if (state.roundCount === action.payload) return;
       state.roundCount = action.payload;
     },
     setPodium: (state, action) => {
+      if (podiumEqual(state.podium, action.payload)) return;
       state.podium = action.payload;
     },
     setGameOver: (state, action: { payload: GameOverPayload }) => {
       const payload = action.payload;
+      const nextCount = payload.roundCount > 0 ? payload.roundCount : state.roundCount;
+      const nextTotal = payload.totalRounds > 0 ? payload.totalRounds : state.totalRounds;
+      const nextPodium = payload.podium.length > 0 ? payload.podium : state.podium;
+      if (
+        state.gamePhase === "gameover" &&
+        state.roundCount === nextCount &&
+        state.totalRounds === nextTotal &&
+        podiumEqual(state.podium, nextPodium)
+      ) {
+        return;
+      }
       state.gamePhase = "gameover";
-      if (payload.roundCount > 0) state.roundCount = payload.roundCount;
-      if (payload.totalRounds > 0) state.totalRounds = payload.totalRounds;
-      if (payload.podium.length > 0) state.podium = payload.podium;
+      state.roundCount = nextCount;
+      state.totalRounds = nextTotal;
+      state.podium = nextPodium;
     },
     resetMatch: (state) => {
       state.roomId = "";

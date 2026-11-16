@@ -203,9 +203,7 @@ export default function ChartScreen() {
   }, [gamePhase, spinCount]);
 
   useEffect(() => {
-    if (gamePhase === "gameover") {
-      router.replace("/podium");
-    } else if (gamePhase === "lobby") {
+    if (gamePhase === "lobby") {
       router.replace("/lobby");
     } else if (
       (gamePhase === "countdown" ||
@@ -473,6 +471,7 @@ export default function ChartScreen() {
             </Text>
           </View>
           <RoundBadge
+            phase={gamePhase}
             roundCount={roundCount}
             totalRounds={totalRounds}
             isDark={isDark}
@@ -657,6 +656,7 @@ export default function ChartScreen() {
               className="bg-pink-400"
             >
               <RoundBadge
+                phase={gamePhase}
                 roundCount={roundCount}
                 totalRounds={totalRounds}
                 isDark={isDark}

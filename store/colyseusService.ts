@@ -33,25 +33,30 @@ let practiceRoom: Room | null = null;
  */
 let gameOverActive = false;
 let gameOverPayload: GameOverPayload | null = null;
+let podiumRouted = false;
 
 function clearGameOverHandoff() {
   gameOverActive = false;
   gameOverPayload = null;
+  podiumRouted = false;
 }
 
 function holdGameOver(room: { reconnection?: { enabled: boolean } } | null, payload: GameOverPayload) {
-  const first = !gameOverActive;
   gameOverActive = true;
   gameOverPayload = mergeGameOver(gameOverPayload, payload);
   if (room?.reconnection) {
     room.reconnection.enabled = false;
   }
   store.dispatch(setGameOver(gameOverPayload));
-  if (first) {
-    import('expo-router').then(({ router }) => {
-      router.replace('/podium');
-    });
-  }
+  openPodium();
+}
+
+function openPodium() {
+  if (podiumRouted) return;
+  podiumRouted = true;
+  import('expo-router').then(({ router }) => {
+    router.replace('/podium');
+  });
 }
 
 function readGameOver(state: any): GameOverPayload {
@@ -221,12 +226,14 @@ export const colyseusService = {
       }
 
       import('react-redux').then(({ batch }) => {
-        // A patch can resolve after the socket is already gone. Don't put a
-        // finished match back on screen, and don't resurrect a room we left.
-        if (currentRoom !== room && !gameOverActive) return;
+        // Game over was already written from this patch or from GameOverEvent.
+        // A second copy of the same podium would render the screen again.
+        if (gameOverActive) return;
+        // A patch can resolve after the socket is already gone.
+        if (currentRoom !== room) return;
         batch(() => {
-          if (currentRoom !== room && !gameOverActive) return;
-          const phase = gameOverActive ? "gameover" : state.phase;
+          if (currentRoom !== room) return;
+          const phase = state.phase;
           store.dispatch(setGamePhase(phase));
           store.dispatch(setTimer(state.timer));
           store.dispatch(setGameType(state.currentGameType));
@@ -238,9 +245,7 @@ export const colyseusService = {
             store.dispatch(setRoundCount(state.roundCount));
           }
           const podium = normalizePodium(state.podium);
-          if (!(gameOverActive && podium.length === 0)) {
-            store.dispatch(setPodium(podium));
-          }
+          store.dispatch(setPodium(podium));
 
           if (state.selectedPlayers) {
             store.dispatch(setSelectedPlayers(state.selectedPlayers.toArray()));
@@ -272,14 +277,13 @@ export const colyseusService = {
       console.log(`[Colyseus] Disconnected with code: ${code}`);
       currentRoom = null;
       if (gameOverActive) {
+        // The podium route is the screen effect on gamePhase === "gameover".
+        // Replacing it again here remounts the screen when the socket closes.
         if (gameOverPayload) {
           store.dispatch(setGameOver(gameOverPayload));
         } else {
           store.dispatch(setGamePhase("gameover"));
         }
-        import('expo-router').then(({ router }) => {
-          router.replace('/podium');
-        });
         return;
       }
 
