@@ -99,7 +99,7 @@ export const SPECIALTY_CARDS: Record<SpecialtyCardType, SpecialtyCardConfig> = {
     description: "HAND-PICK THE NEXT MINIGAME AND PLAYERS",
     phaseText: "Match Setup Phase",
     activationHint:
-      "Activate during Wheel Phase to hand-pick the minigame, game type, and players.",
+      "Play it on the chart, or after the wheel lands, until the countdown starts.",
   },
 };
 

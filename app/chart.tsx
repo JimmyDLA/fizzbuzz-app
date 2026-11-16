@@ -13,6 +13,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { CardAnnouncementPopup } from "../components/CardAnnouncementPopup";
 import { CardAwardPopup } from "../components/CardAwardPopup";
 import { CardDock } from "../components/CardDock";
+import { LobbyErrorBanner } from "../components/LobbyErrorBanner";
 import { PracticeModal } from "../components/PracticeModal";
 import { RetroButton } from "../components/RetroButton";
 import { RetroPlayerCard } from "../components/RetroPlayerCard";
@@ -23,6 +24,7 @@ import {
   SpecialtyCardModal,
 } from "../components/SpecialtyCardModal";
 import { colyseusService } from "../store/colyseusService";
+import { clearLobbyError } from "../store/lobbySlice";
 import { RootState } from "../store/store";
 import { isExpoGo } from "../utils/environment";
 import {
@@ -70,6 +72,9 @@ export default function ChartScreen() {
     lastWinners,
     spinCount,
     cardAnnouncement,
+    readyCount,
+    connectedCount,
+    lobbyError,
   } = useSelector((state: RootState) => state.lobby);
 
   const players: any[] = reduxPlayers.length > 0 ? reduxPlayers : [];
@@ -78,6 +83,15 @@ export default function ChartScreen() {
   const myPlayer = players.find((p: any) => p.name === playerName);
   const isReady = myPlayer?.isReady || false;
   const amISelected = selectedPlayersList.includes(myPlayer?.id) || false;
+  const connectedPlayers = players.filter((p: any) => p.isConnected !== false);
+  const displayReadyCount =
+    typeof readyCount === "number"
+      ? readyCount
+      : connectedPlayers.filter((p: any) => p.isReady).length;
+  const displayConnectedCount =
+    typeof connectedCount === "number"
+      ? connectedCount
+      : connectedPlayers.length;
 
   const [displayedType, setDisplayedType] = useState("?");
   const [displayedCategory, setDisplayedCategory] = useState("?");
@@ -494,6 +508,7 @@ export default function ChartScreen() {
                 isHost={p.isHost}
                 rank={currentRank}
                 score={p.score}
+                isReady={gamePhase === "chart" ? !!p.isReady : undefined}
                 isWinner={isWinner}
                 triggerAnimationKey={isWinner ? animationKey : 0}
               />
@@ -504,73 +519,64 @@ export default function ChartScreen() {
 
       {gamePhase === "chart" && (
         <View className="pb-10 pt-4 w-full px-6">
-          {myPlayer?.isHost ? (
-            <View>
-              <RetroButton
-                title="SPIN WHEEL!"
-                variant="secondary"
-                onPress={() => colyseusService.startWheel()}
-              />
-              <TouchableOpacity
-                onPress={openDevModal}
-                style={{
-                  height: 48,
-                  position: "relative",
-                  width: "50%",
-                  alignSelf: "center",
-                  marginTop: 8,
-                }}
+          <View className="items-center mb-3">
+            <View
+              className={`px-4 py-1 rounded-lg border-2 ${isDark ? "border-white bg-zinc-800" : "border-black bg-black"}`}
+            >
+              <Text
+                className={`font-black text-sm tracking-widest ${isDark ? "text-yellow-300" : "text-yellow-400"}`}
               >
-                <View
-                  style={[
-                    StyleSheet.absoluteFillObject,
-                    { borderRadius: 16, top: 3, left: 3 },
-                  ]}
-                  className="bg-black"
-                />
-                <View
-                  style={[
-                    StyleSheet.absoluteFillObject,
-                    {
-                      borderRadius: 16,
-                      borderWidth: 3,
-                      borderColor: "#000000",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    },
-                  ]}
-                  className="bg-white"
-                >
-                  <Text className="text-black font-black text-sm tracking-wider">
-                    DEV MODE
-                  </Text>
-                </View>
-              </TouchableOpacity>
+                {displayReadyCount}/{displayConnectedCount} READY
+              </Text>
             </View>
-          ) : (
-            <View className="relative w-full mb-4">
+          </View>
+          {lobbyError && (
+            <LobbyErrorBanner
+              message={lobbyError.message}
+              onDismiss={() => dispatch(clearLobbyError())}
+            />
+          )}
+          <RetroButton
+            title={isReady ? "CANCEL READY" : "READY TO SPIN"}
+            variant={isReady ? "secondary" : "success"}
+            onPress={handleReadyToggle}
+          />
+          {myPlayer?.isHost && (
+            <TouchableOpacity
+              onPress={openDevModal}
+              style={{
+                height: 48,
+                position: "relative",
+                width: "50%",
+                alignSelf: "center",
+                marginTop: 8,
+              }}
+            >
               <View
                 style={[
                   StyleSheet.absoluteFillObject,
-                  { borderRadius: 24, top: 4, left: 4 },
+                  { borderRadius: 16, top: 3, left: 3 },
                 ]}
                 className="bg-black"
               />
               <View
-                style={{
-                  borderRadius: 24,
-                  borderWidth: 4,
-                  borderColor: "#000000",
-                  padding: 20,
-                  alignItems: "center",
-                }}
-                className="bg-pink-300"
+                style={[
+                  StyleSheet.absoluteFillObject,
+                  {
+                    borderRadius: 16,
+                    borderWidth: 3,
+                    borderColor: "#000000",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  },
+                ]}
+                className="bg-white"
               >
-                <Text className="text-black text-2xl font-black uppercase text-center tracking-wider">
-                  Waiting for host...
+                <Text className="text-black font-black text-sm tracking-wider">
+                  DEV MODE
                 </Text>
               </View>
-            </View>
+            </TouchableOpacity>
           )}
         </View>
       )}

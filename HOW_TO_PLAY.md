@@ -43,7 +43,14 @@ Inspired by the chaotic mini-game showdowns of **Mario Party** and **WarioWare**
 ### Step 2: The Lobby
 - Once in the lobby, all joined players appear as retro Neobrutalist cards on screen.
 - Every player taps **READY**.
-- Once all players are ready, the host starts the match, transitioning the room to the **Chart & Wheel** arena.
+- Once every connected player is ready, and at least two players are in the room, the room moves to the **Chart & Wheel** arena on its own and everyone's ready flag clears.
+
+### Step 3: Ready to Spin
+- On the chart, every player, including the host, taps **Ready to Spin**. The screen shows how many connected players are ready, such as **3/5 ready**, and each player's ready state.
+- Anyone can cancel. The wheel waits until every connected player is ready. There is no timer.
+- A player who has disconnected does not hold the room. A player who joins during this step starts not ready.
+- Readying up with fewer than two connected players shows that at least 2 players are required.
+- When every connected player is ready, the wheel spins by itself. Ready flags clear again. The players the wheel selected then use **Ready to Play** to start the round.
 
 ---
 
@@ -52,7 +59,7 @@ Inspired by the chaotic mini-game showdowns of **Mario Party** and **WarioWare**
 Each round follows a clear three-phase sequence:
 
 ### Phase 1: The Wheel Spin
-At the start of every round, the central wheel spins to decide three critical variables:
+Each round starts on the chart. Every connected player taps **Ready to Spin**. When all of them are ready, the wheel spins on its own and decides three variables:
 1. **Match Type**:
    - **1v1**: Two selected players go head-to-head.
    - **2v2**: Four players split into two co-op teams.
@@ -62,7 +69,7 @@ At the start of every round, the central wheel spins to decide three critical va
 
 ### Phase 2: Practice Mode or Play
 - **Practice Mode ("Try It")**: Any player can tap "Try It" before the match launches to test controls in an isolated sandbox powered by [`PracticeRoom.ts`](file:///Users/jimmydla/Code/fizzbuzz-server/src/rooms/PracticeRoom.ts) without risk of penalties.
-- **Play ("Start Game")**: The host launches the round. A 5-second whistle countdown alerts all active competitors.
+- **Play ("Ready to Play")**: The contestants selected by the wheel tap ready. When every selected player who is still connected is ready, a 5-second countdown starts the round. A Wild Card can still be played in this window, and the countdown waits until that play is finished.
 
 ### Phase 3: The Match
 - Active contestants battle in real-time on their phones.
@@ -151,7 +158,7 @@ Each mini-game tests a distinct physical or mental skill.
 
 Specialty cards add game theory depth and revenge dynamics. They are awarded automatically **every 3 rounds**, with the rarest card going to the player in last place. Each player can hold a maximum of **2 cards** at a time. If you would earn a third card while already at the cap, you choose which card to discard.
 
-Cards are stored in your personal dock on [`ChartScreen`](file:///Users/jimmydla/Code/fizzbuzz/app/chart.tsx) and can be activated before the wheel spins:
+Cards are stored in your personal dock on [`ChartScreen`](file:///Users/jimmydla/Code/fizzbuzz/app/chart.tsx). A Wild Card can be played on the chart, including while players are tapping Ready to Spin, and again after the wheel lands, until the 5-second countdown starts. Playing one after the wheel replaces the landed mini-game, mode, and contestants. The countdown does not start until that play resolves and the selected contestants ready up.
 
 ```
 +------------------+-------------------------------------------------------+

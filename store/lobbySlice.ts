@@ -15,6 +15,11 @@ export interface CardAnnouncement {
   timestamp?: number;
 }
 
+export interface LobbyErrorNotice {
+  code: string;
+  message: string;
+}
+
 const initialState = {
   playerName: "",
   roomId: "",
@@ -36,6 +41,9 @@ const initialState = {
   pendingCardAward: null as PendingCardAward | null,
   cardAnnouncement: null as CardAnnouncement | null,
   spinCount: 0,
+  readyCount: null as number | null,
+  connectedCount: null as number | null,
+  lobbyError: null as LobbyErrorNotice | null,
 };
 
 export const lobbySlice = createSlice({
@@ -114,6 +122,18 @@ export const lobbySlice = createSlice({
     incrementSpinCount: (state) => {
       state.spinCount += 1;
     },
+    setReadyCount: (state, action) => {
+      state.readyCount = action.payload;
+    },
+    setConnectedCount: (state, action) => {
+      state.connectedCount = action.payload;
+    },
+    setLobbyError: (state, action) => {
+      state.lobbyError = action.payload;
+    },
+    clearLobbyError: (state) => {
+      state.lobbyError = null;
+    },
   },
 });
 
@@ -142,5 +162,9 @@ export const {
   setCardAnnouncement,
   clearCardAnnouncement,
   incrementSpinCount,
+  setReadyCount,
+  setConnectedCount,
+  setLobbyError,
+  clearLobbyError,
 } = lobbySlice.actions;
 export default lobbySlice.reducer;
