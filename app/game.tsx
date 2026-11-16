@@ -38,9 +38,11 @@ import { TappingRaceUI } from "../components/games/TappingRaceUI";
 import { TriviaUI } from "../components/games/TriviaUI";
 import { GameProvider } from "../components/games/useGameData";
 import { RetroButton } from "../components/RetroButton";
+import { RoundBadge } from "../components/RoundBadge";
 import { memphisShapes } from "../constants/theme";
 import { colyseusService } from "../store/colyseusService";
 import { displayMode } from "../utils/betting";
+import { holderDrinksToPass, passDrinkPhrase } from "../utils/shieldPass";
 
 export default function GameScreen() {
   const router = useRouter();
@@ -57,8 +59,12 @@ export default function GameScreen() {
     currentCategory,
     lastWinners,
     lastLosers,
+    drinkChains,
     lastGameResult,
     isBettingRound,
+    roundCount,
+    totalRounds,
+    matchLengthSupported,
   } = useSelector((state: any) => state.lobby);
 
   const players: any[] = reduxPlayers || [];
@@ -134,6 +140,7 @@ export default function GameScreen() {
   };
 
   const myDrinkCount = myPlayer ? getPlayerDrinkCount(myPlayer.id) : 0;
+  const drinksToPass = holderDrinksToPass(myPlayer?.id, drinkChains, lastLosers);
 
   const bounceAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -262,7 +269,15 @@ export default function GameScreen() {
   const renderCountdown = () => {
     return (
       <View className="flex-1 bg-transparent justify-center items-center px-6">
-        <BettingRoundMark className="mb-4" />
+        <View className="flex-row flex-wrap items-center justify-center gap-2 mb-4">
+          <RoundBadge
+            phase={gamePhase}
+            roundCount={roundCount}
+            totalRounds={totalRounds}
+            isDark={isDark}
+          />
+          <BettingRoundMark />
+        </View>
         <Text className="text-white font-black text-2xl uppercase tracking-widest text-center mb-6">
           PREPARE TO PLAY!
         </Text>
@@ -387,6 +402,13 @@ export default function GameScreen() {
   const renderPlaying = () => {
     return (
       <View className="flex-1 bg-transparent pt-12">
+        <RoundBadge
+          phase={gamePhase}
+          roundCount={roundCount}
+          totalRounds={totalRounds}
+          isDark={isDark}
+          className="mb-2"
+        />
         {/* Header HUD Title Card */}
         <View style={styles.headerTitleCard} className="z-10">
           {/* Shadow */}
@@ -497,6 +519,13 @@ export default function GameScreen() {
             </Text>
           </View>
         </View>
+        <RoundBadge
+          phase={gamePhase}
+          roundCount={roundCount}
+          totalRounds={totalRounds}
+          isDark={isDark}
+          className="mb-3"
+        />
 
         <BettingRoundMark className="mb-3" />
         {isBettingRound && (
@@ -543,7 +572,16 @@ export default function GameScreen() {
 
         <View className="w-full">
           <RetroButton
-            title={isReady ? "WAITING FOR OTHERS..." : "NEXT ROUND"}
+            title={
+              isReady
+                ? "WAITING FOR OTHERS..."
+                : gamePhase === "resolution" &&
+                    matchLengthSupported &&
+                    roundCount > 0 &&
+                    roundCount === totalRounds
+                  ? "SEE PODIUM"
+                  : "NEXT ROUND"
+            }
             variant={isReady ? "secondary" : "success"}
             onPress={handleReadyToggle}
           />
@@ -551,6 +589,10 @@ export default function GameScreen() {
       </SafeAreaView>
     );
   };
+
+  if (gamePhase === "gameover") {
+    return null;
+  }
 
   const isDarkGame = currentCategory === "Simon Says" || isDark;
   let screenBgClass = isDarkGame ? "bg-zinc-950" : "bg-green-500";
@@ -689,7 +731,7 @@ export default function GameScreen() {
                             activeOpacity={0.8}
                           >
                             <Text className="text-white font-black text-sm uppercase">
-                              PASS {myDrinkCount > 1 ? `${myDrinkCount}X DRINKS` : "DRINK"} TO {p.name}
+                              PASS {passDrinkPhrase(drinksToPass)} TO {p.name}
                             </Text>
                           </TouchableOpacity>
                         ))}

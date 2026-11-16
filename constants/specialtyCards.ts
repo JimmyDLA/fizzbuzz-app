@@ -5,7 +5,22 @@ export type SpecialtyCardType =
   | "respin"
   | "wild_card";
 
-export type SpecialtyCardRarityLevel = 1 | 2 | 3;
+/**
+ * 1 Legendary (rarest) through 4 Common.
+ * Last place receives the lowest number, matching the server sort.
+ */
+export type SpecialtyCardRarityLevel = 1 | 2 | 3 | 4;
+
+/** Rarity-tag colors. These are not the card art colors. */
+export const RARITY_TAGS: Record<
+  SpecialtyCardRarityLevel,
+  { label: string; hex: string; textHex: string }
+> = {
+  1: { label: "LEGENDARY", hex: "#FACC15", textHex: "#111111" },
+  2: { label: "EPIC", hex: "#A855F7", textHex: "#FFFFFF" },
+  3: { label: "RARE", hex: "#2563EB", textHex: "#FFFFFF" },
+  4: { label: "COMMON", hex: "#22C55E", textHex: "#111111" },
+};
 
 export interface SpecialtyCardConfig {
   id: SpecialtyCardType;
@@ -28,11 +43,11 @@ export const SPECIALTY_CARDS: Record<SpecialtyCardType, SpecialtyCardConfig> = {
     id: "turbo",
     name: "TURBO",
     displayTitle: "TURBO",
-    rarity: 2,
-    rarityLabel: "RARE",
-    colorClass: "bg-cyan-400",
-    darkColorClass: "bg-cyan-500",
-    hexColor: "#00E5FF",
+    rarity: 3,
+    rarityLabel: RARITY_TAGS[3].label,
+    colorClass: "bg-[#02D9EE]",
+    darkColorClass: "bg-[#019CAB]",
+    hexColor: "#02D9EE",
     iconName: "flash",
     iconFamily: "MaterialCommunityIcons",
     description: "ALL INPUTS AND SCORES IN NEXT MINIGAME COUNT 1.5X",
@@ -44,10 +59,10 @@ export const SPECIALTY_CARDS: Record<SpecialtyCardType, SpecialtyCardConfig> = {
     name: "SHIELD",
     displayTitle: "SHIELD",
     rarity: 3,
-    rarityLabel: "COMMON",
-    colorClass: "bg-pink-400",
-    darkColorClass: "bg-pink-500",
-    hexColor: "#FF4081",
+    rarityLabel: RARITY_TAGS[3].label,
+    colorClass: "bg-[#FE559D]",
+    darkColorClass: "bg-[#B73D71]",
+    hexColor: "#FE559D",
     iconName: "shield",
     iconFamily: "MaterialCommunityIcons",
     description: "NEGATE YOUR DRINK PENALTY AND PASS IT TO ANOTHER PLAYER",
@@ -59,10 +74,10 @@ export const SPECIALTY_CARDS: Record<SpecialtyCardType, SpecialtyCardConfig> = {
     name: "DOUBLE POINTS",
     displayTitle: "DOUBLE\nPOINTS",
     rarity: 2,
-    rarityLabel: "RARE",
-    colorClass: "bg-amber-400",
-    darkColorClass: "bg-yellow-500",
-    hexColor: "#A855F7",
+    rarityLabel: RARITY_TAGS[2].label,
+    colorClass: "bg-[#F7C133]",
+    darkColorClass: "bg-[#B28B25]",
+    hexColor: "#F7C133",
     iconName: "star",
     iconFamily: "MaterialCommunityIcons",
     description: "DOUBLES YOUR EARNED SCORE POINTS (2X) IF YOU WIN NEXT GAME",
@@ -73,11 +88,11 @@ export const SPECIALTY_CARDS: Record<SpecialtyCardType, SpecialtyCardConfig> = {
     id: "respin",
     name: "RESPIN",
     displayTitle: "RESPIN",
-    rarity: 3,
-    rarityLabel: "COMMON",
-    colorClass: "bg-lime-400",
-    darkColorClass: "bg-lime-500",
-    hexColor: "#76FF03",
+    rarity: 4,
+    rarityLabel: RARITY_TAGS[4].label,
+    colorClass: "bg-[#C6FB2D]",
+    darkColorClass: "bg-[#8FB520]",
+    hexColor: "#C6FB2D",
     iconName: "refresh",
     iconFamily: "MaterialCommunityIcons",
     description: "SKIP CURRENT WHEEL SELECTION AND FORCE A RESPIN",
@@ -90,16 +105,16 @@ export const SPECIALTY_CARDS: Record<SpecialtyCardType, SpecialtyCardConfig> = {
     name: "WILD CARD",
     displayTitle: "WILD\nCARD",
     rarity: 1,
-    rarityLabel: "EPIC",
-    colorClass: "bg-purple-500",
-    darkColorClass: "bg-purple-600",
-    hexColor: "#FFC107",
+    rarityLabel: RARITY_TAGS[1].label,
+    colorClass: "bg-[#AE48FC]",
+    darkColorClass: "bg-[#7D34B5]",
+    hexColor: "#AE48FC",
     iconName: "cards-playing-outline",
     iconFamily: "MaterialCommunityIcons",
-    description: "HAND-PICK THE NEXT MINIGAME AND PLAYERS",
+    description: "HAND-PICK THE NEXT MINIGAME, GAME MODE, AND PLAYERS",
     phaseText: "Match Setup Phase",
     activationHint:
-      "Activate during Wheel Phase to hand-pick the minigame, game type, and players.",
+      "Play it on the chart, or after the wheel lands, until the countdown starts.",
   },
 };
 

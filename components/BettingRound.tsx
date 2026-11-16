@@ -24,9 +24,7 @@ function useBettingTheme() {
 }
 
 /**
- * Compact "Betting round" chip. It does not read a round counter.
- * App PR #14's Round X/N badge is not on master; this chip is the
- * self-contained mark that can sit beside that label once it lands.
+ * Distinct from the Round X/N badge. It never repeats that label.
  */
 export function BettingRoundMark({ className = "" }: { className?: string }) {
   const { lobby, isDark } = useBettingTheme();
