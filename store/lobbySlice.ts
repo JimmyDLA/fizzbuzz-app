@@ -6,12 +6,51 @@ export interface PendingCardAward {
   message: string;
 }
 
+/**
+ * One player's merged drink total for this resolution.
+ * Mirrors server `DrinkChain`. `LobbyState.drinkChains` is keyed by holder session id.
+ */
+export interface DrinkChain {
+  /** Same as `holderId`. The map key on `drinkChains`. */
+  id: string;
+  holderId: string;
+  /** Merged drinks this player currently owes for this resolution. */
+  drinks: number;
+  /** Deflections already included in this total. 0 means an untouched loss. */
+  deflections: number;
+  /**
+   * Amount the holder's next Shield will pass.
+   * An untouched loss passes `drinks`. Once any deflection is part of the total, the next pass is `drinks + 1`. No cap.
+   */
+  drinksToPass: number;
+}
+
+/**
+ * `CardUsedEvent` payload. For Shield, `drinkCount` and `drinksToPass` are the amount just passed.
+ */
+export interface CardUsedEvent {
+  userId?: string;
+  playerName?: string;
+  cardId?: string;
+  targetName?: string;
+  targetPlayerId?: string;
+  drinkCount?: number;
+  drinksToPass?: number;
+  deflections?: number;
+  description?: string;
+  message?: string;
+}
+
 export interface CardAnnouncement {
   cardId: string;
   playerName: string;
   message: string;
   targetName?: string;
+  targetPlayerId?: string;
   drinkCount?: number;
+  /** Amount this Shield just passed. Equal to `drinkCount` on Shield broadcasts. */
+  drinksToPass?: number;
+  deflections?: number;
   timestamp?: number;
 }
 
@@ -37,6 +76,7 @@ const initialState = {
   currentCategory: "",
   lastWinners: [] as string[],
   lastLosers: [] as string[],
+  drinkChains: {} as Record<string, DrinkChain>,
   lastGameResult: "",
   practiceState: null,
   gameMode: null, // null, 'drinking', 'party'
@@ -86,6 +126,9 @@ export const lobbySlice = createSlice({
     },
     setLastLosers: (state, action) => {
       state.lastLosers = action.payload;
+    },
+    setDrinkChains: (state, action) => {
+      state.drinkChains = action.payload;
     },
     setLastGameResult: (state, action) => {
       state.lastGameResult = action.payload;
@@ -161,6 +204,7 @@ export const {
   setGameCategory,
   setLastWinners,
   setLastLosers,
+  setDrinkChains,
   setLastGameResult,
   setPracticeState,
   setGameMode,

@@ -12,6 +12,7 @@ import { useSelector } from "react-redux";
 import { getCardConfig, SpecialtyCardType } from "../constants/specialtyCards";
 import { colyseusService } from "../store/colyseusService";
 import { RootState } from "../store/store";
+import { holderDrinksToPass, passDrinkPhrase } from "../utils/shieldPass";
 import { playButtonClickSound } from "../utils/sound";
 import { RetroButton } from "./RetroButton";
 import { SpecialtyCard } from "./SpecialtyCard";
@@ -54,6 +55,7 @@ export function CardDock() {
     selectedPlayers,
     currentCategory,
     lastLosers,
+    drinkChains,
     pendingCardAward,
   } = useSelector((state: RootState) => state.lobby);
   const theme = useSelector((state: RootState) => state.lobby.theme) || "light";
@@ -76,9 +78,7 @@ export function CardDock() {
 
   // Hand Overflow Prompt (Max 2 cards) - only show when no pending card award popup is open
   const isOverflow = myCards.length > 2 && !pendingCardAward;
-  const myDrinkCount = myPlayer
-    ? (lastLosers || []).filter((id: string) => id === myPlayer.id).length
-    : 0;
+  const drinksToPass = holderDrinksToPass(myPlayer.id, drinkChains, lastLosers);
 
   const handleUseCard = (cardId: string) => {
     playButtonClickSound();
@@ -645,9 +645,7 @@ export function CardDock() {
                     className="w-full bg-pink-500/20 border-2 border-pink-500 py-3 rounded-2xl items-center"
                   >
                     <Text className="text-pink-300 font-black text-sm uppercase">
-                      PASS{" "}
-                      {myDrinkCount > 1 ? `${myDrinkCount}X DRINKS` : "DRINK"}{" "}
-                      TO {p.name}
+                      PASS {passDrinkPhrase(drinksToPass)} TO {p.name}
                     </Text>
                   </TouchableOpacity>
                 ))}

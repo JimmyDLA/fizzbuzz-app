@@ -2,8 +2,10 @@ import type { Room } from '@colyseus/sdk';
 import * as Colyseus from '@colyseus/sdk';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer, setLastGameResult, setPracticeState, setPendingCardAward, setCardAnnouncement, incrementSpinCount, setReadyCount, setConnectedCount, setLobbyError, clearLobbyError, setWheelHold, clearWheelHold } from './lobbySlice';
+import { setGameCategory, setGamePhase, setGameType, setLastLosers, setLastWinners, setPlayers, setRoomId, setSelectedPlayers, setTimer, setLastGameResult, setPracticeState, setPendingCardAward, setCardAnnouncement, incrementSpinCount, setDrinkChains, setReadyCount, setConnectedCount, setLobbyError, clearLobbyError, setWheelHold, clearWheelHold } from './lobbySlice';
+import type { CardUsedEvent } from './lobbySlice';
 import { store } from './store';
+import { readDrinkChains } from '../utils/shieldPass';
 
 
 
@@ -126,18 +128,21 @@ export const colyseusService = {
   setupRoomListeners(room: any) {
     store.dispatch(setRoomId(room.id || room.roomId));
 
-    room.onMessage("CardUsedEvent", (event: any) => {
+    room.onMessage("CardUsedEvent", (event: CardUsedEvent) => {
       console.log(`[SpecialtyCard] CardUsedEvent:`, event);
       if (event.cardId === "RESPIN" || event.cardId === "WILD CARD") {
         this.leavePractice();
         beginWheelHold(event.cardId);
       }
       store.dispatch(setCardAnnouncement({
-        cardId: event.cardId,
-        playerName: event.playerName,
-        message: event.message || event.description,
+        cardId: event.cardId ?? "",
+        playerName: event.playerName ?? "",
+        message: event.message || event.description || "",
         targetName: event.targetName,
+        targetPlayerId: event.targetPlayerId,
         drinkCount: event.drinkCount,
+        drinksToPass: event.drinksToPass,
+        deflections: event.deflections,
         timestamp: Date.now(),
       }));
     });
@@ -198,6 +203,7 @@ export const colyseusService = {
           if (state.lastLosers) {
             store.dispatch(setLastLosers(state.lastLosers.toArray()));
           }
+          store.dispatch(setDrinkChains(readDrinkChains(state.drinkChains)));
           if (state.lastGameResult !== undefined) {
             store.dispatch(setLastGameResult(state.lastGameResult));
           }
