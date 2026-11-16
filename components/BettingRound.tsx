@@ -4,8 +4,9 @@ import { RootState } from "../store/store";
 import {
   displayMode,
   formatBetNet,
+  formatBetRank,
   payoutBoard,
-  refundReasonCopy,
+  refundNotice,
   wagerRows,
 } from "../utils/betting";
 
@@ -147,12 +148,12 @@ export function BettingPayoutBoard() {
   }
 
   const rows = [...board.payouts].sort((a, b) => {
-    if (a.rank === 0 && b.rank === 0) return a.name.localeCompare(b.name);
-    if (a.rank === 0) return 1;
-    if (b.rank === 0) return -1;
-    if (a.rank !== b.rank) return a.rank - b.rank;
+    const rankA = a.rank > 0 ? a.rank : Number.POSITIVE_INFINITY;
+    const rankB = b.rank > 0 ? b.rank : Number.POSITIVE_INFINITY;
+    if (rankA !== rankB) return rankA - rankB;
     return a.name.localeCompare(b.name);
   });
+  const notice = refundNotice(board, lobby.bettingRound);
   const ink = isDark ? "text-white" : "text-black";
   const muted = isDark ? "text-zinc-400" : "text-black/70";
 
@@ -179,14 +180,18 @@ export function BettingPayoutBoard() {
           </View>
         </View>
 
-        {board.refunded && (
+        {notice?.kind === "plain" && (
           <View className="bg-amber-300 border-2 border-black rounded-2xl px-3 py-2 mb-3">
             <Text className="text-black font-black text-sm uppercase text-center">
-              All wagers were returned
+              {notice.title}
             </Text>
-            <Text className="text-black font-bold text-xs text-center mt-1">
-              {refundReasonCopy(board.reason)}
-            </Text>
+            <Text className="text-black font-bold text-xs text-center mt-1">{notice.detail}</Text>
+          </View>
+        )}
+
+        {notice?.kind === "shared" && (
+          <View className="bg-amber-300 border-2 border-black rounded-2xl px-3 py-2 mb-3">
+            <Text className="text-black font-black text-sm text-center">{notice.message}</Text>
           </View>
         )}
 
@@ -200,15 +205,13 @@ export function BettingPayoutBoard() {
 
         {rows.map((row) => (
           <View key={row.playerId || row.name} className="flex-row items-center py-1">
-            <Text className={`w-8 font-black text-sm ${ink}`}>
-              {row.rank > 0 ? row.rank : "–"}
-            </Text>
+            <Text className={`w-8 font-black text-sm ${ink}`}>{formatBetRank(row.rank)}</Text>
             <Text className={`flex-1 font-black text-sm uppercase ${ink}`} numberOfLines={1}>
               {row.name}
             </Text>
-              <Text className={`w-14 text-right font-black text-sm ${ink}`}>{row.wager}</Text>
-              <Text className={`w-14 text-right font-black text-sm ${ink}`}>{row.payout}</Text>
-              <Text className={`w-12 text-right font-black text-sm ${netTextClass(row.net, isDark, ink)}`}>
+            <Text className={`w-14 text-right font-black text-sm ${ink}`}>{row.wager}</Text>
+            <Text className={`w-14 text-right font-black text-sm ${ink}`}>{row.payout}</Text>
+            <Text className={`w-12 text-right font-black text-sm ${netTextClass(row.net, isDark, ink)}`}>
               {formatBetNet(row.net)}
             </Text>
           </View>

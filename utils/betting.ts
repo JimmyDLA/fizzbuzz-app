@@ -33,6 +33,69 @@ export function refundReasonCopy(reason: BettingPayoutReason): string {
   }
 }
 
+export type RefundNotice =
+  | { kind: "plain"; title: string; detail: string }
+  | { kind: "shared"; message: string };
+
+/**
+ * A refund where someone still gained points is a leaver's stake shared out.
+ * The leaver is omitted from the payout, so the name comes from the wager list.
+ * A plain refund, with every net at 0, keeps the original copy.
+ */
+export function refundNotice(
+  board: Pick<BettingPayoutEvent, "refunded" | "reason" | "payouts">,
+  bettingRound: BettingRoundEvent | null,
+): RefundNotice | null {
+  if (!board.refunded) return null;
+  const shared = board.payouts.some((row) => row.net > 0);
+  if (!shared) {
+    return {
+      kind: "plain",
+      title: "All wagers were returned",
+      detail: refundReasonCopy(board.reason),
+    };
+  }
+  return { kind: "shared", message: leaverShareSentence(leaverNames(bettingRound, board.payouts)) };
+}
+
+/** Blank when the server has not sent a real 1-based rank yet. */
+export function formatBetRank(rank: number | null | undefined): string {
+  if (typeof rank !== "number" || !Number.isFinite(rank) || rank <= 0) return "";
+  return String(Math.trunc(rank));
+}
+
+function leaverNames(
+  bettingRound: BettingRoundEvent | null,
+  payouts: BettingPayoutEvent["payouts"],
+): string[] {
+  if (!bettingRound) return [];
+  const paidIds = new Set(payouts.map((row) => row.playerId));
+  const paidNames = new Set(payouts.map((row) => row.name));
+  const names: string[] = [];
+  for (const wager of bettingRound.wagers) {
+    if (paidIds.has(wager.playerId)) continue;
+    if (wager.wager <= 0) continue;
+    const name = wager.name.trim();
+    if (!name || paidNames.has(name) || names.includes(name)) continue;
+    names.push(name);
+  }
+  return names;
+}
+
+function leaverShareSentence(names: string[]): string {
+  if (names.length === 0) {
+    return "Wagers returned. A leaver's stake was shared among the remaining players.";
+  }
+  if (names.length === 1) {
+    return `Wagers returned. ${names[0]}'s stake was shared among the remaining players.`;
+  }
+  const listed =
+    names.length === 2
+      ? `${names[0]} and ${names[1]}`
+      : `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
+  return `Wagers returned. ${listed}'s stakes were shared among the remaining players.`;
+}
+
 export function wagerRows(
   players: Pick<LobbyPlayer, "id" | "name" | "betWager">[],
   selectedPlayers: string[],
