@@ -27,6 +27,7 @@ export default function RootLayout() {
           <Stack.Screen name="lobby" />
           <Stack.Screen name="chart" />
           <Stack.Screen name="game" />
+          <Stack.Screen name="podium" />
         </Stack>
         <CardErrorToast />
         <StatusBar style="auto" />

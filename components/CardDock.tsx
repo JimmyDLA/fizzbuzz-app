@@ -20,6 +20,7 @@ import {
   readEarnedRounds,
   USABLE_NEXT_ROUND_HINT,
 } from "../utils/cardRound";
+import { holderDrinksToPass, passDrinkPhrase } from "../utils/shieldPass";
 import { playButtonClickSound } from "../utils/sound";
 import { RetroButton } from "./RetroButton";
 import { SpecialtyCard } from "./SpecialtyCard";
@@ -62,6 +63,7 @@ export function CardDock() {
     selectedPlayers,
     currentCategory,
     lastLosers,
+    drinkChains,
     pendingCardAward,
     roundCount,
   } = useSelector((state: RootState) => state.lobby);
@@ -110,9 +112,7 @@ export function CardDock() {
 
   // Hand Overflow Prompt (Max 2 cards) - only show when no pending card award popup is open
   const isOverflow = myCards.length > 2 && !pendingCardAward;
-  const myDrinkCount = myPlayer
-    ? (lastLosers || []).filter((id: string) => id === myPlayer.id).length
-    : 0;
+  const drinksToPass = holderDrinksToPass(myPlayer.id, drinkChains, lastLosers);
 
   const handleUseCard = (cardId: string, index: number) => {
     playButtonClickSound();
@@ -283,7 +283,7 @@ export function CardDock() {
       return {
         playable: false,
         locked: false,
-        reason: "Only playable during Wheel Phase",
+        reason: "Play it on the chart or after the wheel lands, before the countdown",
       };
     }
 
@@ -756,9 +756,7 @@ export function CardDock() {
                     className="w-full bg-pink-500/20 border-2 border-pink-500 py-3 rounded-2xl items-center"
                   >
                     <Text className="text-pink-300 font-black text-sm uppercase">
-                      PASS{" "}
-                      {myDrinkCount > 1 ? `${myDrinkCount}X DRINKS` : "DRINK"}{" "}
-                      TO {p.name}
+                      PASS {passDrinkPhrase(drinksToPass)} TO {p.name}
                     </Text>
                   </TouchableOpacity>
                 ))}

@@ -17,6 +17,7 @@ interface RetroPlayerCardProps {
   rank?: number;
   score?: number;
   isReady?: boolean;
+  isConnected?: boolean;
   triggerAnimationKey?: number;
   isWinner?: boolean;
 }
@@ -28,11 +29,13 @@ export function RetroPlayerCard({
   rank,
   score,
   isReady,
+  isConnected,
   triggerAnimationKey,
   isWinner,
 }: RetroPlayerCardProps) {
   const theme = useSelector((state: RootState) => state.lobby.theme) || "light";
   const isDark = theme === "dark";
+  const isAway = isConnected === false;
 
   const isWinnerOfLastGame = !!isWinner && score !== undefined;
   const previousScore = isWinnerOfLastGame
@@ -139,7 +142,10 @@ export function RetroPlayerCard({
   const rankTextColorClass = isDark ? "text-white" : "text-black";
 
   return (
-    <View className="w-full relative mb-4">
+    <View
+      className="w-full relative mb-4"
+      style={isAway ? { opacity: 0.45 } : undefined}
+    >
       {/* Behind Shadow */}
       <View
         style={[
@@ -238,8 +244,8 @@ export function RetroPlayerCard({
           </Animated.View>
         )}
 
-        {/* Ready Status Indicator */}
-        {isReady !== undefined && (
+        {/* Ready Status Indicator. A grace-period seat is away, never ready. */}
+        {(isReady !== undefined || isAway) && (
           <View
             style={{
               borderWidth: 2,
@@ -247,11 +253,11 @@ export function RetroPlayerCard({
               borderRadius: 10,
             }}
             className={`px-3 py-1.5 ml-2 ${
-              isReady ? "bg-emerald-400" : "bg-zinc-300"
+              isAway ? "bg-zinc-400" : isReady ? "bg-emerald-400" : "bg-zinc-300"
             }`}
           >
             <Text className="text-black font-black text-xs uppercase">
-              {isReady ? "READY" : "WAITING"}
+              {isAway ? "AWAY" : isReady ? "READY" : "WAITING"}
             </Text>
           </View>
         )}
