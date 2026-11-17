@@ -40,8 +40,7 @@ export function displayedRoundNumber(phase: string, roundCount: number): number 
 }
 
 /**
- * True when the round on screen is a betting round, so the label is Battle Royale
- * no matter what `currentGameType` still says.
+ * True when the round on screen is a betting round.
  *
  * Chart, wheel, countdown, playing, resolution, and game over use the round
  * number, the same way the server does: a positive multiple of 5. A stale
@@ -58,11 +57,64 @@ export function roundIsBetting(source: GameTypeSource): boolean {
 
 /**
  * Mode label for the round on screen.
- * A betting round is always "BATTLE ROYALE". Any other round keeps the short code
- * the server stored (`1v1`, `2v2`, or `BR`).
+ * On the chart, before the wheel, a betting round is "BATTLE ROYALE" even when
+ * `currentGameType` is still the previous round. Once that spin has started, a
+ * stored "1v1" or "2v2" is the mode actually being played (the host dev menu
+ * can force those on a betting round). A normal betting spin stores "BR" and
+ * still reads "BATTLE ROYALE". Any other round keeps the short code.
  */
 export function displayedGameType(source: GameTypeSource): string {
-  return displayMode(source.currentGameType, roundIsBetting(source));
+  const betting = roundIsBetting(source);
+  if (
+    betting &&
+    phaseAfterWheel(source.phase) &&
+    (source.currentGameType === "1v1" || source.currentGameType === "2v2")
+  ) {
+    return source.currentGameType;
+  }
+  return displayMode(source.currentGameType, betting);
+}
+
+/** Wheel, countdown, play, results, and the podium. The chart has not spun yet. */
+function phaseAfterWheel(phase: string): boolean {
+  return (
+    phase === "wheel" ||
+    phase === "countdown" ||
+    phase === "playing" ||
+    phase === "resolution" ||
+    phase === "gameover"
+  );
+}
+
+/**
+ * Type the wheel lands on. A betting round reveals BR unless this spin stored
+ * 1v1 or 2v2. Other rounds reveal the stored type.
+ */
+export function wheelRevealType(isBettingRound: boolean, currentGameType: string): string {
+  if (isBettingRound && currentGameType !== "1v1" && currentGameType !== "2v2") {
+    return "BR";
+  }
+  return currentGameType || "?";
+}
+
+/** How many seats the spin animation draws. A betting BR uses the whole room. */
+export function wheelRosterCount(
+  isBettingRound: boolean,
+  currentGameType: string,
+  playerCount: number,
+): number {
+  const type = wheelRevealType(isBettingRound, currentGameType);
+  if (type === "1v1") return 2;
+  if (type === "2v2") return 4;
+  return playerCount;
+}
+
+/**
+ * A normal betting spin holds the badge on Battle Royale. Every other spin,
+ * including a dev 1v1 or 2v2 on a betting round, shuffles the type.
+ */
+export function wheelShufflesType(isBettingRound: boolean, currentGameType: string): boolean {
+  return !(isBettingRound && wheelRevealType(isBettingRound, currentGameType) === "BR");
 }
 
 /** Battle Royale is spelled out on a betting round. Other rounds keep the short code. */

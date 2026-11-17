@@ -3,6 +3,9 @@ import {
   displayedRoundNumber,
   isBettingRoundNumber,
   roundIsBetting,
+  wheelRevealType,
+  wheelRosterCount,
+  wheelShufflesType,
   type GameTypeSource,
 } from "./betting";
 
@@ -69,15 +72,31 @@ export function runDisplayedGameTypeTests(): void {
     "first round stays 1v1",
   );
 
+  // A normal betting spin stores BR. A dev override stores 1v1 or 2v2 and must show it.
+  assertEqual(
+    displayedGameType(source({ phase: "wheel", roundCount: 4, currentGameType: "BR" })),
+    "BATTLE ROYALE",
+    "normal wheel of round 5",
+  );
   assertEqual(
     displayedGameType(source({ phase: "wheel", roundCount: 4, currentGameType: "2v2" })),
+    "2v2",
+    "dev 2v2 wheel of round 5",
+  );
+  assertEqual(
+    displayedGameType(source({ phase: "playing", roundCount: 4, currentGameType: "BR" })),
     "BATTLE ROYALE",
-    "wheel of round 5",
+    "normal playing round 5",
   );
   assertEqual(
     displayedGameType(source({ phase: "playing", roundCount: 4, currentGameType: "1v1" })),
-    "BATTLE ROYALE",
-    "playing round 5",
+    "1v1",
+    "dev 1v1 playing round 5",
+  );
+  assertEqual(
+    displayedGameType(source({ phase: "countdown", roundCount: 4, currentGameType: "1v1" })),
+    "1v1",
+    "dev 1v1 countdown of round 5",
   );
   assertEqual(
     displayedGameType(source({ phase: "countdown", roundCount: 2, currentGameType: "2v2" })),
@@ -85,9 +104,14 @@ export function runDisplayedGameTypeTests(): void {
     "countdown of round 3",
   );
   assertEqual(
-    displayedGameType(source({ phase: "resolution", roundCount: 5, currentGameType: "2v2" })),
+    displayedGameType(source({ phase: "resolution", roundCount: 5, currentGameType: "BR" })),
     "BATTLE ROYALE",
-    "resolution of round 5",
+    "normal resolution of round 5",
+  );
+  assertEqual(
+    displayedGameType(source({ phase: "resolution", roundCount: 5, currentGameType: "2v2" })),
+    "2v2",
+    "dev 2v2 resolution of round 5",
   );
   assertEqual(
     displayedGameType(source({ phase: "resolution", roundCount: 4, currentGameType: "1v1" })),
@@ -95,9 +119,14 @@ export function runDisplayedGameTypeTests(): void {
     "resolution of round 4",
   );
   assertEqual(
-    displayedGameType(source({ phase: "gameover", roundCount: 10, currentGameType: "2v2" })),
+    displayedGameType(source({ phase: "gameover", roundCount: 10, currentGameType: "BR" })),
     "BATTLE ROYALE",
-    "game over on round 10",
+    "normal game over on round 10",
+  );
+  assertEqual(
+    displayedGameType(source({ phase: "gameover", roundCount: 10, currentGameType: "2v2" })),
+    "2v2",
+    "dev 2v2 game over on round 10",
   );
   assertEqual(
     displayedGameType(source({ phase: "gameover", roundCount: 9, currentGameType: "1v1" })),
@@ -141,6 +170,23 @@ export function runDisplayedGameTypeTests(): void {
     "",
     "lobby without a flag keeps the stored type",
   );
+
+  assertEqual(wheelRevealType(true, "BR"), "BR", "betting spin lands on BR");
+  assertEqual(wheelRevealType(true, "1v1"), "1v1", "dev betting spin lands on 1v1");
+  assertEqual(wheelRevealType(true, "2v2"), "2v2", "dev betting spin lands on 2v2");
+  assertEqual(wheelRevealType(true, ""), "BR", "betting spin with no type lands on BR");
+  assertEqual(wheelRevealType(false, "1v1"), "1v1", "normal spin lands on the stored type");
+  assertEqual(wheelRevealType(false, ""), "?", "missing type stays unknown");
+
+  assertEqual(wheelRosterCount(true, "BR", 6), 6, "betting BR draws everyone");
+  assertEqual(wheelRosterCount(true, "1v1", 6), 2, "dev 1v1 draws two");
+  assertEqual(wheelRosterCount(true, "2v2", 6), 4, "dev 2v2 draws four");
+  assertEqual(wheelRosterCount(false, "BR", 6), 6, "normal BR draws everyone");
+  assertEqual(wheelRosterCount(false, "2v2", 6), 4, "normal 2v2 draws four");
+
+  assertEqual(wheelShufflesType(true, "BR"), false, "betting BR holds the badge");
+  assertEqual(wheelShufflesType(true, "1v1"), true, "dev 1v1 still shuffles");
+  assertEqual(wheelShufflesType(false, "BR"), true, "a normal BR spin shuffles");
 }
 
 runDisplayedGameTypeTests();
