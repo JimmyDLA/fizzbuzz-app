@@ -30,7 +30,7 @@ import { colyseusService } from "../store/colyseusService";
 import { clearLobbyError } from "../store/lobbySlice";
 import { selectDisplayedGameType, selectRoundIsBetting } from "../store/selectors";
 import { RootState } from "../store/store";
-import { displayedBetNet, displayMode, wheelRevealType, wheelRosterCount, wheelShufflesType } from "../utils/betting";
+import { displayedBetNet, displayMode } from "../utils/betting";
 import { subscribeDevCommandNotice, type DevCommandNotice } from "../utils/devMenu";
 import { isExpoGo } from "../utils/environment";
 import {
@@ -195,18 +195,19 @@ export default function ChartScreen() {
       setShowWheelModal(true);
       playSpinSound();
 
-      // A normal betting round stays Battle Royale. A dev 1v1 or 2v2 keeps that type.
+      // A betting round stays Battle Royale. The wheel still shuffles the category.
       const bettingSpin = bettingOnScreenRef.current;
-      const spinningType = currentGameTypeRef.current;
-      const requiredCount = wheelRosterCount(
-        bettingSpin,
-        spinningType,
-        playersRef.current.length,
-      );
-      const shuffleTypes = wheelShufflesType(bettingSpin, spinningType);
+      let requiredCount = playersRef.current.length;
+      if (!bettingSpin) {
+        requiredCount = 2;
+        const type = currentGameTypeRef.current;
+        if (type === "1v1") requiredCount = 2;
+        if (type === "2v2") requiredCount = 4;
+        if (type === "BR") requiredCount = playersRef.current.length;
+      }
 
       interval = setInterval(() => {
-        if (shuffleTypes) {
+        if (!bettingOnScreenRef.current) {
           setDisplayedType(TYPES[Math.floor(Math.random() * TYPES.length)]);
         }
         setDisplayedCategory(CATS[Math.floor(Math.random() * CATS.length)]);
@@ -221,7 +222,7 @@ export default function ChartScreen() {
       timeout = setTimeout(() => {
         clearInterval(interval);
         setDisplayedType(
-          wheelRevealType(bettingOnScreenRef.current, currentGameTypeRef.current),
+          bettingOnScreenRef.current ? "BR" : currentGameTypeRef.current || "?",
         );
         setDisplayedCategory(currentCategoryRef.current || "?");
         setDisplayedPlayers(selectedPlayersListRef.current);
@@ -758,11 +759,7 @@ export default function ChartScreen() {
                     displayedPlayers.includes(p.id),
                   );
 
-                  const showTeams =
-                    displayedType === "2v2" &&
-                    selectedPs.length === 4 &&
-                    (!bettingOnScreen || !isSpinning);
-                  if (showTeams) {
+                  if (!bettingOnScreen && displayedType === "2v2" && selectedPs.length === 4) {
                     return (
                       <View className="items-center justify-center">
                         <View

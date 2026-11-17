@@ -18,9 +18,8 @@ function gameTypeSource(state: RootState): GameTypeSource {
 
 /**
  * Mode label for the round on screen.
- * The chart before a betting spin still reads "BATTLE ROYALE" when
- * `currentGameType` is the previous round. After the wheel starts, a stored
- * "1v1" or "2v2" is shown as itself. A normal betting spin stores "BR".
+ * Betting rounds read "BATTLE ROYALE" even when `currentGameType` is still
+ * the previous round's "1v1" or "2v2".
  */
 export function selectDisplayedGameType(state: RootState): string {
   return displayedGameType(gameTypeSource(state));
