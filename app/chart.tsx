@@ -31,6 +31,7 @@ import { clearLobbyError } from "../store/lobbySlice";
 import { selectDisplayedGameType, selectRoundIsBetting } from "../store/selectors";
 import { RootState } from "../store/store";
 import { displayedBetNet, displayMode } from "../utils/betting";
+import { subscribeDevCommandNotice, type DevCommandNotice } from "../utils/devMenu";
 import { isExpoGo } from "../utils/environment";
 import {
   playButtonClickSound,
@@ -158,7 +159,12 @@ export default function ChartScreen() {
   const [devCategory, setDevCategory] = useState(CATS[0]);
   const [devPlayers, setDevPlayers] = useState<string[]>([]);
   const [devAwardTargetPlayer, setDevAwardTargetPlayer] = useState<string>("");
-  const [devAwardFeedback, setDevAwardFeedback] = useState<string>("");
+  const [devNotice, setDevNotice] = useState<DevCommandNotice | null>(null);
+
+  useEffect(() => {
+    if (!__DEV__) return;
+    return subscribeDevCommandNotice(setDevNotice);
+  }, []);
 
   const currentGameTypeRef = useRef(currentGameType);
   const currentCategoryRef = useRef(currentCategory);
@@ -303,20 +309,21 @@ export default function ChartScreen() {
     setDevCategory(CATS[0]);
     setDevPlayers([]);
     setDevAwardTargetPlayer(myPlayer?.id || players[0]?.id || "");
-    setDevAwardFeedback("");
+    setDevNotice(null);
     setShowDevModal(true);
   };
 
   const handleDevAwardCard = (cardId: string) => {
-    if (!devAwardTargetPlayer) return;
+    if (!devAwardTargetPlayer) {
+      setDevNotice({
+        command: "dev_award_card",
+        ok: false,
+        message: "Pick a player before awarding a card.",
+      });
+      return;
+    }
     playButtonClickSound();
     colyseusService.sendDevAwardCard(devAwardTargetPlayer, cardId);
-    const targetPlayerName =
-      players.find((p: any) => p.id === devAwardTargetPlayer)?.name || "Player";
-    setDevAwardFeedback(`Awarded ${cardId} to ${targetPlayerName}!`);
-    setTimeout(() => {
-      setDevAwardFeedback("");
-    }, 2500);
   };
 
   const toggleDevPlayer = (id: string) => {
@@ -600,6 +607,9 @@ export default function ChartScreen() {
             onPress={handleReadyToggle}
             style={wheelHold ? { opacity: 0.45 } : undefined}
           />
+          {__DEV__ && myPlayer?.isHost && devNotice && !showDevModal && (
+            <DevCommandBanner notice={devNotice} />
+          )}
           {__DEV__ && myPlayer?.isHost && (
             <TouchableOpacity
               onPress={openDevModal}
@@ -1065,13 +1075,7 @@ export default function ChartScreen() {
                   ))}
                 </View>
 
-                {devAwardFeedback ? (
-                  <View className="bg-emerald-500/20 border-2 border-emerald-400 rounded-xl p-2.5 items-center mt-2">
-                    <Text className="text-emerald-300 font-black text-xs uppercase tracking-wider text-center">
-                      {devAwardFeedback}
-                    </Text>
-                  </View>
-                ) : null}
+                {devNotice ? <DevCommandBanner notice={devNotice} /> : null}
               </View>
             </ScrollView>
           </View>
@@ -1123,6 +1127,16 @@ export default function ChartScreen() {
       <CardDock />
       <CardAwardPopup />
       <CardAnnouncementPopup />
+    </View>
+  );
+}
+
+function DevCommandBanner({ notice }: { notice: DevCommandNotice }) {
+  return (
+    <View
+      className={`border-4 border-black rounded-2xl px-3 py-2 mb-3 ${notice.ok ? "bg-emerald-400" : "bg-amber-400"}`}
+    >
+      <Text className="text-black font-black text-xs text-center">{notice.message}</Text>
     </View>
   );
 }

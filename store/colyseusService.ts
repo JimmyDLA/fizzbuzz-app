@@ -8,6 +8,20 @@ import { store } from './store';
 import { EARNED_THIS_ROUND_MESSAGE, readEarnedRounds } from '../utils/cardRound';
 import { DEFAULT_TOTAL_ROUNDS, GameOverPayload, isRoundsErrorCode, mergeGameOver, normalizePodium, roundsErrorMessage } from '../utils/rounds';
 import { readDrinkChains } from '../utils/shieldPass';
+import {
+  DEV_AWARD_CARD,
+  DEV_START_WHEEL,
+  classifyDevCommandResult,
+  devAwardCardMessage,
+  devAwardLandedMessage,
+  devCardLanded,
+  devCommandNotSentMessage,
+  devStartWheelMessage,
+  publishDevCommandNotice,
+  readCardList,
+  type DevCommandName,
+  type DevCommandNotice,
+} from '../utils/devMenu';
 
 
 
@@ -87,6 +101,105 @@ let wheelHoldTimer: ReturnType<typeof setTimeout> | null = null;
  * SpinWheelEvent is sent. Hold Ready until the spin event, or this fallback.
  */
 const WHEEL_HOLD_FALLBACK_MS = 6500;
+/** Long enough for a local state patch, short enough that a dead button is obvious. */
+const DEV_COMMAND_ACK_MS = 1200;
+
+type PendingDevAck = {
+  command: DevCommandName;
+  cardId?: string;
+  targetPlayerId?: string;
+  cardsBefore: string[];
+  playerName: string;
+  rejection: string | null;
+  timer: ReturnType<typeof setTimeout>;
+};
+
+let pendingDevAck: PendingDevAck | null = null;
+
+function devMenuFeedbackEnabled(): boolean {
+  return typeof __DEV__ !== "undefined" && __DEV__;
+}
+
+function clearDevAckTimer() {
+  if (!pendingDevAck) return;
+  clearTimeout(pendingDevAck.timer);
+  pendingDevAck = null;
+}
+
+function roomPlayer(room: { state?: any } | null, playerId: string): any {
+  return room?.state?.players?.get?.(playerId);
+}
+
+function publishDevNotice(notice: DevCommandNotice) {
+  console.warn(`[DEV MODE] ${notice.message}`);
+  publishDevCommandNotice(notice);
+}
+
+function finishDevAck() {
+  const pending = pendingDevAck;
+  pendingDevAck = null;
+  if (!pending) return;
+  const room = currentRoom;
+  const phase = typeof room?.state?.phase === "string" ? room.state.phase : "";
+  const cardLanded =
+    pending.command === DEV_AWARD_CARD &&
+    !!pending.targetPlayerId &&
+    !!pending.cardId &&
+    !!room &&
+    devCardLanded(
+      pending.cardsBefore,
+      readCardList(roomPlayer(room, pending.targetPlayerId)?.cards),
+      pending.cardId,
+    );
+  const failure = classifyDevCommandResult({
+    command: pending.command,
+    phase,
+    rejection: pending.rejection,
+    cardLanded,
+  });
+  if (!failure) {
+    if (pending.command === DEV_AWARD_CARD && pending.cardId) {
+      publishDevCommandNotice({
+        command: pending.command,
+        ok: true,
+        message: devAwardLandedMessage(pending.cardId, pending.playerName),
+      });
+    } else {
+      publishDevCommandNotice(null);
+    }
+    return;
+  }
+  publishDevNotice({ command: pending.command, ok: false, message: failure });
+}
+
+function armDevAck(next: Omit<PendingDevAck, "timer" | "rejection">) {
+  if (!devMenuFeedbackEnabled()) return;
+  clearDevAckTimer();
+  publishDevCommandNotice(null);
+  const timer = setTimeout(() => finishDevAck(), DEV_COMMAND_ACK_MS);
+  pendingDevAck = { ...next, rejection: null, timer };
+}
+
+function noteDevRejection(message: string) {
+  if (!pendingDevAck || !message.trim()) return;
+  pendingDevAck.rejection = message;
+}
+
+function noteDevWheelStarted() {
+  if (!pendingDevAck || pendingDevAck.command !== DEV_START_WHEEL) return;
+  clearDevAckTimer();
+  publishDevCommandNotice(null);
+}
+
+function reportDevCommandNotSent(command: DevCommandName) {
+  if (!devMenuFeedbackEnabled()) return;
+  clearDevAckTimer();
+  publishDevNotice({
+    command,
+    ok: false,
+    message: devCommandNotSentMessage(command),
+  });
+}
 
 function beginWheelHold(cardId: string) {
   if (wheelHoldTimer) clearTimeout(wheelHoldTimer);
@@ -185,6 +298,7 @@ export const colyseusService = {
 
   disconnect() {
     endWheelHold();
+    clearDevAckTimer();
     clearGameOverHandoff();
     if (currentRoom) {
       currentRoom.reconnection.enabled = false;
@@ -233,15 +347,31 @@ export const colyseusService = {
   },
 
   sendDevStart(type: string, category: string, players: string[]) {
-    if (currentRoom) {
-      currentRoom.send("dev_start_wheel", { type, category, selectedPlayers: players });
+    if (!currentRoom) {
+      reportDevCommandNotSent(DEV_START_WHEEL);
+      return;
     }
+    currentRoom.send(DEV_START_WHEEL, devStartWheelMessage(type, category, players));
+    armDevAck({ command: DEV_START_WHEEL, cardsBefore: [], playerName: "" });
   },
 
   sendDevAwardCard(targetPlayerId: string, cardId: string) {
-    if (currentRoom) {
-      currentRoom.send("dev_award_card", { targetPlayerId, cardId });
+    if (!currentRoom) {
+      reportDevCommandNotSent(DEV_AWARD_CARD);
+      return;
     }
+    const seated = roomPlayer(currentRoom, targetPlayerId);
+    const playerName = typeof seated?.name === "string" && seated.name.trim()
+      ? seated.name.trim()
+      : "player";
+    currentRoom.send(DEV_AWARD_CARD, devAwardCardMessage(targetPlayerId, cardId));
+    armDevAck({
+      command: DEV_AWARD_CARD,
+      cardId,
+      targetPlayerId,
+      cardsBefore: readCardList(seated?.cards),
+      playerName,
+    });
   },
 
   setupRoomListeners(room: any) {
@@ -326,6 +456,7 @@ export const colyseusService = {
       if (event.selectedPlayers) store.dispatch(setSelectedPlayers(event.selectedPlayers));
       store.dispatch(incrementSpinCount());
       endWheelHold();
+      noteDevWheelStarted();
     });
 
     room.onMessage("LobbyError", (event: { code?: string; message?: string }) => {
@@ -340,6 +471,7 @@ export const colyseusService = {
             ? "At least 2 players are required to start."
             : "The room could not continue.";
       store.dispatch(setLobbyError({ code, message }));
+      noteDevRejection(message);
     });
 
     room.state.players?.onAdd?.((player: any, sessionId: string) => {
@@ -429,6 +561,7 @@ export const colyseusService = {
     room.onLeave((code: number) => {
       console.log(`[Colyseus] Disconnected with code: ${code}`);
       currentRoom = null;
+      clearDevAckTimer();
       endWheelHold();
       if (gameOverActive) {
         // openPodium already opened the podium. Replacing it again remounts the screen.
